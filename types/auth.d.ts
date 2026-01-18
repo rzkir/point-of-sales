@@ -1,10 +1,10 @@
-export enum RoleType {
+enum RoleType {
     SUPER_ADMIN = "super_admin",
     ADMIN = "admin",
     KARYAWAN = "karyawan",
 }
 
-export interface User {
+interface User {
     id: string;
     email: string;
     name: string;
@@ -14,7 +14,7 @@ export interface User {
     updatedAt: string;
 }
 
-export interface Accounts {
+interface Accounts {
     id: string;
     email: string;
     name: string;
@@ -25,7 +25,7 @@ export interface Accounts {
     updatedAt: string;
 }
 
-export interface RegisterRequest {
+interface RegisterRequest {
     email: string;
     name: string;
     password: string;
@@ -34,13 +34,25 @@ export interface RegisterRequest {
     branchId?: string;
 }
 
-export interface LoginRequest {
-    email: string;
+interface LoginRequest {
+    email?: string;
+    name?: string;
     password: string;
 }
 
-export interface AuthResponse {
+interface AuthResponse {
     success: boolean;
     message: string;
     data?: User;
+}
+
+interface AuthContextType {
+    user: User | null
+    isLoading: boolean
+    error: string | null
+    login: (credentials: LoginRequest) => Promise<User | null>
+    register: (data: RegisterRequest) => Promise<boolean>
+    logout: () => void | Promise<void>
+    isAuthenticated: boolean
+    clearError: () => void
 }

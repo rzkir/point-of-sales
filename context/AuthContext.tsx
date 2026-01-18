@@ -1,23 +1,11 @@
 "use client"
 
-import { createContext, useContext, useState, ReactNode } from "react"
-import { useRouter } from "next/navigation"
-import { User, LoginRequest, RegisterRequest, AuthResponse } from "@/types/auth"
+import { createContext, useContext, useEffect, useState, ReactNode } from "react"
 
-interface AuthContextType {
-    user: User | null
-    isLoading: boolean
-    error: string | null
-    login: (credentials: LoginRequest) => Promise<boolean>
-    register: (data: RegisterRequest) => Promise<boolean>
-    logout: () => void
-    isAuthenticated: boolean
-    clearError: () => void
-}
+import { useRouter } from "next/navigation"
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Initialize user from localStorage
 function getInitialUser(): User | null {
     if (typeof window === "undefined") return null
 
@@ -39,7 +27,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
 
-    const login = async (credentials: LoginRequest): Promise<boolean> => {
+    // Sinkronkan cookie user.role agar proxy bisa redirect / → /dashboard
+    useEffect(() => {
+        if (user && typeof window !== "undefined") {
+            document.cookie = `user.role=${encodeURIComponent(user.roleType)}; path=/; max-age=604800`
+        }
+    }, [user])
+
+    const login = async (credentials: LoginRequest): Promise<User | null> => {
         setIsLoading(true)
         setError(null)
 
@@ -60,28 +55,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // Jika response bukan JSON
                 setError(`Server error: ${response.status} ${response.statusText}`)
                 setIsLoading(false)
-                return false
+                return null
             }
 
             if (!data.success || !data.data) {
                 setError(data.message || "Login failed")
                 setIsLoading(false)
-                return false
+                return null
             }
 
             // Save user to state and localStorage
             setUser(data.data)
             if (typeof window !== "undefined") {
                 localStorage.setItem("user", JSON.stringify(data.data))
+                // Cookie untuk proxy: redirect / → /dashboard jika role admin
+                document.cookie = `user.role=${encodeURIComponent(data.data.roleType)}; path=/; max-age=604800`
             }
 
             setIsLoading(false)
-            return true
+            return data.data
         } catch (error) {
             console.error("Login error:", error)
             setError(error instanceof Error ? error.message : "An error occurred. Please try again.")
             setIsLoading(false)
-            return false
+            return null
         }
     }
 
@@ -140,10 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    const logout = () => {
+    const logout = async () => {
         setUser(null)
         if (typeof window !== "undefined") {
             localStorage.removeItem("user")
+            await fetch("/api/auth/session", { method: "DELETE", credentials: "include" })
         }
         router.push("/")
     }

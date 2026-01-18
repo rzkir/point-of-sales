@@ -1,10 +1,15 @@
 "use client"
 
 import { FormEvent } from "react"
+
 import { useRouter } from "next/navigation"
+
 import Link from "next/link"
+
 import { cn } from "@/lib/utils"
+
 import { Button } from "@/components/ui/button"
+
 import {
   Field,
   FieldDescription,
@@ -12,7 +17,11 @@ import {
   FieldLabel,
   FieldSeparator,
 } from "@/components/ui/field"
+
 import { Input } from "@/components/ui/input"
+
+import { getRedirectPathForRole } from "@/lib/redirect-by-role"
+
 import { useAuth } from "@/context/AuthContext"
 
 export function LoginForm({
@@ -27,14 +36,19 @@ export function LoginForm({
     clearError()
 
     const formData = new FormData(e.currentTarget)
-    const email = formData.get("email") as string
+    const identifier = formData.get("identifier") as string
     const password = formData.get("password") as string
 
-    const success = await login({ email, password })
+    // Check if identifier is email or name
+    const isEmail = identifier.includes("@")
+    const credentials = isEmail
+      ? { email: identifier, password }
+      : { name: identifier, password }
 
-    if (success) {
-      // Redirect to dashboard or home page
-      router.push("/dashboard")
+    const user = await login(credentials)
+
+    if (user) {
+      router.push(getRedirectPathForRole(user.roleType))
     }
   }
 
@@ -44,7 +58,7 @@ export function LoginForm({
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Login to your account</h1>
           <p className="text-muted-foreground text-sm text-balance">
-            Enter your email below to login to your account
+            Enter your email or name below to login to your account
           </p>
         </div>
 
@@ -55,8 +69,8 @@ export function LoginForm({
         )}
 
         <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" name="email" type="email" placeholder="m@example.com" required disabled={isLoading} />
+          <FieldLabel htmlFor="identifier">Email or Name</FieldLabel>
+          <Input id="identifier" name="identifier" type="text" placeholder="email@example.com or your name" required disabled={isLoading} />
         </Field>
         <Field>
           <div className="flex items-center">

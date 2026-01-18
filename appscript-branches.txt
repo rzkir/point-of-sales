@@ -1,10 +1,10 @@
 /**
- * Google Apps Script untuk Authentication dan Management dengan Google Sheets
+ * Google Apps Script untuk Management Branches dengan Google Sheets
  * 
  * INSTRUKSI SETUP:
- * 1. Buat Google Spreadsheet baru di https://docs.google.com/spreadsheets
+ * 1. Buka Google Spreadsheet yang sama dengan Users sheet
  * 2. Buka Extensions > Apps Script di spreadsheet tersebut
- * 3. Paste kode ini ke editor Apps Script
+ * 3. Paste kode ini ke editor Apps Script (atau tambahkan ke file yang sama dengan Users script)
  * 4. PENTING: Pastikan SPREADSHEET_ID = null (baris 31) untuk menggunakan spreadsheet aktif
  * 5. Klik Save (Ctrl+S atau Cmd+S)
  * 6. Klik Deploy > Manage deployments
@@ -19,17 +19,16 @@
  *      * Who has access: Anyone (PENTING!)
  *    - Klik Deploy
  * 9. Copy Web App URL yang muncul
- * 10. Paste URL tersebut ke file .env.local sebagai APPS_SCRIPT_URL
+ * 10. Paste URL tersebut ke file .env.local sebagai APPS_SCRIPT_BRANCHES_URL
  * 
  * PENTING: Setiap kali update kode, HARUS update deployment juga!
- *
- * FEATURES:
- * - Authentication: register, login (dengan email atau name)
- * - Branches Management: create, list, get, update, delete
- *
- * LOGIN DENGAN NAME: handleLogin di bawah mendukung login pakai email ATAU name.
- * Jika dapat error "Email and password are required" saat login pakai name,
- * ganti handleLogin dengan versi di file ini lalu Deploy > Manage deployments > Edit > Deploy.
+ * 
+ * ACTIONS YANG DIDUKUNG:
+ * - create: Membuat branch baru
+ * - list: Mendapatkan semua branches
+ * - get: Mendapatkan branch berdasarkan ID
+ * - update: Update branch
+ * - delete: Hapus branch
  */
 
 // ⚠️ PENTING: Ganti dengan Spreadsheet ID Anda!
@@ -51,7 +50,6 @@ const SPREADSHEET_ID = null; // Gunakan null untuk metode 1
 // Cara mendapatkan Spreadsheet ID dari URL:
 // https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit
 
-const SHEET_NAME = 'Users';
 const BRANCHES_SHEET_NAME = 'Branches';
 
 /**
@@ -76,335 +74,6 @@ function getSpreadsheet() {
 }
 
 /**
- * Mendapatkan sheet Users
- */
-function getUsersSheet() {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
-  
-  // Jika sheet belum ada, buat sheet baru
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    // Set header
-    sheet.getRange(1, 1, 1, 8).setValues([[
-      'id', 'email', 'name', 'password', 'roleType', 'branchId', 'createdAt', 'updatedAt'
-    ]]);
-    // Format header
-    sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
-    sheet.getRange(1, 1, 1, 8).setBackground('#4285f4');
-    sheet.getRange(1, 1, 1, 8).setFontColor('#ffffff');
-  }
-  
-  return sheet;
-}
-
-/**
- * Generate unique ID
- */
-function generateId() {
-  return Utilities.getUuid();
-}
-
-/**
- * Hash password sederhana (untuk production, gunakan library yang lebih aman)
- */
-function hashPassword(password) {
-  const rawHash = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    password,
-    Utilities.Charset.UTF_8
-  );
-  return rawHash.map(function(byte) {
-    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
-  }).join('');
-}
-
-/**
- * Verifikasi password
- */
-function verifyPassword(password, hashedPassword) {
-  const hashedInput = hashPassword(password);
-  return hashedInput === hashedPassword;
-}
-
-/**
- * Cari user berdasarkan email
- */
-function findUserByEmail(email) {
-  const sheet = getUsersSheet();
-  const data = sheet.getDataRange().getValues();
-  
-  // Skip header
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === email) { // email di kolom 1 (index 1)
-      return {
-        id: data[i][0],
-        email: data[i][1],
-        name: data[i][2],
-        password: data[i][3],
-        roleType: data[i][4],
-        branchId: data[i][5],
-        createdAt: data[i][6],
-        updatedAt: data[i][7]
-      };
-    }
-  }
-  return null;
-}
-
-/**
- * Cari user berdasarkan name
- */
-function findUserByName(name) {
-  const sheet = getUsersSheet();
-  const data = sheet.getDataRange().getValues();
-  
-  // Skip header
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][2] === name) { // name di kolom 2 (index 2)
-      return {
-        id: data[i][0],
-        email: data[i][1],
-        name: data[i][2],
-        password: data[i][3],
-        roleType: data[i][4],
-        branchId: data[i][5],
-        createdAt: data[i][6],
-        updatedAt: data[i][7]
-      };
-    }
-  }
-  return null;
-}
-
-/**
- * Handler untuk doPost - menerima request dari Next.js
- */
-function doPost(e) {
-  try {
-    const requestData = JSON.parse(e.postData.contents);
-    const action = requestData.action;
-    
-    let response;
-    
-    switch(action) {
-      // Authentication actions
-      case 'register':
-        response = handleRegister(requestData);
-        break;
-      case 'login':
-        response = handleLogin(requestData);
-        break;
-      // Branches actions
-      case 'create':
-        response = handleCreateBranch(requestData);
-        break;
-      case 'list':
-        response = handleListBranches(requestData);
-        break;
-      case 'get':
-        response = handleGetBranch(requestData);
-        break;
-      case 'update':
-        response = handleUpdateBranch(requestData);
-        break;
-      case 'delete':
-        response = handleDeleteBranch(requestData);
-        break;
-      default:
-        response = {
-          success: false,
-          message: 'Invalid action. Supported actions: register, login, create, list, get, update, delete'
-        };
-    }
-    
-    return ContentService
-      .createTextOutput(JSON.stringify(response))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    return ContentService
-      .createTextOutput(JSON.stringify({
-        success: false,
-        message: error.toString()
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-/**
- * Handler untuk doGet - untuk testing
- */
-function doGet(e) {
-  return ContentService
-    .createTextOutput(JSON.stringify({
-      success: true,
-      message: 'Google Apps Script API is running',
-      features: ['Authentication', 'Branches Management'],
-      timestamp: new Date().toISOString()
-    }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-/**
- * Handle register
- */
-function handleRegister(data) {
-  const { email, name, password, roleType = 'karyawan', branchId = '' } = data;
-  
-  // Validasi
-  if (!email || !name || !password) {
-    return {
-      success: false,
-      message: 'Email, name, and password are required'
-    };
-  }
-  
-  // Validasi email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return {
-      success: false,
-      message: 'Invalid email format'
-    };
-  }
-  
-  // Validasi password length
-  if (password.length < 8) {
-    return {
-      success: false,
-      message: 'Password must be at least 8 characters'
-    };
-  }
-  
-  // Cek apakah email sudah terdaftar
-  const existingUser = findUserByEmail(email);
-  if (existingUser) {
-    return {
-      success: false,
-      message: 'Email already registered'
-    };
-  }
-  
-  // Hash password
-  const hashedPassword = hashPassword(password);
-  
-  // Generate ID dan timestamp
-  const id = generateId();
-  const now = new Date().toISOString();
-  
-  // Simpan ke sheet
-  const sheet = getUsersSheet();
-  sheet.appendRow([
-    id,
-    email,
-    name,
-    hashedPassword,
-    roleType,
-    branchId,
-    now,
-    now
-  ]);
-  
-  return {
-    success: true,
-    message: 'Registration successful',
-    data: {
-      id: id,
-      email: email,
-      name: name,
-      roleType: roleType,
-      branchId: branchId
-    }
-  };
-}
-
-/**
- * Handle login
- * 
- * PENTING - Login dengan EMAIL atau NAME:
- * Jika Anda dapat error "Email and password are required" saat login pakai name,
- * artinya deployment Apps Script masih memakai kode lama. Ganti handleLogin
- * di Apps Script dengan versi ini, lalu Deploy > Manage deployments > Edit > Deploy.
- */
-function handleLogin(data) {
-  const { email, name, password } = data || {};
-  
-  // Validasi: butuh (email ATAU name) DAN password
-  // Trim supaya string kosong/whitespace dianggap tidak ada
-  const hasEmail = email && String(email).trim() !== '';
-  const hasName = name && String(name).trim() !== '';
-  const hasPassword = password && String(password).trim() !== '';
-  
-  if ((!hasEmail && !hasName) || !hasPassword) {
-    return {
-      success: false,
-      message: 'Email or name, and password are required'
-    };
-  }
-  
-  // Cari user: jika "email" tidak mengandung @, artinya Next.js mengirim name di field email
-  // (workaround script lama). Gunakan findUserByName untuk kolom name di sheet.
-  var user = null;
-  var emailStr = hasEmail ? String(email).trim() : '';
-  var nameStr = hasName ? String(name).trim() : '';
-  var isEmailFormat = emailStr.indexOf('@') !== -1;
-  
-  if (hasEmail && isEmailFormat) {
-    user = findUserByEmail(emailStr);
-  } else if (hasName) {
-    user = findUserByName(nameStr);
-  } else if (hasEmail) {
-    user = findUserByName(emailStr);
-  }
-  
-  if (!user) {
-    return {
-      success: false,
-      message: 'Invalid email/name or password'
-    };
-  }
-  
-  // Verifikasi password
-  if (!verifyPassword(password, user.password)) {
-    return {
-      success: false,
-      message: 'Invalid email/name or password'
-    };
-  }
-  
-  // Update updatedAt di sheet
-  var now = new Date().toISOString();
-  var sheet = getUsersSheet();
-  var dataRange = sheet.getDataRange().getValues();
-  for (var i = 1; i < dataRange.length; i++) {
-    if (dataRange[i][1] === user.email) {
-      sheet.getRange(i + 1, 8).setValue(now);
-      break;
-    }
-  }
-  
-  // Return user data (tanpa password)
-  return {
-    success: true,
-    message: 'Login successful',
-    data: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      roleType: user.roleType,
-      branchId: user.branchId,
-      createdAt: user.createdAt,
-      updatedAt: now
-    }
-  };
-}
-
-// ============================================
-// BRANCHES MANAGEMENT FUNCTIONS
-// ============================================
-
-/**
  * Mendapatkan sheet Branches
  */
 function getBranchesSheet() {
@@ -425,6 +94,13 @@ function getBranchesSheet() {
   }
   
   return sheet;
+}
+
+/**
+ * Generate unique ID
+ */
+function generateId() {
+  return Utilities.getUuid();
 }
 
 /**
@@ -469,6 +145,66 @@ function findBranchByName(name) {
     }
   }
   return null;
+}
+
+/**
+ * Handler untuk doPost - menerima request dari Next.js
+ */
+function doPost(e) {
+  try {
+    const requestData = JSON.parse(e.postData.contents);
+    const action = requestData.action;
+    
+    let response;
+    
+    switch(action) {
+      case 'create':
+        response = handleCreateBranch(requestData);
+        break;
+      case 'list':
+        response = handleListBranches(requestData);
+        break;
+      case 'get':
+        response = handleGetBranch(requestData);
+        break;
+      case 'update':
+        response = handleUpdateBranch(requestData);
+        break;
+      case 'delete':
+        response = handleDeleteBranch(requestData);
+        break;
+      default:
+        response = {
+          success: false,
+          message: 'Invalid action. Supported actions: create, list, get, update, delete'
+        };
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify(response))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: false,
+        message: error.toString()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Handler untuk doGet - untuk testing
+ */
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Google Apps Script Branches API is running',
+      timestamp: new Date().toISOString()
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
