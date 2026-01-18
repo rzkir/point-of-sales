@@ -21,7 +21,11 @@ export function DashboardLayoutClient({
             }
         >
             <AppSidebar />
-            <SidebarInset>{children}</SidebarInset>
+            <SidebarInset>
+                <main className="flex flex-1 flex-col p-4">
+                    {children}
+                </main>
+            </SidebarInset>
         </SidebarProvider>
     );
 }
