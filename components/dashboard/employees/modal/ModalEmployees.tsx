@@ -29,12 +29,21 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 
+interface Branch {
+    id: string
+    name: string
+    address: string
+    createdAt: string
+    updatedAt: string
+}
+
 interface Employee {
     id: string
     name: string
     email: string
     roleType: string
     branchId?: string
+    branchName?: string
     createdAt: string
     updatedAt: string
 }
@@ -53,7 +62,32 @@ export function EmployeeEditForm({
     const [isOpen, setIsOpen] = React.useState(false)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [roleType, setRoleType] = React.useState(employee.roleType || "karyawan")
+    const [branchName, setBranchName] = React.useState(employee.branchName || "none")
+    const [branches, setBranches] = React.useState<Branch[]>([])
+    const [isLoadingBranches, setIsLoadingBranches] = React.useState(false)
     const formRef = React.useRef<HTMLFormElement>(null)
+
+    // Fetch branches when dialog opens
+    React.useEffect(() => {
+        if (isOpen) {
+            fetchBranches()
+        }
+    }, [isOpen])
+
+    const fetchBranches = async () => {
+        setIsLoadingBranches(true)
+        try {
+            const response = await fetch("/api/branches")
+            const data = await response.json()
+            if (data.success) {
+                setBranches(data.data || [])
+            }
+        } catch (error) {
+            console.error("Failed to fetch branches:", error)
+        } finally {
+            setIsLoadingBranches(false)
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -69,7 +103,7 @@ export function EmployeeEditForm({
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ name, email, roleType }),
+                body: JSON.stringify({ name, email, roleType, branchName: branchName === "none" ? null : branchName }),
             })
 
             const data = await response.json()
@@ -137,6 +171,22 @@ export function EmployeeEditForm({
                                 </SelectContent>
                             </Select>
                         </Field>
+                        <Field>
+                            <FieldLabel htmlFor="edit-branchName">Branch</FieldLabel>
+                            <Select value={branchName} onValueChange={setBranchName} disabled={isSubmitting || isLoadingBranches}>
+                                <SelectTrigger id="edit-branchName">
+                                    <SelectValue placeholder={isLoadingBranches ? "Loading branches..." : "Select branch"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">No Branch</SelectItem>
+                                    {branches.map((branch) => (
+                                        <SelectItem key={branch.id} value={branch.name}>
+                                            {branch.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </Field>
                     </FieldGroup>
                 </form>
                 <DialogFooter>
@@ -172,7 +222,32 @@ export function EmployeeCreateForm({ onUpdate }: EmployeeCreateFormProps) {
     const [isOpen, setIsOpen] = React.useState(false)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [roleType, setRoleType] = React.useState("karyawan")
+    const [branchName, setBranchName] = React.useState("none")
+    const [branches, setBranches] = React.useState<Branch[]>([])
+    const [isLoadingBranches, setIsLoadingBranches] = React.useState(false)
     const formRef = React.useRef<HTMLFormElement>(null)
+
+    // Fetch branches when dialog opens
+    React.useEffect(() => {
+        if (isOpen) {
+            fetchBranches()
+        }
+    }, [isOpen])
+
+    const fetchBranches = async () => {
+        setIsLoadingBranches(true)
+        try {
+            const response = await fetch("/api/branches")
+            const data = await response.json()
+            if (data.success) {
+                setBranches(data.data || [])
+            }
+        } catch (error) {
+            console.error("Failed to fetch branches:", error)
+        } finally {
+            setIsLoadingBranches(false)
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -189,7 +264,7 @@ export function EmployeeCreateForm({ onUpdate }: EmployeeCreateFormProps) {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ name, email, password, roleType }),
+                body: JSON.stringify({ name, email, password, roleType, branchName: branchName === "none" ? null : branchName }),
             })
 
             const data = await response.json()
@@ -202,6 +277,7 @@ export function EmployeeCreateForm({ onUpdate }: EmployeeCreateFormProps) {
             setIsOpen(false)
             formRef.current?.reset()
             setRoleType("karyawan")
+            setBranchName("none")
             onUpdate()
         } catch (error) {
             console.error("Create error:", error)
@@ -282,6 +358,25 @@ export function EmployeeCreateForm({ onUpdate }: EmployeeCreateFormProps) {
                                     <SelectItem value="karyawan">Karyawan</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </Field>
+                        <Field>
+                            <FieldLabel htmlFor="create-branchName">Branch</FieldLabel>
+                            <Select value={branchName} onValueChange={setBranchName} disabled={isSubmitting || isLoadingBranches}>
+                                <SelectTrigger id="create-branchName">
+                                    <SelectValue placeholder={isLoadingBranches ? "Loading branches..." : "Select branch"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">No Branch</SelectItem>
+                                    {branches.map((branch) => (
+                                        <SelectItem key={branch.id} value={branch.name}>
+                                            {branch.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FieldDescription>
+                                Assign employee to a branch (optional)
+                            </FieldDescription>
                         </Field>
                     </FieldGroup>
                 </form>

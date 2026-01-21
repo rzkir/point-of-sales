@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { IconUser, IconDotsVertical, IconTrash, IconMail, IconCalendar, IconShield, IconBuilding } from "@tabler/icons-react"
+import { IconBuilding, IconDotsVertical, IconTrash, IconMail, IconCalendar, IconPhone, IconUser, IconMapPin } from "@tabler/icons-react"
 
 import { toast } from "sonner"
 
@@ -39,28 +39,70 @@ import {
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
-import { EmployeeEditForm, EmployeeCreateForm } from "./modal/ModalEmployees"
+import { SupplierEditForm, SupplierCreateForm } from "./modal/ModalSuppliers"
 
-import { DeleteEmployee } from "./modal/DelateEmployees"
+import { DeleteSupplier } from "./modal/DelateSuppliers"
 
 import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
 
 import { Badge } from "@/components/ui/badge"
 
-const createColumns = (onUpdate: () => void): ColumnDef<Employee>[] => [
+interface Supplier {
+    id: number | string
+    name: string
+    contact_person: string
+    phone: string
+    email: string
+    address: string
+    is_active: boolean
+    created_at: string
+    updated_at: string
+}
+
+const createColumns = (onUpdate: () => void): ColumnDef<Supplier>[] => [
     {
         accessorKey: "name",
         header: () => <span className="font-semibold">Name</span>,
         cell: ({ row }) => (
             <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <IconUser className="size-5" />
+                    <IconBuilding className="size-5" />
                 </div>
                 <div>
                     <div className="font-semibold text-foreground">{row.getValue("name")}</div>
                 </div>
             </div>
         ),
+    },
+    {
+        accessorKey: "contact_person",
+        header: () => <span className="font-semibold">Contact Person</span>,
+        cell: ({ row }) => {
+            const contactPerson = row.getValue("contact_person") as string
+            return (
+                <div className="flex items-center gap-2 max-w-md">
+                    <IconUser className="size-4 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground text-sm">
+                        {contactPerson || <span className="italic">No contact person</span>}
+                    </span>
+                </div>
+            )
+        },
+    },
+    {
+        accessorKey: "phone",
+        header: () => <span className="font-semibold">Phone</span>,
+        cell: ({ row }) => {
+            const phone = row.getValue("phone") as string
+            return (
+                <div className="flex items-center gap-2 max-w-md">
+                    <IconPhone className="size-4 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground text-sm">
+                        {phone || <span className="italic">No phone</span>}
+                    </span>
+                </div>
+            )
+        },
     },
     {
         accessorKey: "email",
@@ -78,45 +120,37 @@ const createColumns = (onUpdate: () => void): ColumnDef<Employee>[] => [
         },
     },
     {
-        accessorKey: "roleType",
-        header: () => <span className="font-semibold">Role</span>,
+        accessorKey: "address",
+        header: () => <span className="font-semibold">Address</span>,
         cell: ({ row }) => {
-            const roleType = row.getValue("roleType") as string
-            const roleColors: Record<string, string> = {
-                super_admin: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
-                admin: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-                karyawan: "bg-green-500/10 text-green-700 dark:text-green-400",
-            }
+            const address = row.getValue("address") as string
             return (
-                <div className="flex items-center gap-2">
-                    <IconShield className="size-4 text-muted-foreground" />
-                    <Badge className={roleColors[roleType] || "bg-gray-500/10 text-gray-700 dark:text-gray-400"}>
-                        {roleType || "N/A"}
-                    </Badge>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "branchName",
-        header: () => <span className="font-semibold">Branch</span>,
-        cell: ({ row }) => {
-            const branchName = row.getValue("branchName") as string
-            return (
-                <div className="flex items-center gap-2">
-                    <IconBuilding className="size-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                        {branchName ? branchName : <span className="italic">No Branch</span>}
+                <div className="flex items-center gap-2 max-w-md">
+                    <IconMapPin className="size-4 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground text-sm">
+                        {address || <span className="italic">No address</span>}
                     </span>
                 </div>
             )
         },
     },
     {
-        accessorKey: "createdAt",
+        accessorKey: "is_active",
+        header: () => <span className="font-semibold">Status</span>,
+        cell: ({ row }) => {
+            const isActive = row.getValue("is_active") as boolean
+            return (
+                <Badge className={isActive ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400"}>
+                    {isActive ? "Active" : "Inactive"}
+                </Badge>
+            )
+        },
+    },
+    {
+        accessorKey: "created_at",
         header: () => <span className="font-semibold">Created At</span>,
         cell: ({ row }) => {
-            const dateStr = row.getValue("createdAt") as string
+            const dateStr = row.getValue("created_at") as string
             if (!dateStr) return (
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <IconCalendar className="size-4" />
@@ -146,11 +180,11 @@ const createColumns = (onUpdate: () => void): ColumnDef<Employee>[] => [
     {
         id: "actions",
         header: () => <span className="font-semibold">Actions</span>,
-        cell: ({ row }) => <EmployeeActions employee={row.original} onUpdate={onUpdate} />,
+        cell: ({ row }) => <SupplierActions supplier={row.original} onUpdate={onUpdate} />,
     },
 ]
 
-function EmployeeActions({ employee, onUpdate }: { employee: Employee; onUpdate: () => void }) {
+function SupplierActions({ supplier, onUpdate }: { supplier: Supplier; onUpdate: () => void }) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
 
     return (
@@ -167,11 +201,11 @@ function EmployeeActions({ employee, onUpdate }: { employee: Employee; onUpdate:
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
-                    <EmployeeEditForm employee={employee} onUpdate={onUpdate}>
+                    <SupplierEditForm supplier={supplier} onUpdate={onUpdate}>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
                             Edit
                         </DropdownMenuItem>
-                    </EmployeeEditForm>
+                    </SupplierEditForm>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         variant="destructive"
@@ -187,8 +221,8 @@ function EmployeeActions({ employee, onUpdate }: { employee: Employee; onUpdate:
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <DeleteEmployee
-                employee={employee}
+            <DeleteSupplier
+                supplier={supplier}
                 onUpdate={onUpdate}
                 isOpen={isDeleteDialogOpen}
                 onOpenChange={setIsDeleteDialogOpen}
@@ -197,39 +231,43 @@ function EmployeeActions({ employee, onUpdate }: { employee: Employee; onUpdate:
     )
 }
 
-export default function Employees() {
-    const [employees, setEmployees] = React.useState<Employee[]>([])
+export default function Suppliers() {
+    const [suppliers, setSuppliers] = React.useState<Supplier[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
-    const fetchEmployees = React.useCallback(async () => {
+    const fetchSuppliers = React.useCallback(async () => {
         try {
             setIsLoading(true)
-            const response = await fetch("/api/employees")
+            const response = await fetch("/api/supplier")
             const data = await response.json()
 
+            console.log("Suppliers API response:", data)
+
             if (!data.success) {
-                throw new Error(data.message || "Failed to fetch employees")
+                throw new Error(data.message || "Failed to fetch suppliers")
             }
 
-            setEmployees(data.data || [])
+            const suppliersData = data.data || []
+            console.log("Suppliers data:", suppliersData)
+            setSuppliers(suppliersData)
         } catch (error) {
             console.error("Fetch error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to fetch employees")
+            toast.error(error instanceof Error ? error.message : "Failed to fetch suppliers")
         } finally {
             setIsLoading(false)
         }
     }, [])
 
     React.useEffect(() => {
-        fetchEmployees()
-    }, [fetchEmployees])
+        fetchSuppliers()
+    }, [fetchSuppliers])
 
-    const columns = React.useMemo(() => createColumns(fetchEmployees), [fetchEmployees])
+    const columns = React.useMemo(() => createColumns(fetchSuppliers), [fetchSuppliers])
 
     const table = useReactTable({
-        data: employees,
+        data: suppliers,
         columns,
         state: {
             sorting,
@@ -243,6 +281,8 @@ export default function Employees() {
         getSortedRowModel: getSortedRowModel(),
     })
 
+    const activeSuppliers = suppliers.filter(s => s.is_active).length
+
     return (
         <section className="space-y-6">
             {/* Header Section */}
@@ -253,27 +293,27 @@ export default function Employees() {
                             <div className="relative">
                                 <div className="absolute inset-0 bg-primary/20 blur-xl rounded-2xl" />
                                 <div className="relative flex size-14 items-center justify-center rounded-2xl bg-linear-to-br from-primary/20 to-primary/10 text-primary shadow-lg ring-2 ring-primary/20">
-                                    <IconUser className="size-7" />
+                                    <IconBuilding className="size-7" />
                                 </div>
                             </div>
                             <div className="space-y-2 flex-1">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                                        Employees
+                                        Suppliers
                                     </h1>
-                                    {!isLoading && employees.length > 0 && (
+                                    {!isLoading && suppliers.length > 0 && (
                                         <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
-                                            {employees.length} {employees.length === 1 ? 'employee' : 'employees'}
+                                            {suppliers.length} {suppliers.length === 1 ? 'supplier' : 'suppliers'}
                                         </span>
                                     )}
                                 </div>
                                 <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                                    Manage your employees and user accounts. Create, edit, and organize all your team members in one place.
+                                    Manage your suppliers and vendor information. Create, edit, and organize all your supplier contacts in one place.
                                 </p>
                             </div>
                         </div>
                         <div className="shrink-0">
-                            <EmployeeCreateForm onUpdate={fetchEmployees} />
+                            <SupplierCreateForm onUpdate={fetchSuppliers} />
                         </div>
                     </div>
                 </CardContent>
@@ -288,12 +328,23 @@ export default function Employees() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Total Employees</span>
+                                    <span className="text-sm font-medium text-muted-foreground">Total Suppliers</span>
+                                    <IconBuilding className="size-4 text-muted-foreground" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{suppliers.length}</div>
+                            </CardContent>
+                        </Card>
+                        <Card className="border-2">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-muted-foreground">Active Suppliers</span>
                                     <IconUser className="size-4 text-muted-foreground" />
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{employees.length}</div>
+                                <div className="text-2xl font-bold">{activeSuppliers}</div>
                             </CardContent>
                         </Card>
                         <Card className="border-2">
@@ -305,17 +356,6 @@ export default function Employees() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{table.getRowModel().rows.length}</div>
-                            </CardContent>
-                        </Card>
-                        <Card className="border-2">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Status</span>
-                                    <div className="size-2 rounded-full bg-green-500" />
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-green-600 dark:text-green-400">Active</div>
                             </CardContent>
                         </Card>
                     </>
@@ -370,15 +410,15 @@ export default function Employees() {
                                         >
                                             <div className="flex flex-col items-center justify-center gap-4 py-8">
                                                 <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-                                                    <IconUser className="size-8 text-muted-foreground" />
+                                                    <IconBuilding className="size-8 text-muted-foreground" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <h3 className="text-lg font-semibold">No employees found</h3>
+                                                    <h3 className="text-lg font-semibold">No suppliers found</h3>
                                                     <p className="text-sm text-muted-foreground max-w-sm">
-                                                        Get started by creating your first employee account
+                                                        Get started by creating your first supplier
                                                     </p>
                                                 </div>
-                                                <EmployeeCreateForm onUpdate={fetchEmployees} />
+                                                <SupplierCreateForm onUpdate={fetchSuppliers} />
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -390,11 +430,11 @@ export default function Employees() {
             </Card>
 
             {/* Footer Info */}
-            {!isLoading && employees.length > 0 && (
+            {!isLoading && suppliers.length > 0 && (
                 <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
                     <div className="text-sm text-muted-foreground">
                         Showing <span className="font-semibold text-foreground">{table.getRowModel().rows.length}</span> of{" "}
-                        <span className="font-semibold text-foreground">{employees.length}</span> employee{employees.length !== 1 ? "s" : ""}
+                        <span className="font-semibold text-foreground">{suppliers.length}</span> supplier{suppliers.length !== 1 ? "s" : ""}
                     </div>
                 </div>
             )}

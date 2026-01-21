@@ -8,10 +8,10 @@ const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'YOUR_APPS_SCRIPT_WEB_APP
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(
@@ -30,12 +30,16 @@ export async function GET(
 
     // Panggil Google Apps Script untuk get user
     // Menggunakan action 'get' dengan parameter sheet untuk membedakan dari branches
+    // PASTIKAN sheet: 'Users' untuk employees, bukan 'Branches'
+    const requestBody = { action: 'get', sheet: 'Users', id };
+    console.log('GET /api/employees/[id] - Request body:', JSON.stringify(requestBody));
+
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action: 'get', sheet: 'Users', id }),
+      body: JSON.stringify(requestBody),
     });
 
     // Cek content type
@@ -84,12 +88,12 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
-    const { name, email, roleType } = body;
+    const { name, email, roleType, branchName } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -99,7 +103,7 @@ export async function PUT(
     }
 
     // Debug logging
-    console.log('Update employee request received:', { id, name, email, roleType });
+    console.log('Update employee request received:', { id, name, email, roleType, branchName });
 
     // Validasi APPS_SCRIPT_URL
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
@@ -111,6 +115,7 @@ export async function PUT(
 
     // Prepare request body for Apps Script
     // Menggunakan action 'update' dengan parameter sheet untuk membedakan dari branches
+    // PASTIKAN sheet: 'Users' untuk employees, bukan 'Branches'
     const requestBody: {
       action: string;
       sheet: string;
@@ -118,9 +123,10 @@ export async function PUT(
       name?: string;
       email?: string;
       roleType?: string;
+      branchName?: string;
     } = {
       action: 'update',
-      sheet: 'Users',
+      sheet: 'Users', // IMPORTANT: Must be 'Users' for employees
       id,
     };
 
@@ -132,6 +138,9 @@ export async function PUT(
     }
     if (roleType !== undefined && roleType !== null) {
       requestBody.roleType = String(roleType).trim();
+    }
+    if (branchName !== undefined) {
+      requestBody.branchName = branchName ? String(branchName).trim() : '';
     }
 
     console.log('Sending to Apps Script:', requestBody);
@@ -197,10 +206,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(
@@ -222,13 +231,14 @@ export async function DELETE(
 
     // Prepare request body for Apps Script
     // Menggunakan action 'delete' dengan parameter sheet untuk membedakan dari branches
+    // PASTIKAN sheet: 'Users' untuk employees, bukan 'Branches'
     const requestBody = {
       action: 'delete',
-      sheet: 'Users',
+      sheet: 'Users', // IMPORTANT: Must be 'Users' for employees
       id,
     };
 
-    console.log('Sending to Apps Script:', requestBody);
+    console.log('DELETE /api/employees/[id] - Sending to Apps Script:', JSON.stringify(requestBody));
 
     // Panggil Google Apps Script
     const response = await fetch(APPS_SCRIPT_URL, {

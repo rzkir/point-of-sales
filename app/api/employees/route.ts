@@ -18,12 +18,15 @@ export async function GET(request: NextRequest) {
 
     // Panggil Google Apps Script untuk list users dari sheet Users
     // Menggunakan action 'list' dengan parameter sheet untuk membedakan dari branches
+    const requestBody = { action: 'list', sheet: 'Users' };
+    console.log('GET /api/employees - Request body:', JSON.stringify(requestBody));
+
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action: 'list', sheet: 'Users' }),
+      body: JSON.stringify(requestBody),
     });
 
     // Cek content type
@@ -73,10 +76,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password, roleType } = body;
+    const { name, email, password, roleType, branchName } = body;
 
     // Debug logging
-    console.log('Create employee request received:', { name, email, roleType });
+    console.log('Create employee request received:', { name, email, roleType, branchName });
 
     // Validasi
     if (!name || String(name).trim() === '') {
@@ -103,16 +106,18 @@ export async function POST(request: NextRequest) {
 
     // Prepare request body for Apps Script
     // Menggunakan action 'create' dengan parameter sheet untuk membedakan dari branches
+    // PASTIKAN sheet: 'Users' untuk employees, bukan 'Branches'
     const requestBody = {
       action: 'create',
-      sheet: 'Users',
+      sheet: 'Users', // IMPORTANT: Must be 'Users' for employees
       name: String(name).trim(),
       email: String(email).trim(),
       password: password ? String(password).trim() : '',
       roleType: roleType ? String(roleType).trim() : 'karyawan',
+      branchName: branchName ? String(branchName).trim() : '',
     };
 
-    console.log('Sending to Apps Script:', { ...requestBody, password: password ? '***' : '' });
+    console.log('POST /api/employees - Sending to Apps Script:', JSON.stringify({ ...requestBody, password: password ? '***' : '' }));
 
     // Panggil Google Apps Script
     const response = await fetch(APPS_SCRIPT_URL, {

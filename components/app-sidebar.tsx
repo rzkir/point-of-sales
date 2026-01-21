@@ -13,7 +13,9 @@ import {
   IconSettings,
   IconUsers,
   IconCreditCardFilled,
-  IconBox
+  IconBox,
+  IconBuildingStore,
+  IconCategory,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -48,9 +50,19 @@ const data = {
       icon: IconUsers,
     },
     {
+      title: "Suppliers",
+      url: "/dashboard/suppliers",
+      icon: IconBuildingStore,
+    },
+    {
       title: "Products",
       url: "/dashboard/products",
       icon: IconBox,
+    },
+    {
+      title: "Categories",
+      url: "/dashboard/categories",
+      icon: IconCategory,
     },
     {
       title: "Transactions",
