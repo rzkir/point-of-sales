@@ -4,11 +4,22 @@ import { NextRequest, NextResponse } from "next/server";
 const APPS_SCRIPT_URL =
     process.env.APPS_SCRIPT_URL || "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
 
+// Secret untuk otorisasi request ke Apps Script
+const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET;
+
 /**
- * GET /api/products - List all products
+ * GET /api/products - List all products with pagination
+ * Query params:
+ *   - page: page number (default: 1)
+ *   - limit: items per page (default: 10, max: 100)
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        // Auth (header) untuk akses endpoint ini
+        if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         // Validasi APPS_SCRIPT_URL
         if (
             !APPS_SCRIPT_URL ||
@@ -24,13 +35,26 @@ export async function GET() {
             );
         }
 
-        const requestBody = { action: "list", sheet: "Products" };
+        // Parse query parameters untuk pagination
+        const { searchParams } = new URL(request.url);
+        const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
+        const offset = (page - 1) * limit;
+
+        const requestBody = {
+            action: "list",
+            sheet: "Products",
+            page: page,
+            limit: limit,
+            offset: offset,
+        };
         console.log("GET /api/products - Request body:", JSON.stringify(requestBody));
 
         const response = await fetch(APPS_SCRIPT_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${API_SECRET}`,
             },
             body: JSON.stringify(requestBody),
         });
@@ -62,10 +86,26 @@ export async function GET() {
             );
         }
 
+        // Jika Apps Script sudah return pagination metadata, gunakan itu
+        // Jika belum, kita hitung sendiri dari data yang dikembalikan
+        const products = Array.isArray(data.data) ? data.data : [];
+        const total = data.total !== undefined ? data.total : products.length;
+        const totalPages = Math.ceil(total / limit);
+        const hasNext = page < totalPages;
+        const hasPrev = page > 1;
+
         return NextResponse.json({
             success: true,
             message: data.message,
-            data: data.data,
+            data: products,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages,
+                hasNext,
+                hasPrev,
+            },
         });
     } catch (error) {
         console.error("Get products error:", error);
@@ -85,6 +125,11 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
     try {
+        // Auth (header) untuk akses endpoint ini
+        if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         // Ambil user dari cookie session (httpOnly) supaya created_by tidak kosong
         // Cookie ini di-set saat login di /api/auth/login
         let sessionUser: User | null = null
@@ -198,6 +243,7 @@ export async function POST(request: NextRequest) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${API_SECRET}`,
             },
             body: JSON.stringify(requestBody),
         });

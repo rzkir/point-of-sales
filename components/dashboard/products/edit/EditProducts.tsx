@@ -116,7 +116,12 @@ export default function EditProducts({ productId }: { productId?: string }) {
 
         try {
             setIsLoading(true)
-            const response = await fetch(`/api/products/${encodeURIComponent(productId)}`)
+            const apiSecret = process.env.NEXT_PUBLIC_API_SECRET || ""
+            const response = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
+                headers: {
+                    Authorization: `Bearer ${apiSecret}`,
+                },
+            })
             const data = await response.json().catch(() => ({}))
 
             if (!response.ok || !data?.success) {
@@ -203,9 +208,13 @@ export default function EditProducts({ productId }: { productId?: string }) {
 
         setIsSubmitting(true)
         try {
+            const apiSecret = process.env.NEXT_PUBLIC_API_SECRET || ""
             const response = await fetch(`/api/products/${encodeURIComponent(productId)}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiSecret}`,
+                },
                 body: JSON.stringify({
                     name,
                     price: price ? Number(price) : undefined,
