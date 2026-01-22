@@ -35,14 +35,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { BranchEditForm, BranchCreateForm } from "./modal/ModalBranch"
 import { DeleteBranch } from "./modal/DelateBranch"
 import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
+import { fetchBranches, type BranchRow } from "@/lib/config"
 
-interface Branch {
-    id: string
-    name: string
-    address: string
-    createdAt: string
-    updatedAt: string
-}
+type Branch = BranchRow
 
 // Create columns function that accepts onUpdate callback
 const createColumns = (onUpdate: () => void): ColumnDef<Branch>[] => [
@@ -166,17 +161,11 @@ export default function Branches() {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
-    const fetchBranches = React.useCallback(async () => {
+    const loadBranches = React.useCallback(async () => {
         try {
             setIsLoading(true)
-            const response = await fetch("/api/branches")
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to fetch branches")
-            }
-
-            setBranches(data.data || [])
+            const result = await fetchBranches()
+            setBranches(result.data || [])
         } catch (error) {
             console.error("Fetch error:", error)
             toast.error(error instanceof Error ? error.message : "Failed to fetch branches")
@@ -186,10 +175,10 @@ export default function Branches() {
     }, [])
 
     React.useEffect(() => {
-        fetchBranches()
-    }, [fetchBranches])
+        loadBranches()
+    }, [loadBranches])
 
-    const columns = React.useMemo(() => createColumns(fetchBranches), [fetchBranches])
+    const columns = React.useMemo(() => createColumns(loadBranches), [loadBranches])
 
     const table = useReactTable({
         data: branches,
@@ -236,7 +225,7 @@ export default function Branches() {
                             </div>
                         </div>
                         <div className="shrink-0">
-                            <BranchCreateForm onUpdate={fetchBranches} />
+                            <BranchCreateForm onUpdate={loadBranches} />
                         </div>
                     </div>
                 </CardContent>
@@ -341,7 +330,7 @@ export default function Branches() {
                                                         Get started by creating your first branch location
                                                     </p>
                                                 </div>
-                                                <BranchCreateForm onUpdate={fetchBranches} />
+                                                <BranchCreateForm onUpdate={loadBranches} />
                                             </div>
                                         </TableCell>
                                     </TableRow>

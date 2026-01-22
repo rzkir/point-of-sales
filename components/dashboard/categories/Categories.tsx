@@ -37,15 +37,9 @@ import { Badge } from "@/components/ui/badge"
 import { CategoryCreateForm, CategoryEditForm } from "./modal/ModalCategories"
 import { DeleteCategory } from "./modal/DeleteCategory"
 import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
+import { fetchCategories, type CategoryRow } from "@/lib/config"
 
-interface Category {
-    id: string
-    uid: string
-    name: string
-    is_active: boolean
-    created_at: string
-    updated_at: string
-}
+type Category = CategoryRow
 
 const createColumns = (onUpdate: () => void): ColumnDef<Category>[] => [
     {
@@ -163,17 +157,11 @@ export default function Categories() {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
-    const fetchCategories = React.useCallback(async () => {
+    const loadCategories = React.useCallback(async () => {
         try {
             setIsLoading(true)
-            const response = await fetch("/api/categories")
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to fetch categories")
-            }
-
-            setCategories(data.data || [])
+            const result = await fetchCategories()
+            setCategories(result.data || [])
         } catch (error) {
             console.error("Fetch error:", error)
             toast.error(error instanceof Error ? error.message : "Failed to fetch categories")
@@ -183,10 +171,10 @@ export default function Categories() {
     }, [])
 
     React.useEffect(() => {
-        fetchCategories()
-    }, [fetchCategories])
+        loadCategories()
+    }, [loadCategories])
 
-    const columns = React.useMemo(() => createColumns(fetchCategories), [fetchCategories])
+    const columns = React.useMemo(() => createColumns(loadCategories), [loadCategories])
 
     const table = useReactTable({
         data: categories,
@@ -234,7 +222,7 @@ export default function Categories() {
                             </div>
                         </div>
                         <div className="shrink-0">
-                            <CategoryCreateForm onUpdate={fetchCategories} />
+                            <CategoryCreateForm onUpdate={loadCategories} />
                         </div>
                     </div>
                 </CardContent>
@@ -337,7 +325,7 @@ export default function Categories() {
                                                         Start by creating your first category.
                                                     </p>
                                                 </div>
-                                                <CategoryCreateForm onUpdate={fetchCategories} />
+                                                <CategoryCreateForm onUpdate={loadCategories} />
                                             </div>
                                         </TableCell>
                                     </TableRow>

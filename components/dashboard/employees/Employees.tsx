@@ -47,6 +47,10 @@ import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
 
 import { Badge } from "@/components/ui/badge"
 
+import { fetchEmployees, type EmployeeRow } from "@/lib/config"
+
+type Employee = EmployeeRow
+
 const createColumns = (onUpdate: () => void): ColumnDef<Employee>[] => [
     {
         accessorKey: "name",
@@ -203,17 +207,11 @@ export default function Employees() {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
-    const fetchEmployees = React.useCallback(async () => {
+    const loadEmployees = React.useCallback(async () => {
         try {
             setIsLoading(true)
-            const response = await fetch("/api/employees")
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to fetch employees")
-            }
-
-            setEmployees(data.data || [])
+            const result = await fetchEmployees()
+            setEmployees(result.data || [])
         } catch (error) {
             console.error("Fetch error:", error)
             toast.error(error instanceof Error ? error.message : "Failed to fetch employees")
@@ -273,7 +271,7 @@ export default function Employees() {
                             </div>
                         </div>
                         <div className="shrink-0">
-                            <EmployeeCreateForm onUpdate={fetchEmployees} />
+                            <EmployeeCreateForm onUpdate={loadEmployees} />
                         </div>
                     </div>
                 </CardContent>
@@ -378,7 +376,7 @@ export default function Employees() {
                                                         Get started by creating your first employee account
                                                     </p>
                                                 </div>
-                                                <EmployeeCreateForm onUpdate={fetchEmployees} />
+                                                <EmployeeCreateForm onUpdate={loadEmployees} />
                                             </div>
                                         </TableCell>
                                     </TableRow>

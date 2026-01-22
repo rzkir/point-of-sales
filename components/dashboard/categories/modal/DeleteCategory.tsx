@@ -14,15 +14,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { deleteCategory, type CategoryRow } from "@/lib/config"
 
-interface Category {
-    id: string
-    uid: string
-    name: string
-    is_active: boolean
-    created_at: string
-    updated_at: string
-}
+type Category = CategoryRow
 
 interface DeleteCategoryProps {
     category: Category
@@ -42,16 +36,7 @@ export function DeleteCategory({
     const handleDelete = async () => {
         setIsDeleting(true)
         try {
-            const response = await fetch(`/api/categories/${category.id}`, {
-                method: "DELETE",
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to delete category")
-            }
-
+            await deleteCategory(category.id)
             toast.success("Category deleted successfully")
             onOpenChange(false)
             onUpdate()

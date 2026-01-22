@@ -44,21 +44,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
-
-type ProductRow = {
-    id: string | number
-    uid?: string
-    name: string
-    price?: number
-    modal?: number
-    stock?: number
-    sold?: number
-    unit?: string
-    barcode?: string
-    is_active?: boolean
-    branch_id?: string
-    image_url?: string
-}
+import { fetchProducts, deleteProduct, type ProductRow } from "@/lib/config"
 
 const formatCurrency = (value?: number) => {
     const n = Number(value ?? 0)
@@ -120,23 +106,10 @@ function ProductActions({ product, onUpdate }: { product: ProductRow; onUpdate: 
         if (isDeletingRef.current) return
         isDeletingRef.current = true
         try {
-            const apiSecret = process.env.NEXT_PUBLIC_API_SECRET || ""
-            const response = await fetch(`/api/products/${encodeURIComponent(String(product.id))}`, {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${apiSecret}`,
-                },
-            })
-            const data = await response.json().catch(() => ({}))
-
-            if (!response.ok || !data?.success) {
-                throw new Error(data?.message || "Failed to delete product")
-            }
-
+            await deleteProduct(product.id)
             toast.success("Product deleted")
             onUpdate()
         } catch (error) {
-            console.error("Delete product error:", error)
             toast.error(error instanceof Error ? error.message : "Failed to delete product")
         } finally {
             isDeletingRef.current = false
@@ -193,42 +166,21 @@ export default function Products() {
     const [hasNext, setHasNext] = React.useState(false)
     const [hasPrev, setHasPrev] = React.useState(false)
 
-    const fetchProducts = React.useCallback(async () => {
+    const loadProducts = React.useCallback(async () => {
         try {
             setIsLoading(true)
-            const params = new URLSearchParams({
-                page: String(page),
-                limit: String(limit),
-            })
+            const response = await fetchProducts(page, limit)
 
-            const apiSecret = process.env.NEXT_PUBLIC_API_SECRET || ""
-            const response = await fetch(`/api/products?${params.toString()}`, {
-                headers: {
-                    Authorization: `Bearer ${apiSecret}`,
-                },
-            })
-
-            if (response.status === 401) {
-                throw new Error("Unauthorized")
-            }
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to fetch products")
-            }
-
-            setProducts(data.data || [])
+            setProducts(response.data || [])
 
             // Update pagination metadata
-            if (data.pagination) {
-                setTotal(data.pagination.total || 0)
-                setTotalPages(data.pagination.totalPages || 0)
-                setHasNext(data.pagination.hasNext || false)
-                setHasPrev(data.pagination.hasPrev || false)
+            if (response.pagination) {
+                setTotal(response.pagination.total || 0)
+                setTotalPages(response.pagination.totalPages || 0)
+                setHasNext(response.pagination.hasNext || false)
+                setHasPrev(response.pagination.hasPrev || false)
             }
         } catch (error) {
-            console.error("Fetch products error:", error)
             toast.error(error instanceof Error ? error.message : "Failed to fetch products")
         } finally {
             setIsLoading(false)
@@ -236,10 +188,10 @@ export default function Products() {
     }, [page, limit])
 
     React.useEffect(() => {
-        void fetchProducts()
-    }, [fetchProducts])
+        void loadProducts()
+    }, [loadProducts])
 
-    const columns = React.useMemo(() => createColumns(() => fetchProducts()), [fetchProducts])
+    const columns = React.useMemo(() => createColumns(() => loadProducts()), [loadProducts])
 
     const table = useReactTable({
         data: products,
@@ -362,7 +314,7 @@ export default function Products() {
                                 onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
                             />
                         </div>
-                        <Button variant="outline" onClick={() => fetchProducts()}>
+                        <Button variant="outline" onClick={() => loadProducts()}>
                             Refresh
                         </Button>
                     </div>

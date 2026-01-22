@@ -47,17 +47,9 @@ import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
 
 import { Badge } from "@/components/ui/badge"
 
-interface Supplier {
-    id: number | string
-    name: string
-    contact_person: string
-    phone: string
-    email: string
-    address: string
-    is_active: boolean
-    created_at: string
-    updated_at: string
-}
+import { fetchSuppliers, type SupplierRow } from "@/lib/config"
+
+type Supplier = SupplierRow
 
 const createColumns = (onUpdate: () => void): ColumnDef<Supplier>[] => [
     {
@@ -237,21 +229,11 @@ export default function Suppliers() {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
-    const fetchSuppliers = React.useCallback(async () => {
+    const loadSuppliers = React.useCallback(async () => {
         try {
             setIsLoading(true)
-            const response = await fetch("/api/supplier")
-            const data = await response.json()
-
-            console.log("Suppliers API response:", data)
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to fetch suppliers")
-            }
-
-            const suppliersData = data.data || []
-            console.log("Suppliers data:", suppliersData)
-            setSuppliers(suppliersData)
+            const result = await fetchSuppliers()
+            setSuppliers(result.data || [])
         } catch (error) {
             console.error("Fetch error:", error)
             toast.error(error instanceof Error ? error.message : "Failed to fetch suppliers")
@@ -261,10 +243,11 @@ export default function Suppliers() {
     }, [])
 
     React.useEffect(() => {
-        fetchSuppliers()
-    }, [fetchSuppliers])
+        loadSuppliers()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
-    const columns = React.useMemo(() => createColumns(fetchSuppliers), [fetchSuppliers])
+    const columns = React.useMemo(() => createColumns(loadSuppliers), [loadSuppliers])
 
     const table = useReactTable({
         data: suppliers,
@@ -418,7 +401,7 @@ export default function Suppliers() {
                                                         Get started by creating your first supplier
                                                     </p>
                                                 </div>
-                                                <SupplierCreateForm onUpdate={fetchSuppliers} />
+                                                <SupplierCreateForm onUpdate={loadSuppliers} />
                                             </div>
                                         </TableCell>
                                     </TableRow>

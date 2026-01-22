@@ -23,15 +23,9 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { API_CONFIG, type CategoryRow } from "@/lib/config"
 
-interface Category {
-    id: string
-    uid: string
-    name: string
-    is_active: boolean
-    created_at: string
-    updated_at: string
-}
+type Category = CategoryRow
 
 interface CategoryEditFormProps {
     category: Category
@@ -57,10 +51,11 @@ export function CategoryEditForm({
         const name = formData.get("name") as string
 
         try {
-            const response = await fetch(`/api/categories/${category.id}`, {
+            const response = await fetch(API_CONFIG.ENDPOINTS.categories.byId(category.id), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: JSON.stringify({
                     name,
@@ -170,10 +165,11 @@ export function CategoryCreateForm({ onUpdate }: CategoryCreateFormProps) {
         const name = formData.get("name") as string
 
         try {
-            const response = await fetch("/api/categories", {
+            const response = await fetch(API_CONFIG.ENDPOINTS.categories.base, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: JSON.stringify({
                     name,

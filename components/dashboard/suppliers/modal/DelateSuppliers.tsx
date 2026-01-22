@@ -13,18 +13,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { deleteSupplier, type SupplierRow } from "@/lib/config"
 
-interface Supplier {
-    id: number | string
-    name: string
-    contact_person: string
-    phone: string
-    email: string
-    address: string
-    is_active: boolean
-    created_at: string
-    updated_at: string
-}
+type Supplier = SupplierRow
 
 interface DeleteSupplierProps {
     supplier: Supplier
@@ -44,16 +35,7 @@ export function DeleteSupplier({
     const handleDelete = async () => {
         setIsDeleting(true)
         try {
-            const response = await fetch(`/api/supplier/${supplier.id}`, {
-                method: "DELETE",
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to delete supplier")
-            }
-
+            await deleteSupplier(supplier.id)
             toast.success("Supplier deleted successfully")
             onOpenChange(false)
             onUpdate()

@@ -13,14 +13,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { deleteBranch, type BranchRow } from "@/lib/config"
 
-interface Branch {
-    id: string
-    name: string
-    address: string
-    createdAt: string
-    updatedAt: string
-}
+type Branch = BranchRow
 
 interface DeleteBranchProps {
     branch: Branch
@@ -40,16 +35,7 @@ export function DeleteBranch({
     const handleDelete = async () => {
         setIsDeleting(true)
         try {
-            const response = await fetch(`/api/branches/${branch.id}`, {
-                method: "DELETE",
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to delete branch")
-            }
-
+            await deleteBranch(branch.id)
             toast.success("Branch deleted successfully")
             onOpenChange(false)
             onUpdate()

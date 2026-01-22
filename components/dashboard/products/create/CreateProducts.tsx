@@ -6,6 +6,8 @@ import Image from "next/image"
 
 import { IconLoader, IconQrcode, IconRefresh } from "@tabler/icons-react"
 
+import Barcode from "react-barcode"
+
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -169,6 +171,23 @@ export default function CreateProducts() {
                             <FieldDescription>
                                 Barcode otomatis dihasilkan. Klik ikon refresh untuk generate baru atau ikon QR untuk scan.
                             </FieldDescription>
+                            {barcode && (
+                                <div className="mt-4 flex flex-col items-center gap-2 rounded-lg border border-border bg-muted/30 p-4">
+                                    <p className="text-xs font-medium text-muted-foreground">Barcode Preview</p>
+                                    <div className="flex items-center justify-center rounded-md bg-white p-4">
+                                        <Barcode
+                                            value={barcode}
+                                            format="CODE128"
+                                            width={2}
+                                            height={60}
+                                            displayValue={true}
+                                            fontSize={14}
+                                            margin={10}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground break-all">{barcode}</p>
+                                </div>
+                            )}
                         </Field>
                     </div>
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { Html5Qrcode } from "html5-qrcode"
+
 import { API_CONFIG } from "@/lib/config"
 
 const NO_BRANCH_VALUE = "__none__"
@@ -16,47 +17,105 @@ const generateBarcode = (): string => {
     return `PRD${timestamp}${random.toString().padStart(4, "0")}`
 }
 
-export function useStateCreateProducts() {
+const toDateInputValue = (value: unknown): string => {
+    if (!value) return ""
+    const s = String(value).trim()
+    if (!s) return ""
+    // ISO -> YYYY-MM-DD
+    if (s.includes("T")) return s.split("T")[0] ?? ""
+    // already YYYY-MM-DD...
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+    return ""
+}
+
+export function useStateEditProducts(productId?: string) {
     const router = useRouter()
+
+    const [isLoading, setIsLoading] = React.useState(true)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [isUploadingImage, setIsUploadingImage] = React.useState(false)
-    const [imageUrl, setImageUrl] = React.useState("")
-    const [branchId, setBranchId] = React.useState("")
+
     const [branches, setBranches] = React.useState<Branch[]>([])
     const [isLoadingBranches, setIsLoadingBranches] = React.useState(false)
-    const [supplierId, setSupplierId] = React.useState("")
     const [suppliers, setSuppliers] = React.useState<Supplier[]>([])
     const [isLoadingSuppliers, setIsLoadingSuppliers] = React.useState(false)
-    const [categoryId, setCategoryId] = React.useState("")
     const [categories, setCategories] = React.useState<Category[]>([])
     const [isLoadingCategories, setIsLoadingCategories] = React.useState(false)
+
+    const [product, setProduct] = React.useState<Products | null>(null)
+
+    // controlled fields (so we can prefill after fetch)
+    const [name, setName] = React.useState("")
+    const [price, setPrice] = React.useState("")
+    const [modal, setModal] = React.useState("")
+    const [stock, setStock] = React.useState("")
+    const [minStock, setMinStock] = React.useState("")
+    const [unit, setUnit] = React.useState("")
+    const [barcode, setBarcode] = React.useState("")
+    const [imageUrl, setImageUrl] = React.useState("")
+    const [expirationDate, setExpirationDate] = React.useState("")
+    const [description, setDescription] = React.useState("")
     const [isActive, setIsActive] = React.useState("true")
-    const [barcode, setBarcode] = React.useState<string>("")
+    const [branchId, setBranchId] = React.useState("")
+    const [supplierId, setSupplierId] = React.useState("")
+    const [categoryId, setCategoryId] = React.useState("")
     const [isScanning, setIsScanning] = React.useState(false)
     const [showScanDialog, setShowScanDialog] = React.useState(false)
     const scannerRef = React.useRef<Html5Qrcode | null>(null)
-    const scanElementId = "barcode-scanner"
+    const scanElementId = "barcode-scanner-edit"
     const formRef = React.useRef<HTMLFormElement>(null)
 
-    // Generate barcode only on client side to avoid hydration mismatch
-    React.useEffect(() => {
-        setBarcode(generateBarcode())
-    }, [])
+    const loadProduct = React.useCallback(async () => {
+        if (!productId) {
+            toast.error("Product ID is missing")
+            setIsLoading(false)
+            return
+        }
 
-    React.useEffect(() => {
-        fetchBranches()
-        fetchSuppliers()
-        fetchCategories()
-    }, [])
+        try {
+            setIsLoading(true)
+            const response = await fetch(API_CONFIG.ENDPOINTS.products.byId(productId), {
+                headers: {
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
+                },
+            })
+            const data = await response.json().catch(() => ({}))
+
+            if (!response.ok || !data?.success) {
+                throw new Error(data?.message || "Failed to fetch product")
+            }
+
+            const p: Products = data.data
+            setProduct(p)
+
+            setName(String(p.name ?? ""))
+            setPrice(p.price !== undefined && p.price !== null ? String(p.price) : "")
+            setModal(p.modal !== undefined && p.modal !== null ? String(p.modal) : "")
+            setStock(p.stock !== undefined && p.stock !== null ? String(p.stock) : "")
+            setMinStock(p.min_stock !== undefined && p.min_stock !== null ? String(p.min_stock) : "")
+            setUnit(p.unit ? String(p.unit) : "")
+            setBarcode(p.barcode ? String(p.barcode) : "")
+            setImageUrl(p.image_url ? String(p.image_url) : "")
+            setExpirationDate(toDateInputValue(p.expiration_date))
+            setDescription(p.description ? String(p.description) : "")
+            setIsActive(p.is_active === false ? "false" : "true")
+            setBranchId(p.branch_id ? String(p.branch_id) : "")
+            setSupplierId(p.supplier_id !== undefined && p.supplier_id !== null ? String(p.supplier_id) : "")
+            setCategoryId(p.category_id ? String(p.category_id) : "")
+        } catch (error) {
+            console.error("Load product error:", error)
+            toast.error(error instanceof Error ? error.message : "Failed to fetch product")
+        } finally {
+            setIsLoading(false)
+        }
+    }, [productId])
 
     const fetchBranches = async () => {
         setIsLoadingBranches(true)
         try {
             const response = await fetch("/api/branches")
             const data = await response.json()
-            if (data.success) {
-                setBranches(data.data || [])
-            }
+            if (data.success) setBranches(data.data || [])
         } catch (error) {
             console.error("Failed to fetch branches:", error)
         } finally {
@@ -67,15 +126,9 @@ export function useStateCreateProducts() {
     const fetchSuppliers = async () => {
         setIsLoadingSuppliers(true)
         try {
-            const response = await fetch(API_CONFIG.ENDPOINTS.suppliers.base, {
-                headers: {
-                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
-                },
-            })
+            const response = await fetch("/api/supplier")
             const data = await response.json()
-            if (data.success) {
-                setSuppliers(data.data || [])
-            }
+            if (data.success) setSuppliers(data.data || [])
         } catch (error) {
             console.error("Failed to fetch suppliers:", error)
         } finally {
@@ -93,7 +146,6 @@ export function useStateCreateProducts() {
             })
             const data = await response.json()
             if (data.success) {
-                // only active categories for selection UX
                 const list: Category[] = data.data || []
                 setCategories(list.filter((c) => c.is_active))
             }
@@ -104,59 +156,12 @@ export function useStateCreateProducts() {
         }
     }
 
-    const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0]
-        if (!file) return
-
-        const formData = new FormData()
-        formData.append("file", file)
-
-        setIsUploadingImage(true)
-        try {
-            const apiSecret = process.env.NEXT_PUBLIC_API_SECRET || ""
-            const response = await fetch("/api/products/upload", {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${apiSecret}`,
-                },
-                body: formData,
-            })
-
-            const data = await response.json()
-
-            if (!response.ok || !data.url) {
-                throw new Error(data.error || "Failed to upload image")
-            }
-
-            setImageUrl(data.url)
-            toast.success("Image uploaded successfully")
-        } catch (error) {
-            console.error("Image upload error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to upload image")
-        } finally {
-            setIsUploadingImage(false)
-        }
-    }
-
-    const removeImage = () => {
-        setImageUrl("")
-        // Reset file input
-        const fileInput = formRef.current?.querySelector('input[type="file"]') as HTMLInputElement
-        if (fileInput) {
-            fileInput.value = ""
-        }
-        toast.success("Image removed")
-    }
-
-    const resetForm = () => {
-        formRef.current?.reset()
-        setImageUrl("")
-        setBranchId("")
-        setSupplierId("")
-        setCategoryId("")
-        setBarcode(generateBarcode())
-        setIsActive("true")
-    }
+    React.useEffect(() => {
+        void loadProduct()
+        void fetchBranches()
+        void fetchSuppliers()
+        void fetchCategories()
+    }, [loadProduct])
 
     const generateNewBarcode = () => {
         setBarcode(generateBarcode())
@@ -213,6 +218,49 @@ export function useStateCreateProducts() {
         }
     }
 
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setIsUploadingImage(true)
+        try {
+            const formData = new FormData()
+            formData.append("file", file)
+
+            const apiSecret = process.env.NEXT_PUBLIC_API_SECRET || ""
+            const response = await fetch("/api/products/upload", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiSecret}`,
+                },
+                body: formData,
+            })
+
+            const data = await response.json()
+            if (!response.ok || !data.url) {
+                throw new Error(data.error || data.message || "Failed to upload image")
+            }
+
+            setImageUrl(data.url)
+            toast.success("Gambar berhasil diunggah")
+        } catch (error) {
+            console.error("Upload error:", error)
+            toast.error(error instanceof Error ? error.message : "Gagal mengunggah gambar")
+        } finally {
+            setIsUploadingImage(false)
+        }
+    }
+
+    const removeImage = () => {
+        setImageUrl("")
+        // Reset file input
+        const fileInput = formRef.current?.querySelector('input[type="file"]') as HTMLInputElement
+        if (fileInput) {
+            fileInput.value = ""
+        }
+        toast.success("Gambar telah dihapus")
+    }
+
     // Cleanup scanner on unmount
     React.useEffect(() => {
         return () => {
@@ -227,26 +275,14 @@ export function useStateCreateProducts() {
         }
     }, [])
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault()
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!productId) return
+
         setIsSubmitting(true)
-
-        const formData = new FormData(event.currentTarget)
-
-        const name = formData.get("name") as string
-        const price = formData.get("price") as string
-        const modal = formData.get("modal") as string
-        const stock = formData.get("stock") as string
-        const minStock = formData.get("min_stock") as string
-        const unit = formData.get("unit") as string
-        const barcode = formData.get("barcode") as string
-        const expirationDate = formData.get("expiration_date") as string
-        const description = formData.get("description") as string
-        const isActiveValue = isActive === "true"
-
         try {
-            const response = await fetch(API_CONFIG.ENDPOINTS.products.base, {
-                method: "POST",
+            const response = await fetch(API_CONFIG.ENDPOINTS.products.byId(productId), {
+                method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${API_CONFIG.SECRET}`,
@@ -261,59 +297,76 @@ export function useStateCreateProducts() {
                     barcode,
                     expiration_date: expirationDate ? expirationDate : undefined,
                     description: description ? description : undefined,
-                    is_active: isActiveValue,
+                    is_active: isActive === "true",
                     image_url: imageUrl,
                     branch_id: branchId ? branchId : undefined,
-                    // supplier_id di sheet "Suppliers" adalah string; jangan dipaksa jadi Number()
                     supplier_id: supplierId ? supplierId : undefined,
                     category_id: categoryId ? categoryId : undefined,
                 }),
             })
 
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to create product")
+            const data = await response.json().catch(() => ({}))
+            if (!response.ok || !data?.success) {
+                throw new Error(data?.message || "Failed to update product")
             }
 
-            toast.success("Product created successfully")
-            resetForm()
-
+            toast.success("Product updated successfully")
             router.push("/dashboard/products")
         } catch (error) {
-            console.error("Create product error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to create product")
+            console.error("Update product error:", error)
+            toast.error(error instanceof Error ? error.message : "Failed to update product")
         } finally {
             setIsSubmitting(false)
         }
     }
 
     return {
-        // State
+        // Loading states
+        isLoading,
         isSubmitting,
-        setIsSubmitting,
         isUploadingImage,
-        imageUrl,
-        branchId,
-        setBranchId,
-        branches,
-        isLoadingBranches,
-        supplierId,
-        setSupplierId,
-        suppliers,
-        isLoadingSuppliers,
-        categoryId,
-        setCategoryId,
-        categories,
-        isLoadingCategories,
-        isActive,
-        setIsActive,
+        // Product data
+        product,
+        // Form fields
+        name,
+        setName,
+        price,
+        setPrice,
+        modal,
+        setModal,
+        stock,
+        setStock,
+        minStock,
+        setMinStock,
+        unit,
+        setUnit,
         barcode,
         setBarcode,
+        imageUrl,
+        expirationDate,
+        setExpirationDate,
+        description,
+        setDescription,
+        isActive,
+        setIsActive,
+        branchId,
+        setBranchId,
+        supplierId,
+        setSupplierId,
+        categoryId,
+        setCategoryId,
+        // Dropdown data
+        branches,
+        isLoadingBranches,
+        suppliers,
+        isLoadingSuppliers,
+        categories,
+        isLoadingCategories,
+        // Barcode scanning
         isScanning,
         showScanDialog,
-        setShowScanDialog,
         scanElementId,
+        // Refs
         formRef,
         // Constants
         NO_BRANCH_VALUE,
@@ -321,7 +374,6 @@ export function useStateCreateProducts() {
         handleImageChange,
         handleSubmit,
         removeImage,
-        resetForm,
         generateNewBarcode,
         startScanning,
         stopScanning,

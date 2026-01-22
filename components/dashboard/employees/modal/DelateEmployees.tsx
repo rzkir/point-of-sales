@@ -13,16 +13,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { deleteEmployee, type EmployeeRow } from "@/lib/config"
 
-interface Employee {
-    id: string
-    name: string
-    email: string
-    roleType: string
-    branchId?: string
-    createdAt: string
-    updatedAt: string
-}
+type Employee = EmployeeRow
 
 interface DeleteEmployeeProps {
     employee: Employee
@@ -42,16 +35,7 @@ export function DeleteEmployee({
     const handleDelete = async () => {
         setIsDeleting(true)
         try {
-            const response = await fetch(`/api/employees/${employee.id}`, {
-                method: "DELETE",
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to delete employee")
-            }
-
+            await deleteEmployee(employee.id)
             toast.success("Employee deleted successfully")
             onOpenChange(false)
             onUpdate()

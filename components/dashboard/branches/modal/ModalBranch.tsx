@@ -21,14 +21,9 @@ import {
     FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { API_CONFIG, type BranchRow } from "@/lib/config"
 
-interface Branch {
-    id: string
-    name: string
-    address: string
-    createdAt: string
-    updatedAt: string
-}
+type Branch = BranchRow
 
 interface BranchEditFormProps {
     branch: Branch
@@ -157,10 +152,11 @@ export function BranchCreateForm({ onUpdate }: BranchCreateFormProps) {
         const address = formData.get("address") as string
 
         try {
-            const response = await fetch("/api/branches", {
+            const response = await fetch(API_CONFIG.ENDPOINTS.branches.base, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: JSON.stringify({ name, address }),
             })

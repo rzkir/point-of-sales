@@ -22,18 +22,9 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { API_CONFIG, type SupplierRow } from "@/lib/config"
 
-interface Supplier {
-    id: number | string
-    name: string
-    contact_person: string
-    phone: string
-    email: string
-    address: string
-    is_active: boolean
-    created_at: string
-    updated_at: string
-}
+type Supplier = SupplierRow
 
 interface SupplierEditFormProps {
     supplier: Supplier
@@ -222,10 +213,11 @@ export function SupplierCreateForm({ onUpdate }: SupplierCreateFormProps) {
         const address = formData.get("address") as string
 
         try {
-            const response = await fetch("/api/supplier", {
+            const response = await fetch(API_CONFIG.ENDPOINTS.suppliers.base, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: JSON.stringify({
                     name,

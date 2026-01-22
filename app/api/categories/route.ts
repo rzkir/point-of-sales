@@ -3,11 +3,19 @@ import { NextRequest, NextResponse } from "next/server"
 // Ganti dengan Web App URL dari Google Apps Script
 const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE"
 
+// Secret untuk otorisasi request ke Apps Script
+const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET
+
 /**
  * GET /api/categories - Get all categories
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        // Auth (header) untuk akses endpoint ini
+        if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
         if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
             return NextResponse.json(
                 { success: false, message: "Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local" },
@@ -17,7 +25,10 @@ export async function GET() {
 
         const response = await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${API_SECRET}`,
+            },
             body: JSON.stringify({ action: "list", sheet: "Categories" }),
         })
 
@@ -60,6 +71,11 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
     try {
+        // Auth (header) untuk akses endpoint ini
+        if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
         const body = await request.json()
         const { name, is_active } = body
 
@@ -86,7 +102,10 @@ export async function POST(request: NextRequest) {
 
         const response = await fetch(APPS_SCRIPT_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${API_SECRET}`,
+            },
             body: JSON.stringify(requestBody),
         })
 

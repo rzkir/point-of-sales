@@ -28,25 +28,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { API_CONFIG, fetchBranches as fetchBranchesFromConfig, type BranchRow, type EmployeeRow } from "@/lib/config"
 
-interface Branch {
-    id: string
-    name: string
-    address: string
-    createdAt: string
-    updatedAt: string
-}
-
-interface Employee {
-    id: string
-    name: string
-    email: string
-    roleType: string
-    branchId?: string
-    branchName?: string
-    createdAt: string
-    updatedAt: string
-}
+type Branch = BranchRow
+type Employee = EmployeeRow
 
 interface EmployeeEditFormProps {
     employee: Employee
@@ -77,11 +62,8 @@ export function EmployeeEditForm({
     const fetchBranches = async () => {
         setIsLoadingBranches(true)
         try {
-            const response = await fetch("/api/branches")
-            const data = await response.json()
-            if (data.success) {
-                setBranches(data.data || [])
-            }
+            const result = await fetchBranchesFromConfig()
+            setBranches(result.data || [])
         } catch (error) {
             console.error("Failed to fetch branches:", error)
         } finally {
@@ -98,10 +80,11 @@ export function EmployeeEditForm({
         const email = formData.get("email") as string
 
         try {
-            const response = await fetch(`/api/employees/${employee.id}`, {
+            const response = await fetch(API_CONFIG.ENDPOINTS.employees.byId(employee.id), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: JSON.stringify({ name, email, roleType, branchName: branchName === "none" ? null : branchName }),
             })
@@ -237,11 +220,8 @@ export function EmployeeCreateForm({ onUpdate }: EmployeeCreateFormProps) {
     const fetchBranches = async () => {
         setIsLoadingBranches(true)
         try {
-            const response = await fetch("/api/branches")
-            const data = await response.json()
-            if (data.success) {
-                setBranches(data.data || [])
-            }
+            const result = await fetchBranchesFromConfig()
+            setBranches(result.data || [])
         } catch (error) {
             console.error("Failed to fetch branches:", error)
         } finally {
@@ -259,10 +239,11 @@ export function EmployeeCreateForm({ onUpdate }: EmployeeCreateFormProps) {
         const password = formData.get("password") as string
 
         try {
-            const response = await fetch("/api/employees", {
+            const response = await fetch(API_CONFIG.ENDPOINTS.employees.base, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: JSON.stringify({ name, email, password, roleType, branchName: branchName === "none" ? null : branchName }),
             })
