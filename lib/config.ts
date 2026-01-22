@@ -56,6 +56,7 @@ export type ProductRow = {
     barcode?: string
     is_active?: boolean
     branch_id?: string
+    supplier_id?: string
     image_url?: string
 }
 
@@ -118,6 +119,12 @@ export type BranchesResponse = {
     data: BranchRow[]
 }
 
+export type BranchResponse = {
+    success: boolean
+    message?: string
+    data: BranchRow
+}
+
 export type DeleteBranchResponse = {
     success: boolean
     message?: string
@@ -166,6 +173,12 @@ export type SuppliersResponse = {
     success: boolean
     message?: string
     data: SupplierRow[]
+}
+
+export type SupplierResponse = {
+    success: boolean
+    message?: string
+    data: SupplierRow
 }
 
 export type DeleteSupplierResponse = {
@@ -336,6 +349,40 @@ export async function fetchBranches(): Promise<BranchesResponse> {
 }
 
 /**
+ * Fetch a branch by ID
+ * @param branchId - Branch ID to fetch
+ * @returns Promise with branch data
+ */
+export async function fetchBranchById(branchId: string | number): Promise<BranchResponse> {
+    try {
+        const response = await fetch(API_CONFIG.ENDPOINTS.branches.byId(branchId), {
+            headers: {
+                Authorization: `Bearer ${API_CONFIG.SECRET}`,
+            },
+        })
+
+        if (response.status === 401) {
+            throw new Error("Unauthorized")
+        }
+
+        const data = await response.json()
+
+        if (!data.success) {
+            throw new Error(data.message || "Failed to fetch branch")
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            data: data.data,
+        }
+    } catch (error) {
+        console.error("Fetch branch error:", error)
+        throw error instanceof Error ? error : new Error("Failed to fetch branch")
+    }
+}
+
+/**
  * Delete a branch by ID
  * @param branchId - Branch ID to delete
  * @returns Promise with delete response
@@ -458,6 +505,40 @@ export async function fetchSuppliers(): Promise<SuppliersResponse> {
     } catch (error) {
         console.error("Fetch suppliers error:", error)
         throw error instanceof Error ? error : new Error("Failed to fetch suppliers")
+    }
+}
+
+/**
+ * Fetch a supplier by ID
+ * @param supplierId - Supplier ID to fetch
+ * @returns Promise with supplier data
+ */
+export async function fetchSupplierById(supplierId: string | number): Promise<SupplierResponse> {
+    try {
+        const response = await fetch(API_CONFIG.ENDPOINTS.suppliers.byId(supplierId), {
+            headers: {
+                Authorization: `Bearer ${API_CONFIG.SECRET}`,
+            },
+        })
+
+        if (response.status === 401) {
+            throw new Error("Unauthorized")
+        }
+
+        const data = await response.json()
+
+        if (!data.success) {
+            throw new Error(data.message || "Failed to fetch supplier")
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            data: data.data,
+        }
+    } catch (error) {
+        console.error("Fetch supplier error:", error)
+        throw error instanceof Error ? error : new Error("Failed to fetch supplier")
     }
 }
 

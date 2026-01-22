@@ -1,16 +1,15 @@
 "use client"
 
 import * as React from "react"
+
 import {
   IconBuilding,
   IconDashboard,
-  IconDatabase,
   IconFileWord,
   IconHelp,
   IconInnerShadowTop,
   IconReport,
   IconSearch,
-  IconSettings,
   IconUsers,
   IconCreditCardFilled,
   IconBox,
@@ -19,9 +18,13 @@ import {
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
+
 import { NavMain } from "@/components/nav-main"
+
 import { NavSecondary } from "@/components/nav-secondary"
+
 import { NavUser } from "@/components/nav-user"
+
 import {
   Sidebar,
   SidebarContent,
@@ -36,8 +39,18 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
+    },
+    {
+      title: "Products",
+      url: "/dashboard/products",
+      icon: IconBox,
+    },
+    {
+      title: "Categories",
+      url: "/dashboard/categories",
+      icon: IconCategory,
     },
     {
       title: "Branches",
@@ -54,27 +67,12 @@ const data = {
       url: "/dashboard/suppliers",
       icon: IconBuildingStore,
     },
-    {
-      title: "Products",
-      url: "/dashboard/products",
-      icon: IconBox,
-    },
-    {
-      title: "Categories",
-      url: "/dashboard/categories",
-      icon: IconCategory,
-    },
+  ],
+  navSecondary: [
     {
       title: "Transactions",
       url: "/dashboard/transactions",
       icon: IconCreditCardFilled,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
     },
     {
       title: "Get Help",
@@ -89,18 +87,18 @@ const data = {
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
+      name: "Transactions",
+      url: "dashboard/transactions",
+      icon: IconCreditCardFilled,
     },
     {
       name: "Reports",
-      url: "#",
+      url: "/dashboard/reports",
       icon: IconReport,
     },
     {
-      name: "Word Assistant",
-      url: "#",
+      name: "Rekapitusi",
+      url: "/dashboard/rekapitusi",
       icon: IconFileWord,
     },
   ],
@@ -116,9 +114,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
+              <a href="/dashboard">
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-semibold">Langgeng Jaya</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

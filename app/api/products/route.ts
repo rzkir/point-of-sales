@@ -1,95 +1,85 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Ganti dengan Web App URL dari Google Apps Script
-const APPS_SCRIPT_URL =
-    process.env.APPS_SCRIPT_URL || "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
-
-// Secret untuk otorisasi request ke Apps Script
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
 const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET;
 
-/**
- * GET /api/products - List all products with pagination
- * Query params:
- *   - page: page number (default: 1)
- *   - limit: items per page (default: 10, max: 100)
- */
-export async function GET(request: NextRequest) {
-    try {
-        // Auth (header) untuk akses endpoint ini
-        if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+type User = {
+    name?: string;
+    email?: string;
+};
 
-        // Validasi APPS_SCRIPT_URL
-        if (
-            !APPS_SCRIPT_URL ||
-            APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE"
-        ) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message:
-                        "Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local",
-                },
-                { status: 500 }
-            );
-        }
+// Helper: Check authorization
+function checkAuth(request: NextRequest): NextResponse | null {
+    if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return null;
+}
 
-        // Parse query parameters untuk pagination
-        const { searchParams } = new URL(request.url);
-        const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
-        const offset = (page - 1) * limit;
-
-        const requestBody = {
-            action: "list",
-            sheet: "Products",
-            page: page,
-            limit: limit,
-            offset: offset,
-        };
-        console.log("GET /api/products - Request body:", JSON.stringify(requestBody));
-
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${API_SECRET}`,
+// Helper: Validate Apps Script URL
+function validateAppsScriptUrl(): NextResponse | null {
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+        return NextResponse.json(
+            {
+                success: false,
+                message: "Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local",
             },
-            body: JSON.stringify(requestBody),
-        });
+            { status: 500 }
+        );
+    }
+    return null;
+}
 
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            const textResponse = await response.text();
-            console.error(
-                "Apps Script returned non-JSON response:",
-                textResponse.substring(0, 500)
-            );
-            return NextResponse.json(
-                {
-                    success: false,
-                    message:
-                        "Invalid response from Apps Script. Please check your Apps Script deployment and URL.",
-                },
-                { status: 500 }
-            );
+// Helper: Get session user from cookie
+function getSessionUser(request: NextRequest): User | null {
+    const session = request.cookies.get("session")?.value;
+    if (session) {
+        try {
+            return JSON.parse(session) as User;
+        } catch {
+            return null;
         }
+    }
+    return null;
+}
 
-        const data = await response.json();
+// Helper: Call Apps Script API and handle response
+async function callAppsScript(requestBody: Record<string, unknown>, includePagination = false) {
+    const response = await fetch(APPS_SCRIPT_URL!, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_SECRET}`,
+        },
+        body: JSON.stringify(requestBody),
+    });
 
-        if (!data.success) {
-            console.error("Failed to get products:", data.message);
-            return NextResponse.json(
-                { success: false, message: data.message },
-                { status: 400 }
-            );
-        }
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+        await response.text();
+        return NextResponse.json(
+            {
+                success: false,
+                message: "Invalid response from Apps Script. Please check your Apps Script deployment and URL.",
+            },
+            { status: 500 }
+        );
+    }
 
-        // Jika Apps Script sudah return pagination metadata, gunakan itu
-        // Jika belum, kita hitung sendiri dari data yang dikembalikan
+    const data = await response.json();
+
+    if (!data.success) {
+        return NextResponse.json(
+            { success: false, message: data.message },
+            { status: 400 }
+        );
+    }
+
+    if (includePagination) {
         const products = Array.isArray(data.data) ? data.data : [];
         const total = data.total !== undefined ? data.total : products.length;
+        const page = (requestBody.page as number) || 1;
+        const limit = (requestBody.limit as number) || 10;
         const totalPages = Math.ceil(total / limit);
         const hasNext = page < totalPages;
         const hasPrev = page > 1;
@@ -107,13 +97,48 @@ export async function GET(request: NextRequest) {
                 hasPrev,
             },
         });
+    }
+
+    return NextResponse.json({
+        success: true,
+        message: data.message,
+        data: data.data,
+    });
+}
+
+/**
+ * GET /api/products - List all products with pagination
+ * Query params:
+ *   - page: page number (default: 1)
+ *   - limit: items per page (default: 10, max: 100)
+ */
+export async function GET(request: NextRequest) {
+    try {
+        const authError = checkAuth(request);
+        if (authError) return authError;
+
+        const urlError = validateAppsScriptUrl();
+        if (urlError) return urlError;
+
+        const { searchParams } = new URL(request.url);
+        const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
+        const offset = (page - 1) * limit;
+
+        const requestBody = {
+            action: "list",
+            sheet: "Products",
+            page,
+            limit,
+            offset,
+        };
+
+        return await callAppsScript(requestBody, true);
     } catch (error) {
-        console.error("Get products error:", error);
         return NextResponse.json(
             {
                 success: false,
-                message:
-                    error instanceof Error ? error.message : "Internal server error",
+                message: error instanceof Error ? error.message : "Internal server error",
             },
             { status: 500 }
         );
@@ -125,23 +150,10 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
     try {
-        // Auth (header) untuk akses endpoint ini
-        if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const authError = checkAuth(request);
+        if (authError) return authError;
 
-        // Ambil user dari cookie session (httpOnly) supaya created_by tidak kosong
-        // Cookie ini di-set saat login di /api/auth/login
-        let sessionUser: User | null = null
-        const session = request.cookies.get("session")?.value
-        if (session) {
-            try {
-                sessionUser = JSON.parse(session) as User
-            } catch {
-                // ignore invalid JSON
-            }
-        }
-
+        const sessionUser = getSessionUser(request);
         const body = await request.json();
 
         const {
@@ -163,7 +175,6 @@ export async function POST(request: NextRequest) {
             branch_id,
         } = body;
 
-        // Minimal validation
         if (!name || String(name).trim() === "") {
             return NextResponse.json(
                 { success: false, message: "Product name is required" },
@@ -178,20 +189,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validasi APPS_SCRIPT_URL
-        if (
-            !APPS_SCRIPT_URL ||
-            APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE"
-        ) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message:
-                        "Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local",
-                },
-                { status: 500 }
-            );
-        }
+        const urlError = validateAppsScriptUrl();
+        if (urlError) return urlError;
 
         const requestBody = {
             action: "create",
@@ -203,7 +202,6 @@ export async function POST(request: NextRequest) {
             sold: sold !== undefined && sold !== null ? Number(sold) : 0,
             unit: unit ? String(unit).trim() : "",
             image_url: image_url ? String(image_url).trim() : "",
-            // category_id sekarang mengikuti Categories.id (UUID string)
             category_id:
                 category_id !== undefined && category_id !== null
                     ? String(category_id).trim()
@@ -223,7 +221,6 @@ export async function POST(request: NextRequest) {
             expiration_date: expiration_date
                 ? String(expiration_date).trim()
                 : "",
-            // Prioritas: payload -> session user.name -> session user.email
             created_by: created_by
                 ? String(created_by).trim()
                 : sessionUser?.name
@@ -234,65 +231,12 @@ export async function POST(request: NextRequest) {
             branch_id: branch_id ? String(branch_id).trim() : "",
         };
 
-        console.log(
-            "POST /api/products - Sending to Apps Script:",
-            JSON.stringify(requestBody)
-        );
-
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${API_SECRET}`,
-            },
-            body: JSON.stringify(requestBody),
-        });
-
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            const textResponse = await response.text();
-            console.error(
-                "Apps Script returned non-JSON response:",
-                textResponse.substring(0, 500)
-            );
-            return NextResponse.json(
-                {
-                    success: false,
-                    message:
-                        "Invalid response from Apps Script. Please check your Apps Script deployment and URL.",
-                },
-                { status: 500 }
-            );
-        }
-
-        const data = await response.json();
-
-        console.log("Apps Script response (products):", {
-            success: data.success,
-            message: data.message,
-            hasData: !!data.data,
-        });
-
-        if (!data.success) {
-            console.error("Create product failed from Apps Script:", data.message);
-            return NextResponse.json(
-                { success: false, message: data.message },
-                { status: 400 }
-            );
-        }
-
-        return NextResponse.json({
-            success: true,
-            message: data.message,
-            data: data.data,
-        });
+        return await callAppsScript(requestBody);
     } catch (error) {
-        console.error("Create product error:", error);
         return NextResponse.json(
             {
                 success: false,
-                message:
-                    error instanceof Error ? error.message : "Internal server error",
+                message: error instanceof Error ? error.message : "Internal server error",
             },
             { status: 500 }
         );

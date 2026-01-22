@@ -221,10 +221,10 @@ export default function Employees() {
     }, [])
 
     React.useEffect(() => {
-        fetchEmployees()
-    }, [fetchEmployees])
+        loadEmployees()
+    }, [loadEmployees])
 
-    const columns = React.useMemo(() => createColumns(fetchEmployees), [fetchEmployees])
+    const columns = React.useMemo(() => createColumns(loadEmployees), [loadEmployees])
 
     const table = useReactTable({
         data: employees,

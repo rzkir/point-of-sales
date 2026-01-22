@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Ganti dengan Web App URL dari Google Apps Script
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+
+const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET;
+
+type User = {
+  name?: string;
+  email?: string;
+};
 
 type AppsScriptProductUpdateRequest = {
   action: 'update';
@@ -25,6 +31,80 @@ type AppsScriptProductUpdateRequest = {
   branch_id?: string;
 };
 
+// Helper: Validate Apps Script URL
+function validateAppsScriptUrl(): NextResponse | null {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+    return NextResponse.json(
+      { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
+      { status: 500 }
+    );
+  }
+  return null;
+}
+
+// Helper: Validate ID
+function validateId(id: string | undefined): NextResponse | null {
+  if (!id) {
+    return NextResponse.json(
+      { success: false, message: 'Product ID is required' },
+      { status: 400 }
+    );
+  }
+  return null;
+}
+
+// Helper: Get session user from cookie
+function getSessionUser(request: NextRequest): User | null {
+  const session = request.cookies.get("session")?.value;
+  if (session) {
+    try {
+      return JSON.parse(session) as User;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+// Helper: Call Apps Script API and handle response
+async function callAppsScript(requestBody: Record<string, unknown>) {
+  const response = await fetch(APPS_SCRIPT_URL!, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(API_SECRET && { Authorization: `Bearer ${API_SECRET}` }),
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    await response.text();
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Invalid response from Apps Script. Please check your Apps Script deployment and URL.'
+      },
+      { status: 500 }
+    );
+  }
+
+  const data = await response.json();
+
+  if (!data.success) {
+    return NextResponse.json(
+      { success: false, message: data.message },
+      { status: data.message.includes('not found') ? 404 : 400 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    message: data.message,
+    data: data.data,
+  });
+}
+
 /**
  * GET /api/products/[id] - Get product by ID
  */
@@ -34,62 +114,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const idError = validateId(id);
+    if (idError) return idError;
 
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: 'Product ID is required' },
-        { status: 400 }
-      );
-    }
+    const urlError = validateAppsScriptUrl();
+    if (urlError) return urlError;
 
-    // Validasi APPS_SCRIPT_URL
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
-      return NextResponse.json(
-        { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
-        { status: 500 }
-      );
-    }
-
-    // Panggil Google Apps Script untuk get product
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action: 'get', sheet: 'Products', id }),
-    });
-
-    // Cek content type
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const textResponse = await response.text();
-      console.error('Apps Script returned non-JSON response:', textResponse.substring(0, 500));
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid response from Apps Script. Please check your Apps Script deployment and URL.'
-        },
-        { status: 500 }
-      );
-    }
-
-    const data = await response.json();
-
-    if (!data.success) {
-      console.error('Failed to get product:', data.message);
-      return NextResponse.json(
-        { success: false, message: data.message },
-        { status: data.message.includes('not found') ? 404 : 400 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: data.message,
-      data: data.data,
-    });
+    const requestBody = { action: 'get', sheet: 'Products', id };
+    return await callAppsScript(requestBody);
   } catch (error) {
-    console.error('Get product error:', error);
     return NextResponse.json(
       {
         success: false,
@@ -109,18 +142,10 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const idError = validateId(id);
+    if (idError) return idError;
 
-    // Ambil user dari cookie session (httpOnly) supaya updated_by tidak kosong
-    let sessionUser: User | null = null;
-    const session = request.cookies.get("session")?.value;
-    if (session) {
-      try {
-        sessionUser = JSON.parse(session) as User;
-      } catch {
-        // ignore invalid JSON
-      }
-    }
-
+    const sessionUser = getSessionUser(request);
     const body = await request.json();
     const {
       name,
@@ -141,25 +166,9 @@ export async function PUT(
       branch_id,
     } = body;
 
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: 'Product ID is required' },
-        { status: 400 }
-      );
-    }
+    const urlError = validateAppsScriptUrl();
+    if (urlError) return urlError;
 
-    // Debug logging
-    console.log('Update product request received:', { id, name, price });
-
-    // Validasi APPS_SCRIPT_URL
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
-      return NextResponse.json(
-        { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
-        { status: 500 }
-      );
-    }
-
-    // Prepare request body for Apps Script
     const requestBody: AppsScriptProductUpdateRequest = {
       action: 'update',
       sheet: 'Products',
@@ -208,69 +217,21 @@ export async function PUT(
     if (expiration_date !== undefined && expiration_date !== null) {
       requestBody.expiration_date = String(expiration_date).trim();
     }
-    {
-      const resolvedUpdatedBy =
-        updated_by !== undefined && updated_by !== null && String(updated_by).trim() !== ""
-          ? String(updated_by).trim()
-          : sessionUser?.name
-            ? String(sessionUser.name).trim()
-            : sessionUser?.email
-              ? String(sessionUser.email).trim()
-              : "";
-      if (resolvedUpdatedBy) requestBody.updated_by = resolvedUpdatedBy;
-    }
+    const resolvedUpdatedBy =
+      updated_by !== undefined && updated_by !== null && String(updated_by).trim() !== ""
+        ? String(updated_by).trim()
+        : sessionUser?.name
+          ? String(sessionUser.name).trim()
+          : sessionUser?.email
+            ? String(sessionUser.email).trim()
+            : "";
+    if (resolvedUpdatedBy) requestBody.updated_by = resolvedUpdatedBy;
     if (branch_id !== undefined && branch_id !== null) {
       requestBody.branch_id = String(branch_id).trim();
     }
 
-    console.log('Sending to Apps Script:', requestBody);
-
-    // Panggil Google Apps Script
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    // Cek content type
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const textResponse = await response.text();
-      console.error('Apps Script returned non-JSON response:', textResponse.substring(0, 500));
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid response from Apps Script. Please check your Apps Script deployment and URL.'
-        },
-        { status: 500 }
-      );
-    }
-
-    const data = await response.json();
-
-    console.log('Apps Script response:', {
-      success: data.success,
-      message: data.message,
-      hasData: !!data.data
-    });
-
-    if (!data.success) {
-      console.error('Update product failed from Apps Script:', data.message);
-      return NextResponse.json(
-        { success: false, message: data.message },
-        { status: data.message.includes('not found') ? 404 : 400 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: data.message,
-      data: data.data,
-    });
+    return await callAppsScript(requestBody);
   } catch (error) {
-    console.error('Update product error:', error);
     return NextResponse.json(
       {
         success: false,

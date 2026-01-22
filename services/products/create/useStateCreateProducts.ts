@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { Html5Qrcode } from "html5-qrcode"
-import { API_CONFIG } from "@/lib/config"
+import { API_CONFIG, fetchBranches, fetchSuppliers, type BranchRow, type SupplierRow } from "@/lib/config"
 
 const NO_BRANCH_VALUE = "__none__"
 
@@ -22,10 +22,10 @@ export function useStateCreateProducts() {
     const [isUploadingImage, setIsUploadingImage] = React.useState(false)
     const [imageUrl, setImageUrl] = React.useState("")
     const [branchId, setBranchId] = React.useState("")
-    const [branches, setBranches] = React.useState<Branch[]>([])
+    const [branches, setBranches] = React.useState<BranchRow[]>([])
     const [isLoadingBranches, setIsLoadingBranches] = React.useState(false)
     const [supplierId, setSupplierId] = React.useState("")
-    const [suppliers, setSuppliers] = React.useState<Supplier[]>([])
+    const [suppliers, setSuppliers] = React.useState<SupplierRow[]>([])
     const [isLoadingSuppliers, setIsLoadingSuppliers] = React.useState(false)
     const [categoryId, setCategoryId] = React.useState("")
     const [categories, setCategories] = React.useState<Category[]>([])
@@ -44,19 +44,16 @@ export function useStateCreateProducts() {
     }, [])
 
     React.useEffect(() => {
-        fetchBranches()
-        fetchSuppliers()
+        loadBranches()
+        loadSuppliers()
         fetchCategories()
     }, [])
 
-    const fetchBranches = async () => {
+    const loadBranches = async () => {
         setIsLoadingBranches(true)
         try {
-            const response = await fetch("/api/branches")
-            const data = await response.json()
-            if (data.success) {
-                setBranches(data.data || [])
-            }
+            const data = await fetchBranches()
+            setBranches(data.data || [])
         } catch (error) {
             console.error("Failed to fetch branches:", error)
         } finally {
@@ -64,18 +61,11 @@ export function useStateCreateProducts() {
         }
     }
 
-    const fetchSuppliers = async () => {
+    const loadSuppliers = async () => {
         setIsLoadingSuppliers(true)
         try {
-            const response = await fetch(API_CONFIG.ENDPOINTS.suppliers.base, {
-                headers: {
-                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
-                },
-            })
-            const data = await response.json()
-            if (data.success) {
-                setSuppliers(data.data || [])
-            }
+            const data = await fetchSuppliers()
+            setSuppliers(data.data || [])
         } catch (error) {
             console.error("Failed to fetch suppliers:", error)
         } finally {

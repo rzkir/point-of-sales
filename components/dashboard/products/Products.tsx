@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { IconDotsVertical, IconPackage, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react"
+import Image from "next/image"
+import { IconDotsVertical, IconPackage, IconPencil, IconPlus, IconTrash, IconBuildingStore, IconTruck } from "@tabler/icons-react"
 import { toast } from "sonner"
 import {
     flexRender,
@@ -44,7 +45,15 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
-import { fetchProducts, deleteProduct, type ProductRow } from "@/lib/config"
+import { fetchProducts, fetchSupplierById, fetchBranchById, type ProductRow, type SupplierRow, type BranchRow } from "@/lib/config"
+import { DeleteProduct } from "./modal/DeleteModal"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 
 const formatCurrency = (value?: number) => {
     const n = Number(value ?? 0)
@@ -58,9 +67,21 @@ const createColumns = (onUpdate: () => void): ColumnDef<ProductRow>[] => [
         header: () => <span className="font-semibold">Name</span>,
         cell: ({ row }) => (
             <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <IconPackage className="size-5" />
-                </div>
+                {row.original.image_url ? (
+                    <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+                        <Image
+                            src={row.original.image_url}
+                            alt={row.getValue("name") as string}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                        />
+                    </div>
+                ) : (
+                    <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <IconPackage className="size-6" />
+                    </div>
+                )}
                 <div className="min-w-0">
                     <div className="font-semibold text-foreground truncate">{row.getValue("name")}</div>
                     <div className="text-xs text-muted-foreground truncate">
@@ -79,6 +100,11 @@ const createColumns = (onUpdate: () => void): ColumnDef<ProductRow>[] => [
         accessorKey: "stock",
         header: () => <span className="font-semibold">Stock</span>,
         cell: ({ row }) => <span className="text-sm text-muted-foreground">{String(row.getValue("stock") ?? 0)}</span>,
+    },
+    {
+        accessorKey: "sold",
+        header: () => <span className="font-semibold">Sold</span>,
+        cell: ({ row }) => <span className="text-sm text-muted-foreground">{String(row.getValue("sold") ?? 0)}</span>,
     },
     {
         accessorKey: "is_active",
@@ -100,55 +126,212 @@ const createColumns = (onUpdate: () => void): ColumnDef<ProductRow>[] => [
 ]
 
 function ProductActions({ product, onUpdate }: { product: ProductRow; onUpdate: () => void }) {
-    const isDeletingRef = React.useRef(false)
+    const [showDeleteDialog, setShowDeleteDialog] = React.useState(false)
+    const [showSupplierDialog, setShowSupplierDialog] = React.useState(false)
+    const [showBranchDialog, setShowBranchDialog] = React.useState(false)
+    const [supplier, setSupplier] = React.useState<SupplierRow | null>(null)
+    const [branch, setBranch] = React.useState<BranchRow | null>(null)
+    const [isLoadingSupplier, setIsLoadingSupplier] = React.useState(false)
+    const [isLoadingBranch, setIsLoadingBranch] = React.useState(false)
 
-    const handleDelete = async () => {
-        if (isDeletingRef.current) return
-        isDeletingRef.current = true
+    const handleDelete = () => {
+        setShowDeleteDialog(true)
+    }
+
+    const handleViewSupplier = async () => {
+        if (!product.supplier_id) {
+            toast.error("No supplier assigned to this product")
+            return
+        }
+
+        setIsLoadingSupplier(true)
+        setShowSupplierDialog(true)
         try {
-            await deleteProduct(product.id)
-            toast.success("Product deleted")
-            onUpdate()
+            const response = await fetchSupplierById(product.supplier_id)
+            setSupplier(response.data)
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Failed to delete product")
+            toast.error(error instanceof Error ? error.message : "Failed to fetch supplier")
+            setShowSupplierDialog(false)
         } finally {
-            isDeletingRef.current = false
+            setIsLoadingSupplier(false)
+        }
+    }
+
+    const handleViewBranch = async () => {
+        if (!product.branch_id) {
+            toast.error("No branch assigned to this product")
+            return
+        }
+
+        setIsLoadingBranch(true)
+        setShowBranchDialog(true)
+        try {
+            const response = await fetchBranchById(product.branch_id)
+            setBranch(response.data)
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Failed to fetch branch")
+            setShowBranchDialog(false)
+        } finally {
+            setIsLoadingBranch(false)
         }
     }
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    variant="ghost"
-                    className="data-[state=open]:bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 flex size-9 transition-colors"
-                    size="icon"
-                >
-                    <IconDotsVertical className="size-4" />
-                    <span className="sr-only">Open menu</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href={`/dashboard/products/edit?id=${encodeURIComponent(String(product.id))}`}>
-                        <IconPencil className="mr-2 size-4" />
-                        Edit
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={(e) => {
-                        e.preventDefault()
-                        void handleDelete()
-                    }}
-                    className="cursor-pointer text-destructive focus:text-destructive"
-                >
-                    <IconTrash className="mr-2 size-4" />
-                    Delete
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        className="data-[state=open]:bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 flex size-9 transition-colors"
+                        size="icon"
+                    >
+                        <IconDotsVertical className="size-4" />
+                        <span className="sr-only">Open menu</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link href={`/dashboard/products/edit?id=${encodeURIComponent(String(product.id))}`}>
+                            <IconPencil className="mr-2 size-4" />
+                            Edit
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {product.supplier_id && (
+                        <DropdownMenuItem
+                            onSelect={(e) => {
+                                e.preventDefault()
+                                void handleViewSupplier()
+                            }}
+                            className="cursor-pointer"
+                        >
+                            <IconTruck className="mr-2 size-4" />
+                            View Supplier
+                        </DropdownMenuItem>
+                    )}
+                    {product.branch_id && (
+                        <DropdownMenuItem
+                            onSelect={(e) => {
+                                e.preventDefault()
+                                void handleViewBranch()
+                            }}
+                            className="cursor-pointer"
+                        >
+                            <IconBuildingStore className="mr-2 size-4" />
+                            View Branch
+                        </DropdownMenuItem>
+                    )}
+                    {(product.supplier_id || product.branch_id) && <DropdownMenuSeparator />}
+                    <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={(e) => {
+                            e.preventDefault()
+                            handleDelete()
+                        }}
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                        <IconTrash className="mr-2 size-4" />
+                        Delete
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Supplier Dialog */}
+            <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Supplier Information</DialogTitle>
+                        <DialogDescription>Details of the supplier for this product</DialogDescription>
+                    </DialogHeader>
+                    {isLoadingSupplier ? (
+                        <div className="py-8 text-center">
+                            <div className="text-sm text-muted-foreground">Loading supplier...</div>
+                        </div>
+                    ) : supplier ? (
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <div className="text-sm font-medium text-muted-foreground">Name</div>
+                                <div className="text-base font-semibold">{supplier.name}</div>
+                            </div>
+                            {supplier.contact_person && (
+                                <div className="space-y-2">
+                                    <div className="text-sm font-medium text-muted-foreground">Contact Person</div>
+                                    <div className="text-base">{supplier.contact_person}</div>
+                                </div>
+                            )}
+                            {supplier.phone && (
+                                <div className="space-y-2">
+                                    <div className="text-sm font-medium text-muted-foreground">Phone</div>
+                                    <div className="text-base">{supplier.phone}</div>
+                                </div>
+                            )}
+                            {supplier.email && (
+                                <div className="space-y-2">
+                                    <div className="text-sm font-medium text-muted-foreground">Email</div>
+                                    <div className="text-base">{supplier.email}</div>
+                                </div>
+                            )}
+                            {supplier.address && (
+                                <div className="space-y-2">
+                                    <div className="text-sm font-medium text-muted-foreground">Address</div>
+                                    <div className="text-base">{supplier.address}</div>
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                <div className="text-sm font-medium text-muted-foreground">Status</div>
+                                <Badge className={supplier.is_active ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400"}>
+                                    {supplier.is_active ? "Active" : "Inactive"}
+                                </Badge>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="py-8 text-center">
+                            <div className="text-sm text-muted-foreground">No supplier data available</div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Branch Dialog */}
+            <Dialog open={showBranchDialog} onOpenChange={setShowBranchDialog}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Branch Information</DialogTitle>
+                        <DialogDescription>Details of the branch for this product</DialogDescription>
+                    </DialogHeader>
+                    {isLoadingBranch ? (
+                        <div className="py-8 text-center">
+                            <div className="text-sm text-muted-foreground">Loading branch...</div>
+                        </div>
+                    ) : branch ? (
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <div className="text-sm font-medium text-muted-foreground">Name</div>
+                                <div className="text-base font-semibold">{branch.name}</div>
+                            </div>
+                            {branch.address && (
+                                <div className="space-y-2">
+                                    <div className="text-sm font-medium text-muted-foreground">Address</div>
+                                    <div className="text-base">{branch.address}</div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="py-8 text-center">
+                            <div className="text-sm text-muted-foreground">No branch data available</div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <DeleteProduct
+                product={product}
+                onUpdate={onUpdate}
+                isOpen={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+            />
+        </>
     )
 }
 

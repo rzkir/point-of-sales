@@ -6,7 +6,7 @@ import { toast } from "sonner"
 
 import { Html5Qrcode } from "html5-qrcode"
 
-import { API_CONFIG } from "@/lib/config"
+import { API_CONFIG, fetchBranches, fetchSuppliers, type BranchRow, type SupplierRow } from "@/lib/config"
 
 const NO_BRANCH_VALUE = "__none__"
 
@@ -35,9 +35,9 @@ export function useStateEditProducts(productId?: string) {
     const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [isUploadingImage, setIsUploadingImage] = React.useState(false)
 
-    const [branches, setBranches] = React.useState<Branch[]>([])
+    const [branches, setBranches] = React.useState<BranchRow[]>([])
     const [isLoadingBranches, setIsLoadingBranches] = React.useState(false)
-    const [suppliers, setSuppliers] = React.useState<Supplier[]>([])
+    const [suppliers, setSuppliers] = React.useState<SupplierRow[]>([])
     const [isLoadingSuppliers, setIsLoadingSuppliers] = React.useState(false)
     const [categories, setCategories] = React.useState<Category[]>([])
     const [isLoadingCategories, setIsLoadingCategories] = React.useState(false)
@@ -110,12 +110,11 @@ export function useStateEditProducts(productId?: string) {
         }
     }, [productId])
 
-    const fetchBranches = async () => {
+    const loadBranches = async () => {
         setIsLoadingBranches(true)
         try {
-            const response = await fetch("/api/branches")
-            const data = await response.json()
-            if (data.success) setBranches(data.data || [])
+            const data = await fetchBranches()
+            setBranches(data.data || [])
         } catch (error) {
             console.error("Failed to fetch branches:", error)
         } finally {
@@ -123,12 +122,11 @@ export function useStateEditProducts(productId?: string) {
         }
     }
 
-    const fetchSuppliers = async () => {
+    const loadSuppliers = async () => {
         setIsLoadingSuppliers(true)
         try {
-            const response = await fetch("/api/supplier")
-            const data = await response.json()
-            if (data.success) setSuppliers(data.data || [])
+            const data = await fetchSuppliers()
+            setSuppliers(data.data || [])
         } catch (error) {
             console.error("Failed to fetch suppliers:", error)
         } finally {
@@ -158,8 +156,8 @@ export function useStateEditProducts(productId?: string) {
 
     React.useEffect(() => {
         void loadProduct()
-        void fetchBranches()
-        void fetchSuppliers()
+        void loadBranches()
+        void loadSuppliers()
         void fetchCategories()
     }, [loadProduct])
 
