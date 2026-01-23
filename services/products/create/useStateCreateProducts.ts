@@ -236,6 +236,25 @@ export function useStateCreateProducts() {
         const isActiveValue = isActive === "true"
 
         try {
+            // Find branch_name and category_name from selected IDs
+            // Ensure proper type comparison (ID might be string or number)
+            let branchName: string | undefined = undefined
+            let categoryName: string | undefined = undefined
+
+            if (branchId) {
+                const selectedBranch = branches.find(b => String(b.id) === String(branchId))
+                if (selectedBranch && selectedBranch.name) {
+                    branchName = selectedBranch.name
+                }
+            }
+
+            if (categoryId) {
+                const selectedCategory = categories.find(c => String(c.id) === String(categoryId))
+                if (selectedCategory && selectedCategory.name) {
+                    categoryName = selectedCategory.name
+                }
+            }
+
             const response = await fetch(API_CONFIG.ENDPOINTS.products.base, {
                 method: "POST",
                 headers: {
@@ -256,8 +275,10 @@ export function useStateCreateProducts() {
                     image_url: imageUrl,
                     // Kirim ID murni ke backend (bukan nama)
                     branch_id: branchId || undefined,
+                    branch_name: branchName,
                     supplier_id: supplierId || undefined,
                     category_id: categoryId || undefined,
+                    category_name: categoryName,
                 }),
             })
 

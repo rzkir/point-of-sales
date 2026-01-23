@@ -9,6 +9,7 @@ interface Products {
   unit: string;
   image_url: string;
   category_id?: string;
+  category_name?: string;
   barcode: string;
   is_active: boolean;
   min_stock?: number;
@@ -20,6 +21,7 @@ interface Products {
   created_at?: string;
   updated_at?: string;
   branch_id?: string;
+  branch_name?: string;
 }
 
 interface ProductsDetailsProps {

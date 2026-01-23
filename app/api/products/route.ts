@@ -165,6 +165,7 @@ export async function POST(request: NextRequest) {
             unit,
             image_url,
             category_id,
+            category_name,
             barcode,
             is_active,
             min_stock,
@@ -173,6 +174,7 @@ export async function POST(request: NextRequest) {
             expiration_date,
             created_by,
             branch_id,
+            branch_name,
         } = body;
 
         if (!name || String(name).trim() === "") {
@@ -206,6 +208,7 @@ export async function POST(request: NextRequest) {
                 category_id !== undefined && category_id !== null
                     ? String(category_id).trim()
                     : "",
+            category_name: category_name ? String(category_name).trim() : "",
             barcode: barcode ? String(barcode).trim() : "",
             is_active:
                 typeof is_active === "boolean"
@@ -229,6 +232,7 @@ export async function POST(request: NextRequest) {
                         ? String(sessionUser.email).trim()
                         : "",
             branch_id: branch_id ? String(branch_id).trim() : "",
+            branch_name: branch_name ? String(branch_name).trim() : "",
         };
 
         return await callAppsScript(requestBody);

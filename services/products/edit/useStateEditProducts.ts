@@ -280,6 +280,25 @@ export function useStateEditProducts(productId?: string) {
         // Sekarang kita kirim kembali ID murni (bukan nama)
         setIsSubmitting(true)
         try {
+            // Find branch_name and category_name from selected IDs
+            // Ensure proper type comparison (ID might be string or number)
+            let branchName: string | undefined = undefined
+            let categoryName: string | undefined = undefined
+
+            if (branchId) {
+                const selectedBranch = branches.find(b => String(b.id) === String(branchId))
+                if (selectedBranch && selectedBranch.name) {
+                    branchName = selectedBranch.name
+                }
+            }
+
+            if (categoryId) {
+                const selectedCategory = categories.find(c => String(c.id) === String(categoryId))
+                if (selectedCategory && selectedCategory.name) {
+                    categoryName = selectedCategory.name
+                }
+            }
+
             const response = await fetch(API_CONFIG.ENDPOINTS.products.byId(productId), {
                 method: "PUT",
                 headers: {
@@ -300,8 +319,10 @@ export function useStateEditProducts(productId?: string) {
                     image_url: imageUrl,
                     // Kirim ID apa adanya ke backend
                     branch_id: branchId || undefined,
+                    branch_name: branchName,
                     supplier_id: supplierId || undefined,
                     category_id: categoryId || undefined,
+                    category_name: categoryName,
                 }),
             })
 

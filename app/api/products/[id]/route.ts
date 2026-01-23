@@ -21,6 +21,7 @@ type AppsScriptProductUpdateRequest = {
   unit?: string;
   image_url?: string;
   category_id?: string;
+  category_name?: string;
   barcode?: string;
   is_active?: boolean;
   min_stock?: number;
@@ -29,6 +30,7 @@ type AppsScriptProductUpdateRequest = {
   expiration_date?: string;
   updated_by?: string;
   branch_id?: string;
+  branch_name?: string;
 };
 
 // Helper: Validate Apps Script URL
@@ -156,6 +158,7 @@ export async function PUT(
       unit,
       image_url,
       category_id,
+      category_name,
       barcode,
       is_active,
       min_stock,
@@ -164,6 +167,7 @@ export async function PUT(
       expiration_date,
       updated_by,
       branch_id,
+      branch_name,
     } = body;
 
     const urlError = validateAppsScriptUrl();
@@ -199,6 +203,9 @@ export async function PUT(
     if (category_id !== undefined && category_id !== null) {
       requestBody.category_id = String(category_id).trim();
     }
+    if (category_name !== undefined && category_name !== null) {
+      requestBody.category_name = String(category_name).trim();
+    }
     if (barcode !== undefined && barcode !== null) {
       requestBody.barcode = String(barcode).trim();
     }
@@ -228,6 +235,9 @@ export async function PUT(
     if (resolvedUpdatedBy) requestBody.updated_by = resolvedUpdatedBy;
     if (branch_id !== undefined && branch_id !== null) {
       requestBody.branch_id = String(branch_id).trim();
+    }
+    if (branch_name !== undefined && branch_name !== null) {
+      requestBody.branch_name = String(branch_name).trim();
     }
 
     return await callAppsScript(requestBody);
