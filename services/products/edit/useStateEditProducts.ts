@@ -277,6 +277,15 @@ export function useStateEditProducts(productId?: string) {
         e.preventDefault()
         if (!productId) return
 
+        // Map selected IDs to their corresponding names
+        const selectedBranch = branchId ? branches.find((branch) => branch.id === branchId) : undefined
+        const selectedSupplier = supplierId
+            ? suppliers.find((supplier) => String(supplier.id) === supplierId)
+            : undefined
+        const selectedCategory = categoryId
+            ? categories.find((category) => category.id === categoryId)
+            : undefined
+
         setIsSubmitting(true)
         try {
             const response = await fetch(API_CONFIG.ENDPOINTS.products.byId(productId), {
@@ -297,9 +306,10 @@ export function useStateEditProducts(productId?: string) {
                     description: description ? description : undefined,
                     is_active: isActive === "true",
                     image_url: imageUrl,
-                    branch_id: branchId ? branchId : undefined,
-                    supplier_id: supplierId ? supplierId : undefined,
-                    category_id: categoryId ? categoryId : undefined,
+                    // Simpan nama, bukan ID
+                    branch_id: selectedBranch ? selectedBranch.name : undefined,
+                    supplier_id: selectedSupplier ? selectedSupplier.name : undefined,
+                    category_id: selectedCategory ? selectedCategory.name : undefined,
                 }),
             })
 

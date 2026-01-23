@@ -57,7 +57,18 @@ export type ProductRow = {
     is_active?: boolean
     branch_id?: string
     supplier_id?: string
+    category_id?: string
+    branch_name?: string
+    supplier_name?: string
     image_url?: string
+    // Extended meta data (optional, if API provides)
+    category_name?: string
+    min_stock?: number
+    expiration_date?: string
+    created_by?: string
+    updated_by?: string
+    created_at?: string
+    updated_at?: string
 }
 
 export type ProductsResponse = {

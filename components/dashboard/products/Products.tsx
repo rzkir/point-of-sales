@@ -1,31 +1,23 @@
 "use client"
 
 import * as React from "react"
+
 import Link from "next/link"
-import Image from "next/image"
-import { IconDotsVertical, IconPackage, IconPencil, IconPlus, IconTrash, IconBuildingStore, IconTruck } from "@tabler/icons-react"
-import { toast } from "sonner"
+
+import { IconPackage, IconPlus } from "@tabler/icons-react"
+
 import {
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
     getSortedRowModel,
     useReactTable,
-    type ColumnDef,
-    type ColumnFiltersState,
-    type SortingState,
 } from "@tanstack/react-table"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+
 import {
     Pagination,
     PaginationContent,
@@ -34,348 +26,76 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination"
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Input } from "@/components/ui/input"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
-import { fetchProducts, fetchSupplierById, fetchBranchById, type ProductRow, type SupplierRow, type BranchRow } from "@/lib/config"
-import { DeleteProduct } from "./modal/DeleteModal"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
 
-const formatCurrency = (value?: number) => {
-    const n = Number(value ?? 0)
-    if (Number.isNaN(n)) return "-"
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(n)
-}
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-const createColumns = (onUpdate: () => void): ColumnDef<ProductRow>[] => [
-    {
-        accessorKey: "name",
-        header: () => <span className="font-semibold">Name</span>,
-        cell: ({ row }) => (
-            <div className="flex items-center gap-3">
-                {row.original.image_url ? (
-                    <div className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
-                        <Image
-                            src={row.original.image_url}
-                            alt={row.getValue("name") as string}
-                            fill
-                            className="object-cover"
-                            sizes="48px"
-                        />
-                    </div>
-                ) : (
-                    <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <IconPackage className="size-6" />
-                    </div>
-                )}
-                <div className="min-w-0">
-                    <div className="font-semibold text-foreground truncate">{row.getValue("name")}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                        {row.original.barcode ? `Barcode: ${row.original.barcode}` : "No barcode"}
-                    </div>
-                </div>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "price",
-        header: () => <span className="font-semibold">Price</span>,
-        cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatCurrency(row.getValue("price"))}</span>,
-    },
-    {
-        accessorKey: "stock",
-        header: () => <span className="font-semibold">Stock</span>,
-        cell: ({ row }) => <span className="text-sm text-muted-foreground">{String(row.getValue("stock") ?? 0)}</span>,
-    },
-    {
-        accessorKey: "sold",
-        header: () => <span className="font-semibold">Sold</span>,
-        cell: ({ row }) => <span className="text-sm text-muted-foreground">{String(row.getValue("sold") ?? 0)}</span>,
-    },
-    {
-        accessorKey: "is_active",
-        header: () => <span className="font-semibold">Status</span>,
-        cell: ({ row }) => {
-            const isActive = Boolean(row.getValue("is_active"))
-            return (
-                <Badge className={isActive ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400"}>
-                    {isActive ? "Active" : "Inactive"}
-                </Badge>
-            )
-        },
-    },
-    {
-        id: "actions",
-        header: () => <span className="font-semibold">Actions</span>,
-        cell: ({ row }) => <ProductActions product={row.original} onUpdate={onUpdate} />,
-    },
-]
+import { AppSkeleton, CardSkeleton } from "@/components/dashboard/AppSkelaton"
 
-function ProductActions({ product, onUpdate }: { product: ProductRow; onUpdate: () => void }) {
-    const [showDeleteDialog, setShowDeleteDialog] = React.useState(false)
-    const [showSupplierDialog, setShowSupplierDialog] = React.useState(false)
-    const [showBranchDialog, setShowBranchDialog] = React.useState(false)
-    const [supplier, setSupplier] = React.useState<SupplierRow | null>(null)
-    const [branch, setBranch] = React.useState<BranchRow | null>(null)
-    const [isLoadingSupplier, setIsLoadingSupplier] = React.useState(false)
-    const [isLoadingBranch, setIsLoadingBranch] = React.useState(false)
+import { DeleteProduct } from "@/components/dashboard/products/modal/DeleteModal"
 
-    const handleDelete = () => {
-        setShowDeleteDialog(true)
-    }
+import SupplierModal from "@/components/dashboard/products/modal/SupplierModal"
 
-    const handleViewSupplier = async () => {
-        if (!product.supplier_id) {
-            toast.error("No supplier assigned to this product")
-            return
-        }
+import BranchModal from "@/components/dashboard/products/modal/BranchModal"
 
-        setIsLoadingSupplier(true)
-        setShowSupplierDialog(true)
-        try {
-            const response = await fetchSupplierById(product.supplier_id)
-            setSupplier(response.data)
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Failed to fetch supplier")
-            setShowSupplierDialog(false)
-        } finally {
-            setIsLoadingSupplier(false)
-        }
-    }
+import ProductsDetails from "@/components/dashboard/products/modal/ProductsDetails"
 
-    const handleViewBranch = async () => {
-        if (!product.branch_id) {
-            toast.error("No branch assigned to this product")
-            return
-        }
+import { useStateProducts } from "@/services/products/useStateProducts"
 
-        setIsLoadingBranch(true)
-        setShowBranchDialog(true)
-        try {
-            const response = await fetchBranchById(product.branch_id)
-            setBranch(response.data)
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Failed to fetch branch")
-            setShowBranchDialog(false)
-        } finally {
-            setIsLoadingBranch(false)
-        }
-    }
-
-    return (
-        <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        className="data-[state=open]:bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 flex size-9 transition-colors"
-                        size="icon"
-                    >
-                        <IconDotsVertical className="size-4" />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                        <Link href={`/dashboard/products/edit?id=${encodeURIComponent(String(product.id))}`}>
-                            <IconPencil className="mr-2 size-4" />
-                            Edit
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {product.supplier_id && (
-                        <DropdownMenuItem
-                            onSelect={(e) => {
-                                e.preventDefault()
-                                void handleViewSupplier()
-                            }}
-                            className="cursor-pointer"
-                        >
-                            <IconTruck className="mr-2 size-4" />
-                            View Supplier
-                        </DropdownMenuItem>
-                    )}
-                    {product.branch_id && (
-                        <DropdownMenuItem
-                            onSelect={(e) => {
-                                e.preventDefault()
-                                void handleViewBranch()
-                            }}
-                            className="cursor-pointer"
-                        >
-                            <IconBuildingStore className="mr-2 size-4" />
-                            View Branch
-                        </DropdownMenuItem>
-                    )}
-                    {(product.supplier_id || product.branch_id) && <DropdownMenuSeparator />}
-                    <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={(e) => {
-                            e.preventDefault()
-                            handleDelete()
-                        }}
-                        className="cursor-pointer text-destructive focus:text-destructive"
-                    >
-                        <IconTrash className="mr-2 size-4" />
-                        Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Supplier Dialog */}
-            <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>Supplier Information</DialogTitle>
-                        <DialogDescription>Details of the supplier for this product</DialogDescription>
-                    </DialogHeader>
-                    {isLoadingSupplier ? (
-                        <div className="py-8 text-center">
-                            <div className="text-sm text-muted-foreground">Loading supplier...</div>
-                        </div>
-                    ) : supplier ? (
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <div className="text-sm font-medium text-muted-foreground">Name</div>
-                                <div className="text-base font-semibold">{supplier.name}</div>
-                            </div>
-                            {supplier.contact_person && (
-                                <div className="space-y-2">
-                                    <div className="text-sm font-medium text-muted-foreground">Contact Person</div>
-                                    <div className="text-base">{supplier.contact_person}</div>
-                                </div>
-                            )}
-                            {supplier.phone && (
-                                <div className="space-y-2">
-                                    <div className="text-sm font-medium text-muted-foreground">Phone</div>
-                                    <div className="text-base">{supplier.phone}</div>
-                                </div>
-                            )}
-                            {supplier.email && (
-                                <div className="space-y-2">
-                                    <div className="text-sm font-medium text-muted-foreground">Email</div>
-                                    <div className="text-base">{supplier.email}</div>
-                                </div>
-                            )}
-                            {supplier.address && (
-                                <div className="space-y-2">
-                                    <div className="text-sm font-medium text-muted-foreground">Address</div>
-                                    <div className="text-base">{supplier.address}</div>
-                                </div>
-                            )}
-                            <div className="space-y-2">
-                                <div className="text-sm font-medium text-muted-foreground">Status</div>
-                                <Badge className={supplier.is_active ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400"}>
-                                    {supplier.is_active ? "Active" : "Inactive"}
-                                </Badge>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="py-8 text-center">
-                            <div className="text-sm text-muted-foreground">No supplier data available</div>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
-
-            {/* Branch Dialog */}
-            <Dialog open={showBranchDialog} onOpenChange={setShowBranchDialog}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>Branch Information</DialogTitle>
-                        <DialogDescription>Details of the branch for this product</DialogDescription>
-                    </DialogHeader>
-                    {isLoadingBranch ? (
-                        <div className="py-8 text-center">
-                            <div className="text-sm text-muted-foreground">Loading branch...</div>
-                        </div>
-                    ) : branch ? (
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <div className="text-sm font-medium text-muted-foreground">Name</div>
-                                <div className="text-base font-semibold">{branch.name}</div>
-                            </div>
-                            {branch.address && (
-                                <div className="space-y-2">
-                                    <div className="text-sm font-medium text-muted-foreground">Address</div>
-                                    <div className="text-base">{branch.address}</div>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="py-8 text-center">
-                            <div className="text-sm text-muted-foreground">No branch data available</div>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
-
-            {/* Delete Confirmation Dialog */}
-            <DeleteProduct
-                product={product}
-                onUpdate={onUpdate}
-                isOpen={showDeleteDialog}
-                onOpenChange={setShowDeleteDialog}
-            />
-        </>
-    )
-}
+import { createColumns } from "@/components/dashboard/products/modal/CreateColumsProducts"
 
 export default function Products() {
-    const [products, setProducts] = React.useState<ProductRow[]>([])
-    const [isLoading, setIsLoading] = React.useState(true)
-    const [sorting, setSorting] = React.useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+    const {
+        products,
+        isLoading,
+        sorting,
+        setSorting,
+        columnFilters,
+        setColumnFilters,
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext,
+        hasPrev,
+        loadProducts,
+        activeCount,
+        handlePageChange,
+        handleLimitChange,
+        selectedProduct,
+        showDeleteDialog,
+        setShowDeleteDialog,
+        showDetailsDialog,
+        setShowDetailsDialog,
+        showSupplierDialog,
+        setShowSupplierDialog,
+        showBranchDialog,
+        setShowBranchDialog,
+        supplier,
+        isLoadingSupplier,
+        branch,
+        isLoadingBranch,
+        handleOpenDeleteDialog,
+        handleViewDetails,
+        handleViewSupplier,
+        handleViewBranch,
+    } = useStateProducts()
 
-    // Pagination state
-    const [page, setPage] = React.useState(1)
-    const [limit, setLimit] = React.useState(10)
-    const [total, setTotal] = React.useState(0)
-    const [totalPages, setTotalPages] = React.useState(0)
-    const [hasNext, setHasNext] = React.useState(false)
-    const [hasPrev, setHasPrev] = React.useState(false)
+    const columns = React.useMemo(
+        () =>
+            createColumns({
+                onDelete: (product) => handleOpenDeleteDialog(product),
+                onViewSupplier: (product) => void handleViewSupplier(product),
+                onViewBranch: (product) => void handleViewBranch(product),
+                onViewDetails: (product) => handleViewDetails(product),
+            }),
+        [handleOpenDeleteDialog, handleViewSupplier, handleViewBranch, handleViewDetails]
+    )
 
-    const loadProducts = React.useCallback(async () => {
-        try {
-            setIsLoading(true)
-            const response = await fetchProducts(page, limit)
-
-            setProducts(response.data || [])
-
-            // Update pagination metadata
-            if (response.pagination) {
-                setTotal(response.pagination.total || 0)
-                setTotalPages(response.pagination.totalPages || 0)
-                setHasNext(response.pagination.hasNext || false)
-                setHasPrev(response.pagination.hasPrev || false)
-            }
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Failed to fetch products")
-        } finally {
-            setIsLoading(false)
-        }
-    }, [page, limit])
-
-    React.useEffect(() => {
-        void loadProducts()
-    }, [loadProducts])
-
-    const columns = React.useMemo(() => createColumns(() => loadProducts()), [loadProducts])
-
+    // eslint-disable-next-line react-hooks/incompatible-library
     const table = useReactTable({
         data: products,
         columns,
@@ -388,22 +108,8 @@ export default function Products() {
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        manualPagination: true, // Server-side pagination
+        manualPagination: true,
     })
-
-    const activeCount = products.filter((p) => p.is_active).length
-
-    const handlePageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalPages) {
-            setPage(newPage)
-        }
-    }
-
-    const handleLimitChange = (newLimit: string) => {
-        const limitNum = parseInt(newLimit, 10)
-        setLimit(limitNum)
-        setPage(1) // Reset to first page when limit changes
-    }
 
     return (
         <section className="space-y-6">
@@ -633,6 +339,36 @@ export default function Products() {
                     </div>
                 </div>
             )}
+
+            {/* Global dialogs for product actions */}
+            {selectedProduct && (
+                <DeleteProduct
+                    product={selectedProduct}
+                    onUpdate={loadProducts}
+                    isOpen={showDeleteDialog}
+                    onOpenChange={setShowDeleteDialog}
+                />
+            )}
+
+            <ProductsDetails
+                open={showDetailsDialog}
+                onOpenChange={setShowDetailsDialog}
+                product={selectedProduct}
+            />
+
+            <SupplierModal
+                open={showSupplierDialog}
+                onOpenChange={setShowSupplierDialog}
+                supplier={supplier}
+                isLoading={isLoadingSupplier}
+            />
+
+            <BranchModal
+                open={showBranchDialog}
+                onOpenChange={setShowBranchDialog}
+                branch={branch}
+                isLoading={isLoadingBranch}
+            />
         </section>
     )
 }
