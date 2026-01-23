@@ -10,10 +10,10 @@ function jsonError(message: string, status: number) {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { email, name, password, branchname } = body;
+        const { email, name, password } = body;
 
-        if ((!email && !name) || !password || !branchname) {
-            return jsonError('Email or name, password, and branchname are required', 400);
+        if ((!email && !name) || !password) {
+            return jsonError('Email or name and password are required', 400);
         }
 
         if (!APPS_SCRIPT_URL) {
@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
 
         const requestBody =
             email
-                ? { action: 'login', password, email, branchname }
-                : { action: 'login', password, email: name as string, name: name as string, branchname };
+                ? { action: 'login', password, email }
+                : { action: 'login', password, email: name as string, name: name as string };
 
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
@@ -49,6 +49,14 @@ export async function POST(request: NextRequest) {
         if (!data.success) {
             console.error('Login failed from Apps Script:', data.message);
             return jsonError(data.message, 401);
+        }
+
+        // Validasi branchname dari data karyawan yang dikembalikan
+        // Cek kedua kemungkinan format: branchName (camelCase) atau branchname (lowercase)
+        const branchName = data.data?.branchName || data.data?.branchname;
+        if (!data.data || !branchName) {
+            console.error('Employee does not have branchname assigned');
+            return jsonError('Employee must be assigned to a branch', 403);
         }
 
         const res = NextResponse.json({
