@@ -6,9 +6,7 @@ import {
     fetchProducts,
     fetchSupplierById,
     fetchBranchById,
-    type ProductRow,
-    type SupplierRow,
-    type BranchRow,
+    fetchCategories,
 } from "@/lib/config"
 
 import type { ColumnFiltersState, SortingState } from "@tanstack/react-table"
@@ -42,6 +40,11 @@ export function useStateProducts() {
     const [branch, setBranch] = React.useState<BranchRow | null>(null)
     const [isLoadingBranch, setIsLoadingBranch] = React.useState(false)
 
+    // Product details dialog derived names
+    const [supplierName, setSupplierName] = React.useState<string | null>(null)
+    const [branchName, setBranchName] = React.useState<string | null>(null)
+    const [categoryName, setCategoryName] = React.useState<string | null>(null)
+
     const loadProducts = React.useCallback(async () => {
         try {
             setIsLoading(true)
@@ -66,6 +69,47 @@ export function useStateProducts() {
     React.useEffect(() => {
         void loadProducts()
     }, [loadProducts])
+
+    // Load human readable names for the selected product when details dialog is open
+    React.useEffect(() => {
+        if (!showDetailsDialog || !selectedProduct) {
+            setSupplierName(null)
+            setBranchName(null)
+            setCategoryName(null)
+            return
+        }
+
+        void (async () => {
+            try {
+                if (selectedProduct.supplier_id) {
+                    const res = await fetchSupplierById(selectedProduct.supplier_id)
+                    setSupplierName(res.data.name)
+                } else {
+                    setSupplierName(null)
+                }
+
+                if (selectedProduct.branch_id) {
+                    const res = await fetchBranchById(selectedProduct.branch_id)
+                    setBranchName(res.data.name)
+                } else {
+                    setBranchName(null)
+                }
+
+                if (selectedProduct.category_id) {
+                    const res = await fetchCategories()
+                    const found = res.data.find(
+                        (c: { id: number | string; name?: string | null }) =>
+                            String(c.id) === String(selectedProduct.category_id)
+                    )
+                    setCategoryName(found?.name ?? null)
+                } else {
+                    setCategoryName(null)
+                }
+            } catch {
+                // Biarkan fallback ke value yang sudah ada di selectedProduct
+            }
+        })()
+    }, [showDetailsDialog, selectedProduct])
 
     const activeCount = products.filter((p) => p.is_active).length
 
@@ -93,6 +137,7 @@ export function useStateProducts() {
 
     const handleViewSupplier = React.useCallback(
         async (product: ProductRow) => {
+            // Gunakan supplier_id sebagai ID asli supplier
             if (!product.supplier_id) {
                 toast.error("No supplier assigned to this product")
                 return
@@ -166,6 +211,9 @@ export function useStateProducts() {
         isLoadingSupplier,
         branch,
         isLoadingBranch,
+        supplierName,
+        branchName,
+        categoryName,
         handleOpenDeleteDialog,
         handleViewDetails,
         handleViewSupplier,

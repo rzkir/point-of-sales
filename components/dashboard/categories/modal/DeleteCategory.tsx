@@ -1,10 +1,9 @@
 "use client"
 
-import * as React from "react"
 import { IconLoader, IconTrash } from "@tabler/icons-react"
-import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+
 import {
     Dialog,
     DialogClose,
@@ -14,16 +13,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { deleteCategory, type CategoryRow } from "@/lib/config"
 
-type Category = CategoryRow
-
-interface DeleteCategoryProps {
-    category: Category
-    onUpdate: () => void
-    isOpen: boolean
-    onOpenChange: (open: boolean) => void
-}
+import { useStateDelateCategories } from "@/services/categories/delate/useStateDelateCategories"
 
 export function DeleteCategory({
     category,
@@ -31,22 +22,11 @@ export function DeleteCategory({
     isOpen,
     onOpenChange,
 }: DeleteCategoryProps) {
-    const [isDeleting, setIsDeleting] = React.useState(false)
-
-    const handleDelete = async () => {
-        setIsDeleting(true)
-        try {
-            await deleteCategory(category.id)
-            toast.success("Category deleted successfully")
-            onOpenChange(false)
-            onUpdate()
-        } catch (error) {
-            console.error("Delete category error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to delete category")
-        } finally {
-            setIsDeleting(false)
-        }
-    }
+    const { isDeleting, handleDelete } = useStateDelateCategories({
+        categoryId: category.id,
+        onUpdate,
+        onOpenChange,
+    })
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>

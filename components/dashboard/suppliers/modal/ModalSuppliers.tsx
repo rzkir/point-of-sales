@@ -1,9 +1,9 @@
 "use client"
 
-import * as React from "react"
 import { IconLoader, IconPlus } from "@tabler/icons-react"
-import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
+
 import {
     Dialog,
     DialogClose,
@@ -14,77 +14,36 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+
 import {
     Field,
     FieldDescription,
     FieldGroup,
     FieldLabel,
 } from "@/components/ui/field"
+
 import { Input } from "@/components/ui/input"
+
 import { Switch } from "@/components/ui/switch"
-import { API_CONFIG, type SupplierRow } from "@/lib/config"
 
-type Supplier = SupplierRow
+import { useStateEditSuppliers } from "@/services/suppliers/edit/useStateEditSuppliers"
 
-interface SupplierEditFormProps {
-    supplier: Supplier
-    onUpdate: () => void
-    children: React.ReactElement
-}
+import { useStateCreateSuppliers } from "@/services/suppliers/create/useStateCreateSuppliers"
 
 export function SupplierEditForm({
     supplier,
     onUpdate,
     children,
 }: SupplierEditFormProps) {
-    const [isOpen, setIsOpen] = React.useState(false)
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const [isActive, setIsActive] = React.useState(supplier.is_active ?? true)
-    const formRef = React.useRef<HTMLFormElement>(null)
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        setIsSubmitting(true)
-
-        const formData = new FormData(e.currentTarget)
-        const name = formData.get("name") as string
-        const contact_person = formData.get("contact_person") as string
-        const phone = formData.get("phone") as string
-        const email = formData.get("email") as string
-        const address = formData.get("address") as string
-
-        try {
-            const response = await fetch(`/api/supplier/${supplier.id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    name,
-                    contact_person,
-                    phone,
-                    email,
-                    address,
-                    is_active: isActive
-                }),
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to update supplier")
-            }
-
-            toast.success("Supplier updated successfully")
-            setIsOpen(false)
-            onUpdate()
-        } catch (error) {
-            console.error("Update error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to update supplier")
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
+    const {
+        isOpen,
+        isSubmitting,
+        isActive,
+        formRef,
+        setIsOpen,
+        setIsActive,
+        handleSubmit,
+    } = useStateEditSuppliers(supplier, onUpdate)
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -196,57 +155,15 @@ interface SupplierCreateFormProps {
 }
 
 export function SupplierCreateForm({ onUpdate }: SupplierCreateFormProps) {
-    const [isOpen, setIsOpen] = React.useState(false)
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const [isActive, setIsActive] = React.useState(true)
-    const formRef = React.useRef<HTMLFormElement>(null)
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        setIsSubmitting(true)
-
-        const formData = new FormData(e.currentTarget)
-        const name = formData.get("name") as string
-        const contact_person = formData.get("contact_person") as string
-        const phone = formData.get("phone") as string
-        const email = formData.get("email") as string
-        const address = formData.get("address") as string
-
-        try {
-            const response = await fetch(API_CONFIG.ENDPOINTS.suppliers.base, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
-                },
-                body: JSON.stringify({
-                    name,
-                    contact_person,
-                    phone,
-                    email,
-                    address,
-                    is_active: isActive
-                }),
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to create supplier")
-            }
-
-            toast.success("Supplier created successfully")
-            setIsOpen(false)
-            formRef.current?.reset()
-            setIsActive(true)
-            onUpdate()
-        } catch (error) {
-            console.error("Create error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to create supplier")
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
+    const {
+        isOpen,
+        isSubmitting,
+        isActive,
+        formRef,
+        setIsOpen,
+        setIsActive,
+        handleSubmit,
+    } = useStateCreateSuppliers(onUpdate)
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>

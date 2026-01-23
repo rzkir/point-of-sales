@@ -10,15 +10,9 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 
-import { type ProductRow } from "@/lib/config"
-
 import { ProductActions } from "@/components/dashboard/products/modal/ProductActions"
 
-const formatCurrency = (value?: number) => {
-    const n = Number(value ?? 0)
-    if (Number.isNaN(n)) return "-"
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(n)
-}
+import { formatCurrency } from "@/lib/format-idr"
 
 export const createColumns = ({
     onDelete,

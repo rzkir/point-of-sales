@@ -1,9 +1,9 @@
 "use client"
 
-import * as React from "react"
 import { IconLoader, IconTrash } from "@tabler/icons-react"
-import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
+
 import {
     Dialog,
     DialogClose,
@@ -13,16 +13,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { deleteBranch, type BranchRow } from "@/lib/config"
 
-type Branch = BranchRow
-
-interface DeleteBranchProps {
-    branch: Branch
-    onUpdate: () => void
-    isOpen: boolean
-    onOpenChange: (open: boolean) => void
-}
+import { useStateDelateBranches } from "@/services/branches/delete/useStateDelateBranches"
 
 export function DeleteBranch({
     branch,
@@ -30,22 +22,11 @@ export function DeleteBranch({
     isOpen,
     onOpenChange,
 }: DeleteBranchProps) {
-    const [isDeleting, setIsDeleting] = React.useState(false)
-
-    const handleDelete = async () => {
-        setIsDeleting(true)
-        try {
-            await deleteBranch(branch.id)
-            toast.success("Branch deleted successfully")
-            onOpenChange(false)
-            onUpdate()
-        } catch (error) {
-            console.error("Delete error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to delete branch")
-        } finally {
-            setIsDeleting(false)
-        }
-    }
+    const { isDeleting, handleDelete } = useStateDelateBranches({
+        branchId: branch.id,
+        onUpdate,
+        onOpenChange,
+    })
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>

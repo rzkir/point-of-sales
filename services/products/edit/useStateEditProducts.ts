@@ -6,7 +6,7 @@ import { toast } from "sonner"
 
 import { Html5Qrcode } from "html5-qrcode"
 
-import { API_CONFIG, fetchBranches, fetchSuppliers, type BranchRow, type SupplierRow } from "@/lib/config"
+import { API_CONFIG, fetchBranches, fetchSuppliers } from "@/lib/config"
 
 const NO_BRANCH_VALUE = "__none__"
 
@@ -277,15 +277,7 @@ export function useStateEditProducts(productId?: string) {
         e.preventDefault()
         if (!productId) return
 
-        // Map selected IDs to their corresponding names
-        const selectedBranch = branchId ? branches.find((branch) => branch.id === branchId) : undefined
-        const selectedSupplier = supplierId
-            ? suppliers.find((supplier) => String(supplier.id) === supplierId)
-            : undefined
-        const selectedCategory = categoryId
-            ? categories.find((category) => category.id === categoryId)
-            : undefined
-
+        // Sekarang kita kirim kembali ID murni (bukan nama)
         setIsSubmitting(true)
         try {
             const response = await fetch(API_CONFIG.ENDPOINTS.products.byId(productId), {
@@ -306,10 +298,10 @@ export function useStateEditProducts(productId?: string) {
                     description: description ? description : undefined,
                     is_active: isActive === "true",
                     image_url: imageUrl,
-                    // Simpan nama, bukan ID
-                    branch_id: selectedBranch ? selectedBranch.name : undefined,
-                    supplier_id: selectedSupplier ? selectedSupplier.name : undefined,
-                    category_id: selectedCategory ? selectedCategory.name : undefined,
+                    // Kirim ID apa adanya ke backend
+                    branch_id: branchId || undefined,
+                    supplier_id: supplierId || undefined,
+                    category_id: categoryId || undefined,
                 }),
             })
 

@@ -1,9 +1,9 @@
 "use client"
 
-import * as React from "react"
 import { IconLoader, IconPlus } from "@tabler/icons-react"
-import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
+
 import {
     Dialog,
     DialogClose,
@@ -14,13 +14,16 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+
 import {
     Field,
     FieldDescription,
     FieldGroup,
     FieldLabel,
 } from "@/components/ui/field"
+
 import { Input } from "@/components/ui/input"
+
 import {
     Select,
     SelectContent,
@@ -28,83 +31,29 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { API_CONFIG, fetchBranches as fetchBranchesFromConfig, type BranchRow, type EmployeeRow } from "@/lib/config"
 
-type Branch = BranchRow
-type Employee = EmployeeRow
+import { useStateEditEmployee } from "@/services/employee/edit/useStateEditEmployee"
 
-interface EmployeeEditFormProps {
-    employee: Employee
-    onUpdate: () => void
-    children: React.ReactElement
-}
+import { useStateCreateEmployee } from "@/services/employee/create/useStateCreateEmployee"
 
 export function EmployeeEditForm({
     employee,
     onUpdate,
     children,
 }: EmployeeEditFormProps) {
-    const [isOpen, setIsOpen] = React.useState(false)
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const [roleType, setRoleType] = React.useState(employee.roleType || "karyawan")
-    const [branchName, setBranchName] = React.useState(employee.branchName || "none")
-    const [branches, setBranches] = React.useState<Branch[]>([])
-    const [isLoadingBranches, setIsLoadingBranches] = React.useState(false)
-    const formRef = React.useRef<HTMLFormElement>(null)
-
-    // Fetch branches when dialog opens
-    React.useEffect(() => {
-        if (isOpen) {
-            fetchBranches()
-        }
-    }, [isOpen])
-
-    const fetchBranches = async () => {
-        setIsLoadingBranches(true)
-        try {
-            const result = await fetchBranchesFromConfig()
-            setBranches(result.data || [])
-        } catch (error) {
-            console.error("Failed to fetch branches:", error)
-        } finally {
-            setIsLoadingBranches(false)
-        }
-    }
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        setIsSubmitting(true)
-
-        const formData = new FormData(e.currentTarget)
-        const name = formData.get("name") as string
-        const email = formData.get("email") as string
-
-        try {
-            const response = await fetch(API_CONFIG.ENDPOINTS.employees.byId(employee.id), {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
-                },
-                body: JSON.stringify({ name, email, roleType, branchName: branchName === "none" ? null : branchName }),
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to update employee")
-            }
-
-            toast.success("Employee updated successfully")
-            setIsOpen(false)
-            onUpdate()
-        } catch (error) {
-            console.error("Update error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to update employee")
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
+    const {
+        isOpen,
+        isSubmitting,
+        roleType,
+        branchName,
+        branches,
+        isLoadingBranches,
+        formRef,
+        setIsOpen,
+        setRoleType,
+        setBranchName,
+        handleSubmit,
+    } = useStateEditEmployee(employee, onUpdate)
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -202,71 +151,19 @@ interface EmployeeCreateFormProps {
 }
 
 export function EmployeeCreateForm({ onUpdate }: EmployeeCreateFormProps) {
-    const [isOpen, setIsOpen] = React.useState(false)
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const [roleType, setRoleType] = React.useState("karyawan")
-    const [branchName, setBranchName] = React.useState("none")
-    const [branches, setBranches] = React.useState<Branch[]>([])
-    const [isLoadingBranches, setIsLoadingBranches] = React.useState(false)
-    const formRef = React.useRef<HTMLFormElement>(null)
-
-    // Fetch branches when dialog opens
-    React.useEffect(() => {
-        if (isOpen) {
-            fetchBranches()
-        }
-    }, [isOpen])
-
-    const fetchBranches = async () => {
-        setIsLoadingBranches(true)
-        try {
-            const result = await fetchBranchesFromConfig()
-            setBranches(result.data || [])
-        } catch (error) {
-            console.error("Failed to fetch branches:", error)
-        } finally {
-            setIsLoadingBranches(false)
-        }
-    }
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        setIsSubmitting(true)
-
-        const formData = new FormData(e.currentTarget)
-        const name = formData.get("name") as string
-        const email = formData.get("email") as string
-        const password = formData.get("password") as string
-
-        try {
-            const response = await fetch(API_CONFIG.ENDPOINTS.employees.base, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
-                },
-                body: JSON.stringify({ name, email, password, roleType, branchName: branchName === "none" ? null : branchName }),
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to create employee")
-            }
-
-            toast.success("Employee created successfully")
-            setIsOpen(false)
-            formRef.current?.reset()
-            setRoleType("karyawan")
-            setBranchName("none")
-            onUpdate()
-        } catch (error) {
-            console.error("Create error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to create employee")
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
+    const {
+        isOpen,
+        isSubmitting,
+        roleType,
+        branchName,
+        branches,
+        isLoadingBranches,
+        formRef,
+        setIsOpen,
+        setRoleType,
+        setBranchName,
+        handleSubmit,
+    } = useStateCreateEmployee(onUpdate)
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>

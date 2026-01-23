@@ -1,9 +1,9 @@
 "use client"
 
-import * as React from "react"
 import { IconLoader, IconTrash } from "@tabler/icons-react"
-import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
+
 import {
     Dialog,
     DialogClose,
@@ -13,16 +13,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { deleteSupplier, type SupplierRow } from "@/lib/config"
 
-type Supplier = SupplierRow
-
-interface DeleteSupplierProps {
-    supplier: Supplier
-    onUpdate: () => void
-    isOpen: boolean
-    onOpenChange: (open: boolean) => void
-}
+import { useStateDelateSuppliers } from "@/services/suppliers/delate/useStateDelateSuppliers"
 
 export function DeleteSupplier({
     supplier,
@@ -30,22 +22,7 @@ export function DeleteSupplier({
     isOpen,
     onOpenChange,
 }: DeleteSupplierProps) {
-    const [isDeleting, setIsDeleting] = React.useState(false)
-
-    const handleDelete = async () => {
-        setIsDeleting(true)
-        try {
-            await deleteSupplier(supplier.id)
-            toast.success("Supplier deleted successfully")
-            onOpenChange(false)
-            onUpdate()
-        } catch (error) {
-            console.error("Delete error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to delete supplier")
-        } finally {
-            setIsDeleting(false)
-        }
-    }
+    const { isDeleting, handleDelete } = useStateDelateSuppliers(supplier, onUpdate, onOpenChange)
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>

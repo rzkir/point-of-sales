@@ -12,16 +12,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import { type ProductRow } from "@/lib/config"
-
-interface ProductActionsProps {
-    product: ProductRow
-    onDelete: (product: ProductRow) => void
-    onViewSupplier: (product: ProductRow) => void
-    onViewBranch: (product: ProductRow) => void
-    onViewDetails: (product: ProductRow) => void
-}
-
 export function ProductActions({ product, onDelete, onViewSupplier, onViewBranch, onViewDetails }: ProductActionsProps) {
     const handleDelete = () => {
         onDelete(product)

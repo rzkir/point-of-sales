@@ -1,10 +1,9 @@
 "use client"
 
-import * as React from "react"
 import { IconLoader, IconPlus } from "@tabler/icons-react"
-import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+
 import {
     Dialog,
     DialogClose,
@@ -15,70 +14,29 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+
 import {
     Field,
     FieldDescription,
     FieldGroup,
     FieldLabel,
 } from "@/components/ui/field"
+
 import { Input } from "@/components/ui/input"
+
 import { Switch } from "@/components/ui/switch"
-import { API_CONFIG, type CategoryRow } from "@/lib/config"
 
-type Category = CategoryRow
+import { useStateCreateCategories } from "@/services/categories/create/useStateCreateCategories"
 
-interface CategoryEditFormProps {
-    category: Category
-    onUpdate: () => void
-    children: React.ReactElement
-}
+import { useStateEditCategories } from "@/services/categories/edit/useStateEditCategories"
 
 export function CategoryEditForm({
     category,
     onUpdate,
     children,
 }: CategoryEditFormProps) {
-    const [isOpen, setIsOpen] = React.useState(false)
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const [isActive, setIsActive] = React.useState(category.is_active ?? true)
-    const formRef = React.useRef<HTMLFormElement>(null)
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        setIsSubmitting(true)
-
-        const formData = new FormData(e.currentTarget)
-        const name = formData.get("name") as string
-
-        try {
-            const response = await fetch(API_CONFIG.ENDPOINTS.categories.byId(category.id), {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
-                },
-                body: JSON.stringify({
-                    name,
-                    is_active: isActive,
-                }),
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to update category")
-            }
-
-            toast.success("Category updated successfully")
-            setIsOpen(false)
-            onUpdate()
-        } catch (error) {
-            console.error("Update category error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to update category")
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
+    const { isOpen, setIsOpen, isSubmitting, isActive, setIsActive, formRef, handleSubmit } =
+        useStateEditCategories({ categoryId: category.id, onUpdate, initialIsActive: category.is_active })
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -152,49 +110,8 @@ interface CategoryCreateFormProps {
 }
 
 export function CategoryCreateForm({ onUpdate }: CategoryCreateFormProps) {
-    const [isOpen, setIsOpen] = React.useState(false)
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const [isActive, setIsActive] = React.useState(true)
-    const formRef = React.useRef<HTMLFormElement>(null)
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        setIsSubmitting(true)
-
-        const formData = new FormData(e.currentTarget)
-        const name = formData.get("name") as string
-
-        try {
-            const response = await fetch(API_CONFIG.ENDPOINTS.categories.base, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
-                },
-                body: JSON.stringify({
-                    name,
-                    is_active: isActive,
-                }),
-            })
-
-            const data = await response.json()
-
-            if (!data.success) {
-                throw new Error(data.message || "Failed to create category")
-            }
-
-            toast.success("Category created successfully")
-            setIsOpen(false)
-            formRef.current?.reset()
-            setIsActive(true)
-            onUpdate()
-        } catch (error) {
-            console.error("Create category error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to create category")
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
+    const { isOpen, setIsOpen, isSubmitting, isActive, setIsActive, formRef, handleSubmit } =
+        useStateCreateCategories({ onUpdate })
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>

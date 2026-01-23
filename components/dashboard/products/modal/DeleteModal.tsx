@@ -1,10 +1,13 @@
 "use client"
 
 import * as React from "react"
+
 import { IconLoader, IconTrash } from "@tabler/icons-react"
+
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+
 import {
     Dialog,
     DialogClose,
@@ -14,16 +17,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { deleteProduct, type ProductRow } from "@/lib/config"
 
-type Product = ProductRow
-
-interface DeleteProductProps {
-    product: Product
-    onUpdate: () => void
-    isOpen: boolean
-    onOpenChange: (open: boolean) => void
-}
+import { deleteProduct } from "@/lib/config"
 
 export function DeleteProduct({
     product,

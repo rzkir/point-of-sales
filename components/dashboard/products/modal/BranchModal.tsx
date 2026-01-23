@@ -7,14 +7,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import type { BranchRow } from "@/lib/config"
-
-interface BranchModalProps {
-    open: boolean
-    onOpenChange: (open: boolean) => void
-    branch: BranchRow | null
-    isLoading: boolean
-}
 
 export default function BranchModal({ open, onOpenChange, branch, isLoading }: BranchModalProps) {
     return (

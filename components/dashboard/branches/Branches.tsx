@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { IconBuilding, IconDotsVertical, IconTrash, IconMapPin, IconCalendar } from "@tabler/icons-react"
-import { toast } from "sonner"
+
+import { IconBuilding, IconMapPin } from "@tabler/icons-react"
+
 import {
     flexRender,
     getCoreRowModel,
@@ -10,19 +11,8 @@ import {
     getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
-    type ColumnDef,
-    type ColumnFiltersState,
-    type SortingState,
 } from "@tanstack/react-table"
 
-import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
     Table,
     TableBody,
@@ -31,155 +21,31 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { BranchEditForm, BranchCreateForm } from "./modal/ModalBranch"
-import { DeleteBranch } from "./modal/DelateBranch"
-import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
-import { fetchBranches, type BranchRow } from "@/lib/config"
 
-type Branch = BranchRow
+import { AppSkeleton, CardSkeleton } from "@/components/dashboard/AppSkelaton"
 
-// Create columns function that accepts onUpdate callback
-const createColumns = (onUpdate: () => void): ColumnDef<Branch>[] => [
-    {
-        accessorKey: "name",
-        header: () => <span className="font-semibold">Branch Name</span>,
-        cell: ({ row }) => (
-            <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <IconBuilding className="size-5" />
-                </div>
-                <div>
-                    <div className="font-semibold text-foreground">{row.getValue("name")}</div>
-                </div>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "address",
-        header: () => <span className="font-semibold">Address</span>,
-        cell: ({ row }) => {
-            const address = row.getValue("address") as string
-            return (
-                <div className="flex items-start gap-2 max-w-md">
-                    <IconMapPin className="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground text-sm leading-relaxed">
-                        {address || <span className="italic">No address provided</span>}
-                    </span>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "createdAt",
-        header: () => <span className="font-semibold">Created At</span>,
-        cell: ({ row }) => {
-            const dateStr = row.getValue("createdAt") as string
-            if (!dateStr) return (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                    <IconCalendar className="size-4" />
-                    <span className="text-sm">-</span>
-                </div>
-            )
+import { useStateBranches } from "@/services/branches/useStateBranches"
 
-            try {
-                const date = new Date(dateStr)
-                const formatted = date.toISOString().split('T')[0]
-                return (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <IconCalendar className="size-4" />
-                        <span className="text-sm">{formatted}</span>
-                    </div>
-                )
-            } catch {
-                return (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <IconCalendar className="size-4" />
-                        <span className="text-sm">{dateStr}</span>
-                    </div>
-                )
-            }
-        },
-    },
-    {
-        id: "actions",
-        header: () => <span className="font-semibold">Actions</span>,
-        cell: ({ row }) => <BranchActions branch={row.original} onUpdate={onUpdate} />,
-    },
-]
+import { BranchCreateForm } from "@/components/dashboard/branches/modal/ModalBranch"
 
-function BranchActions({ branch, onUpdate }: { branch: Branch; onUpdate: () => void }) {
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
-
-    return (
-        <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        className="data-[state=open]:bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 flex size-9 transition-colors"
-                        size="icon"
-                    >
-                        <IconDotsVertical className="size-4" />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                    <BranchEditForm branch={branch} onUpdate={onUpdate}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                            Edit
-                        </DropdownMenuItem>
-                    </BranchEditForm>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={(e) => {
-                            e.preventDefault()
-                            setIsDeleteDialogOpen(true)
-                        }}
-                        className="cursor-pointer text-destructive focus:text-destructive"
-                    >
-                        <IconTrash className="mr-2 size-4" />
-                        Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DeleteBranch
-                branch={branch}
-                onUpdate={onUpdate}
-                isOpen={isDeleteDialogOpen}
-                onOpenChange={setIsDeleteDialogOpen}
-            />
-        </>
-    )
-}
+import { createColumns } from "@/components/dashboard/branches/modal/CreateColumns"
 
 export default function Branches() {
-    const [branches, setBranches] = React.useState<Branch[]>([])
-    const [isLoading, setIsLoading] = React.useState(true)
-    const [sorting, setSorting] = React.useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-
-    const loadBranches = React.useCallback(async () => {
-        try {
-            setIsLoading(true)
-            const result = await fetchBranches()
-            setBranches(result.data || [])
-        } catch (error) {
-            console.error("Fetch error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to fetch branches")
-        } finally {
-            setIsLoading(false)
-        }
-    }, [])
-
-    React.useEffect(() => {
-        loadBranches()
-    }, [loadBranches])
+    const {
+        branches,
+        isLoading,
+        sorting,
+        setSorting,
+        columnFilters,
+        setColumnFilters,
+        loadBranches,
+    } = useStateBranches()
 
     const columns = React.useMemo(() => createColumns(loadBranches), [loadBranches])
 
+    // eslint-disable-next-line react-hooks/incompatible-library
     const table = useReactTable({
         data: branches,
         columns,

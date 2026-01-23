@@ -1,9 +1,9 @@
 "use client"
 
-import * as React from "react"
 import { IconLoader, IconTrash } from "@tabler/icons-react"
-import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
+
 import {
     Dialog,
     DialogClose,
@@ -13,16 +13,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { deleteEmployee, type EmployeeRow } from "@/lib/config"
 
-type Employee = EmployeeRow
-
-interface DeleteEmployeeProps {
-    employee: Employee
-    onUpdate: () => void
-    isOpen: boolean
-    onOpenChange: (open: boolean) => void
-}
+import { useStateDelateEmployee } from "@/services/employee/delate/useStateDelateEmployee"
 
 export function DeleteEmployee({
     employee,
@@ -30,22 +22,7 @@ export function DeleteEmployee({
     isOpen,
     onOpenChange,
 }: DeleteEmployeeProps) {
-    const [isDeleting, setIsDeleting] = React.useState(false)
-
-    const handleDelete = async () => {
-        setIsDeleting(true)
-        try {
-            await deleteEmployee(employee.id)
-            toast.success("Employee deleted successfully")
-            onOpenChange(false)
-            onUpdate()
-        } catch (error) {
-            console.error("Delete error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to delete employee")
-        } finally {
-            setIsDeleting(false)
-        }
-    }
+    const { isDeleting, handleDelete } = useStateDelateEmployee(employee, onUpdate, onOpenChange)
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>

@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { IconCategory, IconDotsVertical, IconTrash, IconCalendar } from "@tabler/icons-react"
-import { toast } from "sonner"
+
+import { IconCategory } from "@tabler/icons-react"
+
 import {
     flexRender,
     getCoreRowModel,
@@ -10,19 +11,8 @@ import {
     getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
-    type ColumnDef,
-    type ColumnFiltersState,
-    type SortingState,
 } from "@tanstack/react-table"
 
-import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
     Table,
     TableBody,
@@ -31,150 +21,29 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 
-import { CategoryCreateForm, CategoryEditForm } from "./modal/ModalCategories"
-import { DeleteCategory } from "./modal/DeleteCategory"
-import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
-import { fetchCategories, type CategoryRow } from "@/lib/config"
+import { CategoryCreateForm } from "@/components/dashboard/categories/modal/ModalCategories"
 
-type Category = CategoryRow
+import { AppSkeleton, CardSkeleton } from "@/components/dashboard/AppSkelaton"
 
-const createColumns = (onUpdate: () => void): ColumnDef<Category>[] => [
-    {
-        accessorKey: "name",
-        header: () => <span className="font-semibold">Name</span>,
-        cell: ({ row }) => (
-            <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <IconCategory className="size-5" />
-                </div>
-                <div className="font-semibold text-foreground">{row.getValue("name")}</div>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "is_active",
-        header: () => <span className="font-semibold">Status</span>,
-        cell: ({ row }) => {
-            const isActive = row.getValue("is_active") as boolean
-            return (
-                <Badge className={isActive ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400"}>
-                    {isActive ? "Active" : "Inactive"}
-                </Badge>
-            )
-        },
-    },
-    {
-        accessorKey: "created_at",
-        header: () => <span className="font-semibold">Created At</span>,
-        cell: ({ row }) => {
-            const dateStr = row.getValue("created_at") as string
-            if (!dateStr) return (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                    <IconCalendar className="size-4" />
-                    <span className="text-sm">-</span>
-                </div>
-            )
+import { CreateColumnsCategories } from "@/components/dashboard/categories/modal/CreateColumnsCategories"
 
-            try {
-                const date = new Date(dateStr)
-                const formatted = date.toISOString().split("T")[0]
-                return (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <IconCalendar className="size-4" />
-                        <span className="text-sm">{formatted}</span>
-                    </div>
-                )
-            } catch {
-                return (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <IconCalendar className="size-4" />
-                        <span className="text-sm">{dateStr}</span>
-                    </div>
-                )
-            }
-        },
-    },
-    {
-        id: "actions",
-        header: () => <span className="font-semibold">Actions</span>,
-        cell: ({ row }) => <CategoryActions category={row.original} onUpdate={onUpdate} />,
-    },
-]
-
-function CategoryActions({ category, onUpdate }: { category: Category; onUpdate: () => void }) {
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
-
-    return (
-        <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        className="data-[state=open]:bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 flex size-9 transition-colors"
-                        size="icon"
-                    >
-                        <IconDotsVertical className="size-4" />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                    <CategoryEditForm category={category} onUpdate={onUpdate}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                            Edit
-                        </DropdownMenuItem>
-                    </CategoryEditForm>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={(e) => {
-                            e.preventDefault()
-                            setIsDeleteDialogOpen(true)
-                        }}
-                        className="cursor-pointer text-destructive focus:text-destructive"
-                    >
-                        <IconTrash className="mr-2 size-4" />
-                        Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DeleteCategory
-                category={category}
-                onUpdate={onUpdate}
-                isOpen={isDeleteDialogOpen}
-                onOpenChange={setIsDeleteDialogOpen}
-            />
-        </>
-    )
-}
+import { useStateCategories } from "@/services/categories/useStateCategories"
 
 export default function Categories() {
-    const [categories, setCategories] = React.useState<Category[]>([])
-    const [isLoading, setIsLoading] = React.useState(true)
-    const [sorting, setSorting] = React.useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+    const {
+        categories,
+        isLoading,
+        sorting,
+        setSorting,
+        columnFilters,
+        setColumnFilters,
+        loadCategories,
+    } = useStateCategories()
 
-    const loadCategories = React.useCallback(async () => {
-        try {
-            setIsLoading(true)
-            const result = await fetchCategories()
-            setCategories(result.data || [])
-        } catch (error) {
-            console.error("Fetch error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to fetch categories")
-        } finally {
-            setIsLoading(false)
-        }
-    }, [])
-
-    React.useEffect(() => {
-        loadCategories()
-    }, [loadCategories])
-
-    const columns = React.useMemo(() => createColumns(loadCategories), [loadCategories])
+    const columns = React.useMemo(() => CreateColumnsCategories(loadCategories), [loadCategories])
 
     const table = useReactTable({
         data: categories,

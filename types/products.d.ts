@@ -21,3 +21,72 @@ interface Products {
   updated_at?: string;
   branch_id?: string;
 }
+
+interface ProductsDetailsProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  product: ProductRow | null
+  supplierName: string | null
+  branchName: string | null
+  categoryName: string | null
+}
+
+type ProductRow = {
+  id: string | number
+  uid?: string
+  name: string
+  price?: number
+  modal?: number
+  stock?: number
+  sold?: number
+  unit?: string
+  barcode?: string
+  is_active?: boolean
+  branch_id?: string
+  supplier_id?: string
+  category_id?: string
+  branch_name?: string
+  supplier_name?: string
+  image_url?: string
+  category_name?: string
+  min_stock?: number
+  expiration_date?: string
+  created_by?: string
+  updated_by?: string
+  created_at?: string
+  updated_at?: string
+}
+
+type ProductsResponse = {
+  success: boolean
+  message?: string
+  data: ProductRow[]
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
+
+type DeleteProductResponse = {
+  success: boolean
+  message?: string
+}
+
+interface DeleteProductProps {
+  product: ProductRow
+  onUpdate: () => void
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+interface ProductActionsProps {
+  product: ProductRow
+  onDelete: (product: ProductRow) => void
+  onViewSupplier: (product: ProductRow) => void
+  onViewBranch: (product: ProductRow) => void
+  onViewDetails: (product: ProductRow) => void
+}

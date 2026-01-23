@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { Html5Qrcode } from "html5-qrcode"
-import { API_CONFIG, fetchBranches, fetchSuppliers, type BranchRow, type SupplierRow } from "@/lib/config"
+
+import { API_CONFIG, fetchBranches, fetchSuppliers } from "@/lib/config"
 
 const NO_BRANCH_VALUE = "__none__"
 
@@ -234,15 +235,6 @@ export function useStateCreateProducts() {
         const description = formData.get("description") as string
         const isActiveValue = isActive === "true"
 
-        // Map selected IDs to their corresponding names
-        const selectedBranch = branchId ? branches.find((branch) => branch.id === branchId) : undefined
-        const selectedSupplier = supplierId
-            ? suppliers.find((supplier) => String(supplier.id) === supplierId)
-            : undefined
-        const selectedCategory = categoryId
-            ? categories.find((category) => category.id === categoryId)
-            : undefined
-
         try {
             const response = await fetch(API_CONFIG.ENDPOINTS.products.base, {
                 method: "POST",
@@ -262,11 +254,10 @@ export function useStateCreateProducts() {
                     description: description ? description : undefined,
                     is_active: isActiveValue,
                     image_url: imageUrl,
-                    // Simpan nama, bukan ID
-                    branch_id: selectedBranch ? selectedBranch.name : undefined,
-                    // supplier_id di sheet "Suppliers" adalah string; jangan dipaksa jadi Number()
-                    supplier_id: selectedSupplier ? selectedSupplier.name : undefined,
-                    category_id: selectedCategory ? selectedCategory.name : undefined,
+                    // Kirim ID murni ke backend (bukan nama)
+                    branch_id: branchId || undefined,
+                    supplier_id: supplierId || undefined,
+                    category_id: categoryId || undefined,
                 }),
             })
 

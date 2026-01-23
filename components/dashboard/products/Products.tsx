@@ -78,6 +78,9 @@ export default function Products() {
         isLoadingSupplier,
         branch,
         isLoadingBranch,
+        supplierName,
+        branchName,
+        categoryName,
         handleOpenDeleteDialog,
         handleViewDetails,
         handleViewSupplier,
@@ -354,6 +357,9 @@ export default function Products() {
                 open={showDetailsDialog}
                 onOpenChange={setShowDetailsDialog}
                 product={selectedProduct}
+                supplierName={supplierName}
+                branchName={branchName}
+                categoryName={categoryName}
             />
 
             <SupplierModal

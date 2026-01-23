@@ -1,32 +1,10 @@
 "use client"
 
-import * as React from "react"
-
-import { IconUser, IconDotsVertical, IconTrash, IconMail, IconCalendar, IconShield, IconBuilding } from "@tabler/icons-react"
-
-import { toast } from "sonner"
+import { IconUser, IconMail } from "@tabler/icons-react"
 
 import {
     flexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable,
-    type ColumnDef,
-    type ColumnFiltersState,
-    type SortingState,
 } from "@tanstack/react-table"
-
-import { Button } from "@/components/ui/button"
-
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 import {
     Table,
@@ -39,207 +17,14 @@ import {
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
-import { EmployeeEditForm, EmployeeCreateForm } from "./modal/ModalEmployees"
-
-import { DeleteEmployee } from "./modal/DelateEmployees"
+import { EmployeeCreateForm } from "./modal/ModalEmployees"
 
 import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
 
-import { Badge } from "@/components/ui/badge"
-
-import { fetchEmployees, type EmployeeRow } from "@/lib/config"
-
-type Employee = EmployeeRow
-
-const createColumns = (onUpdate: () => void): ColumnDef<Employee>[] => [
-    {
-        accessorKey: "name",
-        header: () => <span className="font-semibold">Name</span>,
-        cell: ({ row }) => (
-            <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <IconUser className="size-5" />
-                </div>
-                <div>
-                    <div className="font-semibold text-foreground">{row.getValue("name")}</div>
-                </div>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "email",
-        header: () => <span className="font-semibold">Email</span>,
-        cell: ({ row }) => {
-            const email = row.getValue("email") as string
-            return (
-                <div className="flex items-center gap-2 max-w-md">
-                    <IconMail className="size-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground text-sm">
-                        {email || <span className="italic">No email provided</span>}
-                    </span>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "roleType",
-        header: () => <span className="font-semibold">Role</span>,
-        cell: ({ row }) => {
-            const roleType = row.getValue("roleType") as string
-            const roleColors: Record<string, string> = {
-                super_admin: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
-                admin: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-                karyawan: "bg-green-500/10 text-green-700 dark:text-green-400",
-            }
-            return (
-                <div className="flex items-center gap-2">
-                    <IconShield className="size-4 text-muted-foreground" />
-                    <Badge className={roleColors[roleType] || "bg-gray-500/10 text-gray-700 dark:text-gray-400"}>
-                        {roleType || "N/A"}
-                    </Badge>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "branchName",
-        header: () => <span className="font-semibold">Branch</span>,
-        cell: ({ row }) => {
-            const branchName = row.getValue("branchName") as string
-            return (
-                <div className="flex items-center gap-2">
-                    <IconBuilding className="size-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                        {branchName ? branchName : <span className="italic">No Branch</span>}
-                    </span>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "createdAt",
-        header: () => <span className="font-semibold">Created At</span>,
-        cell: ({ row }) => {
-            const dateStr = row.getValue("createdAt") as string
-            if (!dateStr) return (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                    <IconCalendar className="size-4" />
-                    <span className="text-sm">-</span>
-                </div>
-            )
-
-            try {
-                const date = new Date(dateStr)
-                const formatted = date.toISOString().split('T')[0]
-                return (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <IconCalendar className="size-4" />
-                        <span className="text-sm">{formatted}</span>
-                    </div>
-                )
-            } catch {
-                return (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <IconCalendar className="size-4" />
-                        <span className="text-sm">{dateStr}</span>
-                    </div>
-                )
-            }
-        },
-    },
-    {
-        id: "actions",
-        header: () => <span className="font-semibold">Actions</span>,
-        cell: ({ row }) => <EmployeeActions employee={row.original} onUpdate={onUpdate} />,
-    },
-]
-
-function EmployeeActions({ employee, onUpdate }: { employee: Employee; onUpdate: () => void }) {
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
-
-    return (
-        <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        className="data-[state=open]:bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 flex size-9 transition-colors"
-                        size="icon"
-                    >
-                        <IconDotsVertical className="size-4" />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                    <EmployeeEditForm employee={employee} onUpdate={onUpdate}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                            Edit
-                        </DropdownMenuItem>
-                    </EmployeeEditForm>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={(e) => {
-                            e.preventDefault()
-                            setIsDeleteDialogOpen(true)
-                        }}
-                        className="cursor-pointer text-destructive focus:text-destructive"
-                    >
-                        <IconTrash className="mr-2 size-4" />
-                        Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DeleteEmployee
-                employee={employee}
-                onUpdate={onUpdate}
-                isOpen={isDeleteDialogOpen}
-                onOpenChange={setIsDeleteDialogOpen}
-            />
-        </>
-    )
-}
+import { useStateEmployee } from "@/services/employee/useStateEmployee"
 
 export default function Employees() {
-    const [employees, setEmployees] = React.useState<Employee[]>([])
-    const [isLoading, setIsLoading] = React.useState(true)
-    const [sorting, setSorting] = React.useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-
-    const loadEmployees = React.useCallback(async () => {
-        try {
-            setIsLoading(true)
-            const result = await fetchEmployees()
-            setEmployees(result.data || [])
-        } catch (error) {
-            console.error("Fetch error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to fetch employees")
-        } finally {
-            setIsLoading(false)
-        }
-    }, [])
-
-    React.useEffect(() => {
-        loadEmployees()
-    }, [loadEmployees])
-
-    const columns = React.useMemo(() => createColumns(loadEmployees), [loadEmployees])
-
-    const table = useReactTable({
-        data: employees,
-        columns,
-        state: {
-            sorting,
-            columnFilters,
-        },
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-    })
+    const { employees, isLoading, loadEmployees, table } = useStateEmployee()
 
     return (
         <section className="space-y-6">

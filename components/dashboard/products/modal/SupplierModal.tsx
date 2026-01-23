@@ -10,15 +10,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 
-import type { SupplierRow } from "@/lib/config"
-
-interface SupplierModalProps {
-    open: boolean
-    onOpenChange: (open: boolean) => void
-    supplier: SupplierRow | null
-    isLoading: boolean
-}
-
 export default function SupplierModal({ open, onOpenChange, supplier, isLoading }: SupplierModalProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

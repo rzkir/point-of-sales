@@ -1,32 +1,8 @@
 "use client"
 
-import * as React from "react"
+import { IconBuilding, IconMail, IconUser } from "@tabler/icons-react"
 
-import { IconBuilding, IconDotsVertical, IconTrash, IconMail, IconCalendar, IconPhone, IconUser, IconMapPin } from "@tabler/icons-react"
-
-import { toast } from "sonner"
-
-import {
-    flexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable,
-    type ColumnDef,
-    type ColumnFiltersState,
-    type SortingState,
-} from "@tanstack/react-table"
-
-import { Button } from "@/components/ui/button"
-
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { flexRender } from "@tanstack/react-table"
 
 import {
     Table,
@@ -39,230 +15,14 @@ import {
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
-import { SupplierEditForm, SupplierCreateForm } from "./modal/ModalSuppliers"
-
-import { DeleteSupplier } from "./modal/DelateSuppliers"
+import { SupplierCreateForm } from "@/components/dashboard/suppliers/modal/ModalSuppliers"
 
 import { AppSkeleton, CardSkeleton } from "../AppSkelaton"
 
-import { Badge } from "@/components/ui/badge"
-
-import { fetchSuppliers, type SupplierRow } from "@/lib/config"
-
-type Supplier = SupplierRow
-
-const createColumns = (onUpdate: () => void): ColumnDef<Supplier>[] => [
-    {
-        accessorKey: "name",
-        header: () => <span className="font-semibold">Name</span>,
-        cell: ({ row }) => (
-            <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <IconBuilding className="size-5" />
-                </div>
-                <div>
-                    <div className="font-semibold text-foreground">{row.getValue("name")}</div>
-                </div>
-            </div>
-        ),
-    },
-    {
-        accessorKey: "contact_person",
-        header: () => <span className="font-semibold">Contact Person</span>,
-        cell: ({ row }) => {
-            const contactPerson = row.getValue("contact_person") as string
-            return (
-                <div className="flex items-center gap-2 max-w-md">
-                    <IconUser className="size-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground text-sm">
-                        {contactPerson || <span className="italic">No contact person</span>}
-                    </span>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "phone",
-        header: () => <span className="font-semibold">Phone</span>,
-        cell: ({ row }) => {
-            const phone = row.getValue("phone") as string
-            return (
-                <div className="flex items-center gap-2 max-w-md">
-                    <IconPhone className="size-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground text-sm">
-                        {phone || <span className="italic">No phone</span>}
-                    </span>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "email",
-        header: () => <span className="font-semibold">Email</span>,
-        cell: ({ row }) => {
-            const email = row.getValue("email") as string
-            return (
-                <div className="flex items-center gap-2 max-w-md">
-                    <IconMail className="size-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground text-sm">
-                        {email || <span className="italic">No email provided</span>}
-                    </span>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "address",
-        header: () => <span className="font-semibold">Address</span>,
-        cell: ({ row }) => {
-            const address = row.getValue("address") as string
-            return (
-                <div className="flex items-center gap-2 max-w-md">
-                    <IconMapPin className="size-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground text-sm">
-                        {address || <span className="italic">No address</span>}
-                    </span>
-                </div>
-            )
-        },
-    },
-    {
-        accessorKey: "is_active",
-        header: () => <span className="font-semibold">Status</span>,
-        cell: ({ row }) => {
-            const isActive = row.getValue("is_active") as boolean
-            return (
-                <Badge className={isActive ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400"}>
-                    {isActive ? "Active" : "Inactive"}
-                </Badge>
-            )
-        },
-    },
-    {
-        accessorKey: "created_at",
-        header: () => <span className="font-semibold">Created At</span>,
-        cell: ({ row }) => {
-            const dateStr = row.getValue("created_at") as string
-            if (!dateStr) return (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                    <IconCalendar className="size-4" />
-                    <span className="text-sm">-</span>
-                </div>
-            )
-
-            try {
-                const date = new Date(dateStr)
-                const formatted = date.toISOString().split('T')[0]
-                return (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <IconCalendar className="size-4" />
-                        <span className="text-sm">{formatted}</span>
-                    </div>
-                )
-            } catch {
-                return (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <IconCalendar className="size-4" />
-                        <span className="text-sm">{dateStr}</span>
-                    </div>
-                )
-            }
-        },
-    },
-    {
-        id: "actions",
-        header: () => <span className="font-semibold">Actions</span>,
-        cell: ({ row }) => <SupplierActions supplier={row.original} onUpdate={onUpdate} />,
-    },
-]
-
-function SupplierActions({ supplier, onUpdate }: { supplier: Supplier; onUpdate: () => void }) {
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
-
-    return (
-        <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        className="data-[state=open]:bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 flex size-9 transition-colors"
-                        size="icon"
-                    >
-                        <IconDotsVertical className="size-4" />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                    <SupplierEditForm supplier={supplier} onUpdate={onUpdate}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                            Edit
-                        </DropdownMenuItem>
-                    </SupplierEditForm>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={(e) => {
-                            e.preventDefault()
-                            setIsDeleteDialogOpen(true)
-                        }}
-                        className="cursor-pointer text-destructive focus:text-destructive"
-                    >
-                        <IconTrash className="mr-2 size-4" />
-                        Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DeleteSupplier
-                supplier={supplier}
-                onUpdate={onUpdate}
-                isOpen={isDeleteDialogOpen}
-                onOpenChange={setIsDeleteDialogOpen}
-            />
-        </>
-    )
-}
+import { useStateSuppliers } from "@/services/suppliers/useStateSuppliers"
 
 export default function Suppliers() {
-    const [suppliers, setSuppliers] = React.useState<Supplier[]>([])
-    const [isLoading, setIsLoading] = React.useState(true)
-    const [sorting, setSorting] = React.useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-
-    const loadSuppliers = React.useCallback(async () => {
-        try {
-            setIsLoading(true)
-            const result = await fetchSuppliers()
-            setSuppliers(result.data || [])
-        } catch (error) {
-            console.error("Fetch error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to fetch suppliers")
-        } finally {
-            setIsLoading(false)
-        }
-    }, [])
-
-    React.useEffect(() => {
-        loadSuppliers()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    const columns = React.useMemo(() => createColumns(loadSuppliers), [loadSuppliers])
-
-    const table = useReactTable({
-        data: suppliers,
-        columns,
-        state: {
-            sorting,
-            columnFilters,
-        },
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-    })
+    const { suppliers, isLoading, loadSuppliers, table } = useStateSuppliers()
 
     const activeSuppliers = suppliers.filter(s => s.is_active).length
 
@@ -296,7 +56,7 @@ export default function Suppliers() {
                             </div>
                         </div>
                         <div className="shrink-0">
-                            <SupplierCreateForm onUpdate={fetchSuppliers} />
+                            <SupplierCreateForm onUpdate={loadSuppliers} />
                         </div>
                     </div>
                 </CardContent>
