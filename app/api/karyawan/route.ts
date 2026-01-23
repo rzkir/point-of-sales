@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+// Ganti dengan Web App URL dari Google Apps Script
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+
+function jsonError(message: string, status: number) {
+    return NextResponse.json({ success: false, message }, { status });
+}
+
+export async function POST(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { email, name, password, branchname } = body;
+
+        if ((!email && !name) || !password || !branchname) {
+            return jsonError('Email or name, password, and branchname are required', 400);
+        }
+
+        if (!APPS_SCRIPT_URL) {
+            return jsonError('Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local', 500);
+        }
+
+        const requestBody =
+            email
+                ? { action: 'login', password, email, branchname }
+                : { action: 'login', password, email: name as string, name: name as string, branchname };
+
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        // Cek content type
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const textResponse = await response.text();
+            console.error('Apps Script returned non-JSON response:', textResponse.substring(0, 500));
+            return jsonError(
+                'Invalid response from Apps Script. Please check your Apps Script deployment and URL.',
+                500
+            );
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+            console.error('Login failed from Apps Script:', data.message);
+            return jsonError(data.message, 401);
+        }
+
+        const res = NextResponse.json({
+            success: true,
+            message: data.message,
+            data: data.data,
+        });
+
+        // httpOnly session cookie untuk GET /api/auth/session
+        res.cookies.set('session', JSON.stringify(data.data), {
+            httpOnly: true,
+            path: '/',
+            maxAge: 60 * 60 * 24 * 7, // 7 hari
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+        });
+
+        return res;
+    } catch (error) {
+        console.error('Login error:', error);
+        return jsonError(error instanceof Error ? error.message : 'Internal server error', 500);
+    }
+}
