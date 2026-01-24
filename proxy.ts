@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server"
 /**
  * Next.js 16 Proxy (pengganti middleware).
  * - super_admin, admin di / → redirect /dashboard
- * - karyawan di /dashboard → redirect /
+ * - karyawan di / → redirect /karyawan
+ * - karyawan di /dashboard → redirect /karyawan
  * - belum login (tanpa cookie session) akses /dashboard → redirect /
  */
 export function proxy(request: NextRequest) {
@@ -34,6 +35,9 @@ export function proxy(request: NextRequest) {
     if (pathname === "/") {
         if (role === "super_admin" || role === "admin") {
             return NextResponse.redirect(new URL("/dashboard", request.url))
+        }
+        if (role === "karyawan") {
+            return NextResponse.redirect(new URL("/karyawan", request.url))
         }
     }
 

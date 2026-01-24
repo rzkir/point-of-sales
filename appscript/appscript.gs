@@ -3,6 +3,7 @@ const BRANCHES_SHEET_NAME = 'Branches';
 const PRODUCTS_SHEET_NAME = 'Products';
 const CATEGORIES_SHEET_NAME = 'Categories';
 const SUPPLIERS_SHEET_NAME = 'Suppliers';
+const TRANSACTIONS_SHEET_NAME = 'Transactions';
 
 // SPREADSHEET_ID bisa di-set di bagian atas file ini jika ingin menggunakan spreadsheet tertentu
 // Jika tidak di-set (undefined), akan menggunakan spreadsheet aktif
@@ -185,6 +186,8 @@ function doPost(e) {
           response = handleCreateCategory(requestData);
         } else if (sheet === 'Suppliers') {
           response = handleCreateSupplier(requestData);
+        } else if (sheet === 'Transactions') {
+          response = handleCreateTransaction(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleCreateBranch(requestData);
@@ -199,6 +202,8 @@ function doPost(e) {
           response = handleListCategories(requestData);
         } else if (sheet === 'Suppliers') {
           response = handleListSuppliers(requestData);
+        } else if (sheet === 'Transactions') {
+          response = handleListTransactions(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleListBranches(requestData);
@@ -213,6 +218,8 @@ function doPost(e) {
           response = handleGetCategory(requestData);
         } else if (sheet === 'Suppliers') {
           response = handleGetSupplier(requestData);
+        } else if (sheet === 'Transactions') {
+          response = handleGetTransaction(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleGetBranch(requestData);
@@ -241,6 +248,8 @@ function doPost(e) {
           response = handleDeleteCategory(requestData);
         } else if (sheet === 'Suppliers') {
           response = handleDeleteSupplier(requestData);
+        } else if (sheet === 'Transactions') {
+          response = handleDeleteTransaction(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleDeleteBranch(requestData);
@@ -1912,5 +1921,381 @@ function handleDeleteSupplier(data) {
   return {
     success: false,
     message: 'Supplier not found'
+  };
+}
+
+// ==================== TRANSACTIONS ====================
+
+const TRANSACTIONS_COLUMNS = [
+  'id',
+  'transaction_number',
+  'customer_name',
+  'subtotal',
+  'discount',
+  'tax',
+  'total',
+  'paid_amount',
+  'due_amount',
+  'is_credit',
+  'payment_method',
+  'payment_status',
+  'status',
+  'branch_name',
+  'created_by',
+  'created_at',
+  'updated_at'
+];
+
+/**
+ * Get Transactions column map
+ */
+function getTransactionsColumnMap_() {
+  const sheet = getTransactionsSheet();
+  return ensureSheetColumns_(sheet, TRANSACTIONS_COLUMNS);
+}
+
+/**
+ * Mendapatkan sheet Transactions
+ */
+function getTransactionsSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(TRANSACTIONS_SHEET_NAME);
+  
+  // Jika sheet belum ada, buat sheet baru
+  if (!sheet) {
+    sheet = ss.insertSheet(TRANSACTIONS_SHEET_NAME);
+    // Header akan di-set otomatis oleh ensureSheetColumns_()
+  }
+
+  // Pastikan header selalu up-to-date walaupun schema berubah
+  ensureSheetColumns_(sheet, TRANSACTIONS_COLUMNS);
+  
+  return sheet;
+}
+
+/**
+ * Generate transaction number
+ */
+function generateTransactionNumber() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  return `TRX-${year}${month}${day}-${random}`;
+}
+
+/**
+ * Cari transaction berdasarkan ID
+ */
+function findTransactionById(id) {
+  const sheet = getTransactionsSheet();
+  const col = getTransactionsColumnMap_();
+  const data = sheet.getDataRange().getValues();
+  
+  // Skip header
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][col.id] === id) {
+      const row = data[i];
+      const transaction = {};
+      TRANSACTIONS_COLUMNS.forEach((key) => {
+        transaction[key] = row[col[key]];
+      });
+      return transaction;
+    }
+  }
+  return null;
+}
+
+/**
+ * Handle create transaction
+ */
+function handleCreateTransaction(data) {
+  const {
+    customer_name,
+    discount = 0,
+    tax = 0,
+    total,
+    subtotal,
+    paid_amount = 0,
+    is_credit = false,
+    branch_name = '',
+    payment_method = 'cash',
+    payment_status = 'paid',
+    status = 'pending',
+    created_by
+  } = data;
+
+  if (!subtotal || subtotal === undefined || isNaN(Number(subtotal))) {
+    return {
+      success: false,
+      message: 'Subtotal is required'
+    };
+  }
+
+  if (!total || total === undefined || isNaN(Number(total))) {
+    return {
+      success: false,
+      message: 'Total is required'
+    };
+  }
+
+  // Validasi kasbon: jika is_credit = true, customer_name wajib
+  if (is_credit && (!customer_name || String(customer_name).trim() === '')) {
+    return {
+      success: false,
+      message: 'Customer name is required for credit transactions'
+    };
+  }
+
+  // Hitung paid_amount dan due_amount
+  // Jika bukan kasbon, paid_amount = total
+  const totalAmount = Number(total);
+  const paid = is_credit ? (Number(paid_amount) || 0) : totalAmount;
+  const due = Math.max(0, totalAmount - paid);
+
+  // Set payment_status berdasarkan paid_amount
+  let finalPaymentStatus;
+  if (paid === 0) {
+    finalPaymentStatus = 'unpaid';
+  } else if (paid >= totalAmount) {
+    finalPaymentStatus = 'paid';
+  } else {
+    finalPaymentStatus = 'partial';
+  }
+
+  const sheet = getTransactionsSheet();
+  const col = getTransactionsColumnMap_();
+  
+  const id = generateId();
+  const transaction_number = generateTransactionNumber();
+  const now = new Date().toISOString();
+  
+  const newRow = [];
+  TRANSACTIONS_COLUMNS.forEach((key) => {
+    if (key === 'id') {
+      newRow.push(id);
+    } else if (key === 'transaction_number') {
+      newRow.push(transaction_number);
+    } else if (key === 'customer_name') {
+      newRow.push(customer_name || '');
+    } else if (key === 'subtotal') {
+      newRow.push(subtotal);
+    } else if (key === 'discount') {
+      newRow.push(discount || 0);
+    } else if (key === 'tax') {
+      newRow.push(tax || 0);
+    } else if (key === 'total') {
+      newRow.push(total);
+    } else if (key === 'paid_amount') {
+      newRow.push(paid);
+    } else if (key === 'due_amount') {
+      newRow.push(due);
+    } else if (key === 'is_credit') {
+      newRow.push(is_credit || false);
+    } else if (key === 'payment_method') {
+      newRow.push(payment_method);
+    } else if (key === 'payment_status') {
+      newRow.push(finalPaymentStatus);
+    } else if (key === 'status') {
+      newRow.push(status);
+    } else if (key === 'branch_name') {
+      newRow.push(branch_name || '');
+    } else if (key === 'created_by') {
+      newRow.push(created_by || '');
+    } else if (key === 'created_at') {
+      newRow.push(now);
+    } else if (key === 'updated_at') {
+      newRow.push(now);
+    } else {
+      newRow.push('');
+    }
+  });
+  
+  sheet.appendRow(newRow);
+  
+  const transaction = findTransactionById(id);
+  
+  return {
+    success: true,
+    message: 'Transaction created successfully',
+    data: transaction
+  };
+}
+
+/**
+ * Handle list transactions
+ */
+function handleListTransactions(data) {
+  const { page = 1, limit = 10 } = data || {};
+  
+  const sheet = getTransactionsSheet();
+  const col = getTransactionsColumnMap_();
+  const dataRange = sheet.getDataRange().getValues();
+  
+  // Skip header
+  const allTransactions = [];
+  for (let i = 1; i < dataRange.length; i++) {
+    const row = dataRange[i];
+    const transaction = {};
+    TRANSACTIONS_COLUMNS.forEach((key) => {
+      transaction[key] = row[col[key]];
+    });
+    allTransactions.push(transaction);
+  }
+  
+  // Reverse untuk mendapatkan yang terbaru di atas
+  allTransactions.reverse();
+  
+  // Pagination
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedTransactions = allTransactions.slice(startIndex, endIndex);
+  
+  const totalPages = Math.ceil(allTransactions.length / limit);
+  
+  return {
+    success: true,
+    data: paginatedTransactions,
+    pagination: {
+      page: Number(page),
+      limit: Number(limit),
+      total: allTransactions.length,
+      totalPages: totalPages,
+      hasNext: Number(page) < totalPages,
+      hasPrev: Number(page) > 1
+    }
+  };
+}
+
+/**
+ * Handle get transaction
+ */
+function handleGetTransaction(data) {
+  const { id } = data;
+  
+  if (!id) {
+    return {
+      success: false,
+      message: 'Transaction ID is required'
+    };
+  }
+  
+  const transaction = findTransactionById(id);
+  
+  if (!transaction) {
+    return {
+      success: false,
+      message: 'Transaction not found'
+    };
+  }
+  
+  return {
+    success: true,
+    data: transaction
+  };
+}
+
+/**
+ * Handle update transaction
+ */
+function handleUpdateTransaction(data) {
+  const { id } = data;
+  
+  if (!id) {
+    return {
+      success: false,
+      message: 'Transaction ID is required'
+    };
+  }
+  
+  const sheet = getTransactionsSheet();
+  const col = getTransactionsColumnMap_();
+  const dataRange = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][col.id] === id) {
+      const now = new Date().toISOString();
+      
+      // Get current total
+      const currentTotal = data.total !== undefined ? Number(data.total) : Number(dataRange[i][col.total]);
+      
+      // Jika paid_amount diupdate, hitung ulang due_amount dan payment_status
+      if (data.paid_amount !== undefined) {
+        const paid = Number(data.paid_amount);
+        const due = Math.max(0, currentTotal - paid);
+        
+        // Set due_amount
+        sheet.getRange(i + 1, col.due_amount + 1).setValue(due);
+        
+        // Update payment_status berdasarkan paid_amount
+        let finalPaymentStatus = data.payment_status;
+        if (paid === 0) {
+          finalPaymentStatus = 'unpaid';
+        } else if (paid >= currentTotal) {
+          finalPaymentStatus = 'paid';
+        } else {
+          finalPaymentStatus = 'partial';
+        }
+        sheet.getRange(i + 1, col.payment_status + 1).setValue(finalPaymentStatus);
+      }
+      
+      // Update fields yang ada di data
+      TRANSACTIONS_COLUMNS.forEach((key) => {
+        if (key !== 'id' && key !== 'transaction_number' && key !== 'created_at' && key !== 'due_amount' && key !== 'payment_status' && data[key] !== undefined) {
+          sheet.getRange(i + 1, col[key] + 1).setValue(data[key]);
+        }
+      });
+      
+      // Update updated_at
+      sheet.getRange(i + 1, col.updated_at + 1).setValue(now);
+      
+      const updatedTransaction = findTransactionById(id);
+      
+      return {
+        success: true,
+        message: 'Transaction updated successfully',
+        data: updatedTransaction
+      };
+    }
+  }
+  
+  return {
+    success: false,
+    message: 'Transaction not found'
+  };
+}
+
+/**
+ * Handle delete transaction
+ */
+function handleDeleteTransaction(data) {
+  const { id } = data;
+  
+  if (!id) {
+    return {
+      success: false,
+      message: 'Transaction ID is required'
+    };
+  }
+  
+  const sheet = getTransactionsSheet();
+  const col = getTransactionsColumnMap_();
+  const dataRange = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][col.id] === id) {
+      sheet.deleteRow(i + 1); // +1 karena index sheet dimulai dari 1
+      
+      return {
+        success: true,
+        message: 'Transaction deleted successfully'
+      };
+    }
+  }
+  
+  return {
+    success: false,
+    message: 'Transaction not found'
   };
 }

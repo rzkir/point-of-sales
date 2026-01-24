@@ -37,6 +37,12 @@ export const API_CONFIG = {
             base: `${API_BASE_URL}/api/supplier`,
             byId: (id: string | number) => `${API_BASE_URL}/api/supplier/${encodeURIComponent(String(id))}`,
         },
+        transactions: {
+            base: `${API_BASE_URL}/api/transactions`,
+            byId: (id: string | number) => `${API_BASE_URL}/api/transactions/${encodeURIComponent(String(id))}`,
+            list: (page: number = 1, limit: number = 10) =>
+                `${API_BASE_URL}/api/transactions?page=${page}&limit=${limit}`,
+        },
     },
     SECRET: API_SECRET,
 }
@@ -424,5 +430,41 @@ export async function deleteSupplier(supplierId: string | number): Promise<Delet
     } catch (error) {
         console.error("Delete supplier error:", error)
         throw error instanceof Error ? error : new Error("Failed to delete supplier")
+    }
+}
+
+/**
+ * Fetch transactions with pagination
+ * @param page - Page number (default: 1)
+ * @param limit - Items per page (default: 10)
+ * @returns Promise with transactions data and pagination info
+ */
+export async function fetchTransactions(page: number = 1, limit: number = 10): Promise<TransactionsResponse> {
+    try {
+        const response = await fetch(API_CONFIG.ENDPOINTS.transactions.list(page, limit), {
+            headers: {
+                Authorization: `Bearer ${API_CONFIG.SECRET}`,
+            },
+        })
+
+        if (response.status === 401) {
+            throw new Error("Unauthorized")
+        }
+
+        const data = await response.json()
+
+        if (!data.success) {
+            throw new Error(data.message || "Failed to fetch transactions")
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            data: data.data || [],
+            pagination: data.pagination,
+        }
+    } catch (error) {
+        console.error("Fetch transactions error:", error)
+        throw error instanceof Error ? error : new Error("Failed to fetch transactions")
     }
 }

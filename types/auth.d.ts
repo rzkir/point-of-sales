@@ -10,6 +10,7 @@ interface User {
     name: string;
     roleType: RoleType;
     branchId: string;
+    branchName?: string;
     createdAt: string;
     updatedAt: string;
 }

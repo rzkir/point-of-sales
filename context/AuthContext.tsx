@@ -68,8 +68,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(data.data)
             if (typeof window !== "undefined") {
                 localStorage.setItem("user", JSON.stringify(data.data))
-                // Cookie untuk proxy: redirect / → /dashboard jika role admin
+                // Cookie untuk proxy: redirect / → /dashboard jika role admin, / → /karyawan jika role karyawan
                 document.cookie = `user.role=${encodeURIComponent(data.data.roleType)}; path=/; max-age=604800`
+
+                // Redirect berdasarkan role setelah login
+                if (data.data.roleType === "karyawan") {
+                    router.push("/karyawan")
+                } else if (data.data.roleType === "super_admin" || data.data.roleType === "admin") {
+                    router.push("/dashboard")
+                }
             }
 
             setIsLoading(false)
