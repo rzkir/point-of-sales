@@ -63,14 +63,18 @@ export default function EditProducts({ productId }: { productId?: string }) {
         product,
         name,
         setName,
-        price,
-        setPrice,
-        modal,
-        setModal,
-        stock,
-        setStock,
-        minStock,
-        setMinStock,
+        priceDisplay,
+        modalDisplay,
+        stockDisplay,
+        minStockDisplay,
+        handlePriceChange,
+        handleModalChange,
+        handleStockChange,
+        handleMinStockChange,
+        handlePriceBlur,
+        handleModalBlur,
+        handleStockBlur,
+        handleMinStockBlur,
         unit,
         setUnit,
         barcode,
@@ -349,41 +353,44 @@ export default function EditProducts({ productId }: { productId?: string }) {
                             <FieldLabel htmlFor="price">Price</FieldLabel>
                             <Input
                                 id="price"
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                value={price}
-                                onChange={(e) => setPrice(e.target.value)}
+                                type="text"
+                                inputMode="numeric"
+                                value={priceDisplay}
+                                onChange={handlePriceChange}
+                                onBlur={handlePriceBlur}
                                 placeholder="0"
                                 required
                                 disabled={isSubmitting}
                             />
+                            <input type="hidden" name="price" />
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="modal">Modal</FieldLabel>
                             <Input
                                 id="modal"
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                value={modal}
-                                onChange={(e) => setModal(e.target.value)}
+                                type="text"
+                                inputMode="numeric"
+                                value={modalDisplay}
+                                onChange={handleModalChange}
+                                onBlur={handleModalBlur}
                                 placeholder="0"
                                 disabled={isSubmitting}
                             />
+                            <input type="hidden" name="modal" />
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="stock">Stock</FieldLabel>
                             <Input
                                 id="stock"
-                                type="number"
-                                min={0}
-                                step="1"
-                                value={stock}
-                                onChange={(e) => setStock(e.target.value)}
+                                type="text"
+                                inputMode="numeric"
+                                value={stockDisplay}
+                                onChange={handleStockChange}
+                                onBlur={handleStockBlur}
                                 placeholder="0"
                                 disabled={isSubmitting}
                             />
+                            <input type="hidden" name="stock" />
                         </Field>
                     </div>
 
@@ -392,14 +399,15 @@ export default function EditProducts({ productId }: { productId?: string }) {
                             <FieldLabel htmlFor="min_stock">Min Stock</FieldLabel>
                             <Input
                                 id="min_stock"
-                                type="number"
-                                min={0}
-                                step="1"
-                                value={minStock}
-                                onChange={(e) => setMinStock(e.target.value)}
+                                type="text"
+                                inputMode="numeric"
+                                value={minStockDisplay}
+                                onChange={handleMinStockChange}
+                                onBlur={handleMinStockBlur}
                                 placeholder="0"
                                 disabled={isSubmitting}
                             />
+                            <input type="hidden" name="min_stock" />
                             <FieldDescription>Minimum stok sebelum dianggap menipis (opsional).</FieldDescription>
                         </Field>
 

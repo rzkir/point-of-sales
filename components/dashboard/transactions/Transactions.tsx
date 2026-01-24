@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { IconReceipt, IconRefresh, IconX, IconSearch } from "@tabler/icons-react"
+import { IconReceipt, IconRefresh, IconFilter, IconSearch } from "@tabler/icons-react"
 
 import {
     flexRender,
@@ -31,7 +31,11 @@ import { AppSkeleton, CardSkeleton } from "@/components/dashboard/AppSkelaton"
 
 import { useStateTransactions } from "@/services/transactions/useStateTransactions"
 
+import { TransactionFiltersSheet } from "@/components/BottomSheets"
+
 export default function Transactions() {
+    const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false)
+
     const {
         transactions,
         isLoading,
@@ -53,7 +57,6 @@ export default function Transactions() {
         setPaymentStatusFilter,
         setBranchFilter,
         setSearchInput,
-        clearFilters,
         handleApplySearch,
         totalRevenue,
         completedCount,
@@ -62,6 +65,8 @@ export default function Transactions() {
         branches,
         table,
     } = useStateTransactions()
+
+    const hasActiveFilters = !!(statusFilter || paymentStatusFilter || branchFilter || searchQuery)
 
     return (
         <section className="space-y-6">
@@ -159,57 +164,20 @@ export default function Transactions() {
                                 </Button>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Button variant="outline" onClick={clearFilters} disabled={!statusFilter && !paymentStatusFilter && !branchFilter && !searchQuery}>
-                                    <IconX className="mr-2 size-4" />
-                                    Clear Filters
+                                <Button variant="outline" onClick={() => setIsFilterSheetOpen(true)}>
+                                    <IconFilter className="mr-2 size-4" />
+                                    Filters
+                                    {hasActiveFilters && (
+                                        <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                                            Active
+                                        </span>
+                                    )}
                                 </Button>
                                 <Button variant="outline" onClick={() => loadTransactions()}>
                                     <IconRefresh className="mr-2 size-4" />
                                     Refresh
                                 </Button>
                             </div>
-                        </div>
-
-                        {/* Filters */}
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Filter by Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Status</SelectItem>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                    <SelectItem value="return">Return</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            <Select value={paymentStatusFilter || "all"} onValueChange={(value) => setPaymentStatusFilter(value === "all" ? "" : value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Filter by Payment Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Payment Status</SelectItem>
-                                    <SelectItem value="paid">Paid</SelectItem>
-                                    <SelectItem value="unpaid">Unpaid</SelectItem>
-                                    <SelectItem value="partial">Partial</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            <Select value={branchFilter || "all"} onValueChange={(value) => setBranchFilter(value === "all" ? "" : value)} disabled={isLoadingBranches}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={isLoadingBranches ? "Loading branches..." : "Filter by Branch"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Branches</SelectItem>
-                                    {branches.map((branch) => (
-                                        <SelectItem key={branch.id} value={branch.name}>
-                                            {branch.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                         </div>
                     </div>
                 </CardHeader>
@@ -338,6 +306,19 @@ export default function Transactions() {
                     </div>
                 </div>
             )}
+
+            <TransactionFiltersSheet
+                open={isFilterSheetOpen}
+                onOpenChange={setIsFilterSheetOpen}
+                statusFilter={statusFilter}
+                paymentStatusFilter={paymentStatusFilter}
+                branchFilter={branchFilter}
+                setStatusFilter={setStatusFilter}
+                setPaymentStatusFilter={setPaymentStatusFilter}
+                setBranchFilter={setBranchFilter}
+                branches={branches}
+                isLoadingBranches={isLoadingBranches}
+            />
         </section>
     )
 }

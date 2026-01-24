@@ -10,6 +10,8 @@ import { API_CONFIG, fetchBranches, fetchSuppliers } from "@/lib/config"
 
 const NO_BRANCH_VALUE = "__none__"
 
+import { formatNumber, parseNumber } from "@/lib/format-idr"
+
 // Generate unique barcode
 const generateBarcode = (): string => {
     const timestamp = Date.now()
@@ -38,6 +40,12 @@ export function useStateCreateProducts() {
     const scannerRef = React.useRef<Html5Qrcode | null>(null)
     const scanElementId = "barcode-scanner"
     const formRef = React.useRef<HTMLFormElement>(null)
+
+    // State untuk nilai yang diformat (display value)
+    const [priceDisplay, setPriceDisplay] = React.useState("")
+    const [modalDisplay, setModalDisplay] = React.useState("")
+    const [stockDisplay, setStockDisplay] = React.useState("")
+    const [minStockDisplay, setMinStockDisplay] = React.useState("")
 
     // Generate barcode only on client side to avoid hydration mismatch
     React.useEffect(() => {
@@ -147,6 +155,10 @@ export function useStateCreateProducts() {
         setCategoryId("")
         setBarcode(generateBarcode())
         setIsActive("true")
+        setPriceDisplay("")
+        setModalDisplay("")
+        setStockDisplay("")
+        setMinStockDisplay("")
     }
 
     const generateNewBarcode = () => {
@@ -218,8 +230,178 @@ export function useStateCreateProducts() {
         }
     }, [])
 
+    // Handler untuk format saat blur (selesai mengetik)
+    const handlePriceBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setPriceDisplay(formatNumber(parsed))
+        } else {
+            setPriceDisplay("")
+        }
+    }
+
+    const handleModalBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setModalDisplay(formatNumber(parsed))
+        } else {
+            setModalDisplay("")
+        }
+    }
+
+    const handleStockBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setStockDisplay(formatNumber(parsed))
+        } else {
+            setStockDisplay("")
+        }
+    }
+
+    const handleMinStockBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setMinStockDisplay(formatNumber(parsed))
+        } else {
+            setMinStockDisplay("")
+        }
+    }
+
+    // Handler untuk onChange (format real-time saat mengetik)
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        // Jika kosong, set kosong
+        if (!value || value.trim() === "") {
+            setPriceDisplay("")
+            return
+        }
+
+        // Hapus semua karakter non-numeric kecuali titik (yang sudah ada dari format sebelumnya)
+        // Kita perlu menghapus titik yang sudah ada, parse, lalu format ulang
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+
+        if (!cleaned) {
+            setPriceDisplay("")
+            return
+        }
+
+        // Format angka
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setPriceDisplay(formatNumber(num))
+        } else {
+            setPriceDisplay(cleaned)
+        }
+    }
+
+    const handleModalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        if (!value || value.trim() === "") {
+            setModalDisplay("")
+            return
+        }
+
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+
+        if (!cleaned) {
+            setModalDisplay("")
+            return
+        }
+
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setModalDisplay(formatNumber(num))
+        } else {
+            setModalDisplay(cleaned)
+        }
+    }
+
+    const handleStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        if (!value || value.trim() === "") {
+            setStockDisplay("")
+            return
+        }
+
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+
+        if (!cleaned) {
+            setStockDisplay("")
+            return
+        }
+
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setStockDisplay(formatNumber(num))
+        } else {
+            setStockDisplay(cleaned)
+        }
+    }
+
+    const handleMinStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        if (!value || value.trim() === "") {
+            setMinStockDisplay("")
+            return
+        }
+
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+
+        if (!cleaned) {
+            setMinStockDisplay("")
+            return
+        }
+
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setMinStockDisplay(formatNumber(num))
+        } else {
+            setMinStockDisplay(cleaned)
+        }
+    }
+
+    // Update hidden input setiap kali display value berubah
+    React.useEffect(() => {
+        const priceHidden = formRef.current?.querySelector('input[name="price"]') as HTMLInputElement
+        if (priceHidden) {
+            priceHidden.value = parseNumber(priceDisplay)
+        }
+    }, [priceDisplay])
+
+    React.useEffect(() => {
+        const modalHidden = formRef.current?.querySelector('input[name="modal"]') as HTMLInputElement
+        if (modalHidden) {
+            modalHidden.value = parseNumber(modalDisplay)
+        }
+    }, [modalDisplay])
+
+    React.useEffect(() => {
+        const stockHidden = formRef.current?.querySelector('input[name="stock"]') as HTMLInputElement
+        if (stockHidden) {
+            stockHidden.value = parseNumber(stockDisplay)
+        }
+    }, [stockDisplay])
+
+    React.useEffect(() => {
+        const minStockHidden = formRef.current?.querySelector('input[name="min_stock"]') as HTMLInputElement
+        if (minStockHidden) {
+            minStockHidden.value = parseNumber(minStockDisplay)
+        }
+    }, [minStockDisplay])
+
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
+
+        // Validasi price (required)
+        if (!priceDisplay || parseNumber(priceDisplay) === "") {
+            toast.error("Price harus diisi")
+            return
+        }
+
         setIsSubmitting(true)
 
         const formData = new FormData(event.currentTarget)
@@ -329,6 +511,20 @@ export function useStateCreateProducts() {
         formRef,
         // Constants
         NO_BRANCH_VALUE,
+        // Format number state
+        priceDisplay,
+        modalDisplay,
+        stockDisplay,
+        minStockDisplay,
+        // Format number handlers
+        handlePriceChange,
+        handleModalChange,
+        handleStockChange,
+        handleMinStockChange,
+        handlePriceBlur,
+        handleModalBlur,
+        handleStockBlur,
+        handleMinStockBlur,
         // Functions
         handleImageChange,
         handleSubmit,

@@ -8,24 +8,14 @@ import { Html5Qrcode } from "html5-qrcode"
 
 import { API_CONFIG, fetchBranches, fetchSuppliers } from "@/lib/config"
 
+import { formatNumber, parseNumber, toDateInputValue } from "@/lib/format-idr"
+
 const NO_BRANCH_VALUE = "__none__"
 
-// Generate unique barcode
 const generateBarcode = (): string => {
     const timestamp = Date.now()
     const random = Math.floor(Math.random() * 10000)
     return `PRD${timestamp}${random.toString().padStart(4, "0")}`
-}
-
-const toDateInputValue = (value: unknown): string => {
-    if (!value) return ""
-    const s = String(value).trim()
-    if (!s) return ""
-    // ISO -> YYYY-MM-DD
-    if (s.includes("T")) return s.split("T")[0] ?? ""
-    // already YYYY-MM-DD...
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
-    return ""
 }
 
 export function useStateEditProducts(productId?: string) {
@@ -46,10 +36,11 @@ export function useStateEditProducts(productId?: string) {
 
     // controlled fields (so we can prefill after fetch)
     const [name, setName] = React.useState("")
-    const [price, setPrice] = React.useState("")
-    const [modal, setModal] = React.useState("")
-    const [stock, setStock] = React.useState("")
-    const [minStock, setMinStock] = React.useState("")
+    // State untuk nilai yang diformat (display value)
+    const [priceDisplay, setPriceDisplay] = React.useState("")
+    const [modalDisplay, setModalDisplay] = React.useState("")
+    const [stockDisplay, setStockDisplay] = React.useState("")
+    const [minStockDisplay, setMinStockDisplay] = React.useState("")
     const [unit, setUnit] = React.useState("")
     const [barcode, setBarcode] = React.useState("")
     const [imageUrl, setImageUrl] = React.useState("")
@@ -89,10 +80,10 @@ export function useStateEditProducts(productId?: string) {
             setProduct(p)
 
             setName(String(p.name ?? ""))
-            setPrice(p.price !== undefined && p.price !== null ? String(p.price) : "")
-            setModal(p.modal !== undefined && p.modal !== null ? String(p.modal) : "")
-            setStock(p.stock !== undefined && p.stock !== null ? String(p.stock) : "")
-            setMinStock(p.min_stock !== undefined && p.min_stock !== null ? String(p.min_stock) : "")
+            setPriceDisplay(p.price !== undefined && p.price !== null ? formatNumber(p.price) : "")
+            setModalDisplay(p.modal !== undefined && p.modal !== null ? formatNumber(p.modal) : "")
+            setStockDisplay(p.stock !== undefined && p.stock !== null ? formatNumber(p.stock) : "")
+            setMinStockDisplay(p.min_stock !== undefined && p.min_stock !== null ? formatNumber(p.min_stock) : "")
             setUnit(p.unit ? String(p.unit) : "")
             setBarcode(p.barcode ? String(p.barcode) : "")
             setImageUrl(p.image_url ? String(p.image_url) : "")
@@ -273,6 +264,168 @@ export function useStateEditProducts(productId?: string) {
         }
     }, [])
 
+    // Handler untuk format saat blur (selesai mengetik)
+    const handlePriceBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setPriceDisplay(formatNumber(parsed))
+        } else {
+            setPriceDisplay("")
+        }
+    }
+
+    const handleModalBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setModalDisplay(formatNumber(parsed))
+        } else {
+            setModalDisplay("")
+        }
+    }
+
+    const handleStockBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setStockDisplay(formatNumber(parsed))
+        } else {
+            setStockDisplay("")
+        }
+    }
+
+    const handleMinStockBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setMinStockDisplay(formatNumber(parsed))
+        } else {
+            setMinStockDisplay("")
+        }
+    }
+
+    // Handler untuk onChange (format real-time saat mengetik)
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        // Jika kosong, set kosong
+        if (!value || value.trim() === "") {
+            setPriceDisplay("")
+            return
+        }
+
+        // Hapus semua karakter non-numeric kecuali titik (yang sudah ada dari format sebelumnya)
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+
+        if (!cleaned) {
+            setPriceDisplay("")
+            return
+        }
+
+        // Format angka
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setPriceDisplay(formatNumber(num))
+        } else {
+            setPriceDisplay(cleaned)
+        }
+    }
+
+    const handleModalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        if (!value || value.trim() === "") {
+            setModalDisplay("")
+            return
+        }
+
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+
+        if (!cleaned) {
+            setModalDisplay("")
+            return
+        }
+
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setModalDisplay(formatNumber(num))
+        } else {
+            setModalDisplay(cleaned)
+        }
+    }
+
+    const handleStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        if (!value || value.trim() === "") {
+            setStockDisplay("")
+            return
+        }
+
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+
+        if (!cleaned) {
+            setStockDisplay("")
+            return
+        }
+
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setStockDisplay(formatNumber(num))
+        } else {
+            setStockDisplay(cleaned)
+        }
+    }
+
+    const handleMinStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+
+        if (!value || value.trim() === "") {
+            setMinStockDisplay("")
+            return
+        }
+
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+
+        if (!cleaned) {
+            setMinStockDisplay("")
+            return
+        }
+
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setMinStockDisplay(formatNumber(num))
+        } else {
+            setMinStockDisplay(cleaned)
+        }
+    }
+
+    // Update hidden input setiap kali display value berubah
+    React.useEffect(() => {
+        const priceHidden = formRef.current?.querySelector('input[name="price"]') as HTMLInputElement
+        if (priceHidden) {
+            priceHidden.value = parseNumber(priceDisplay)
+        }
+    }, [priceDisplay])
+
+    React.useEffect(() => {
+        const modalHidden = formRef.current?.querySelector('input[name="modal"]') as HTMLInputElement
+        if (modalHidden) {
+            modalHidden.value = parseNumber(modalDisplay)
+        }
+    }, [modalDisplay])
+
+    React.useEffect(() => {
+        const stockHidden = formRef.current?.querySelector('input[name="stock"]') as HTMLInputElement
+        if (stockHidden) {
+            stockHidden.value = parseNumber(stockDisplay)
+        }
+    }, [stockDisplay])
+
+    React.useEffect(() => {
+        const minStockHidden = formRef.current?.querySelector('input[name="min_stock"]') as HTMLInputElement
+        if (minStockHidden) {
+            minStockHidden.value = parseNumber(minStockDisplay)
+        }
+    }, [minStockDisplay])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!productId) return
@@ -307,10 +460,10 @@ export function useStateEditProducts(productId?: string) {
                 },
                 body: JSON.stringify({
                     name,
-                    price: price ? Number(price) : undefined,
-                    modal: modal ? Number(modal) : undefined,
-                    stock: stock ? Number(stock) : undefined,
-                    min_stock: minStock ? Number(minStock) : undefined,
+                    price: priceDisplay ? Number(parseNumber(priceDisplay)) : undefined,
+                    modal: modalDisplay ? Number(parseNumber(modalDisplay)) : undefined,
+                    stock: stockDisplay ? Number(parseNumber(stockDisplay)) : undefined,
+                    min_stock: minStockDisplay ? Number(parseNumber(minStockDisplay)) : undefined,
                     unit,
                     barcode,
                     expiration_date: expirationDate ? expirationDate : undefined,
@@ -351,14 +504,20 @@ export function useStateEditProducts(productId?: string) {
         // Form fields
         name,
         setName,
-        price,
-        setPrice,
-        modal,
-        setModal,
-        stock,
-        setStock,
-        minStock,
-        setMinStock,
+        // Format number state
+        priceDisplay,
+        modalDisplay,
+        stockDisplay,
+        minStockDisplay,
+        // Format number handlers
+        handlePriceChange,
+        handleModalChange,
+        handleStockChange,
+        handleMinStockChange,
+        handlePriceBlur,
+        handleModalBlur,
+        handleStockBlur,
+        handleMinStockBlur,
         unit,
         setUnit,
         barcode,

@@ -79,6 +79,18 @@ export default function CreateProducts() {
         scanElementId,
         formRef,
         NO_BRANCH_VALUE,
+        priceDisplay,
+        modalDisplay,
+        stockDisplay,
+        minStockDisplay,
+        handlePriceChange,
+        handleModalChange,
+        handleStockChange,
+        handleMinStockChange,
+        handlePriceBlur,
+        handleModalBlur,
+        handleStockBlur,
+        handleMinStockBlur,
         handleImageChange,
         handleSubmit,
         removeImage,
@@ -295,38 +307,43 @@ export default function CreateProducts() {
                             <FieldLabel htmlFor="price">Price</FieldLabel>
                             <Input
                                 id="price"
-                                name="price"
-                                type="number"
-                                min={0}
-                                step="0.01"
+                                type="text"
+                                inputMode="numeric"
+                                value={priceDisplay}
+                                onChange={handlePriceChange}
+                                onBlur={handlePriceBlur}
                                 placeholder="0"
-                                required
                                 disabled={isSubmitting}
                             />
+                            <input type="hidden" name="price" />
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="modal">Modal</FieldLabel>
                             <Input
                                 id="modal"
-                                name="modal"
-                                type="number"
-                                min={0}
-                                step="0.01"
+                                type="text"
+                                inputMode="numeric"
+                                value={modalDisplay}
+                                onChange={handleModalChange}
+                                onBlur={handleModalBlur}
                                 placeholder="0"
                                 disabled={isSubmitting}
                             />
+                            <input type="hidden" name="modal" />
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="stock">Stock</FieldLabel>
                             <Input
                                 id="stock"
-                                name="stock"
-                                type="number"
-                                min={0}
-                                step="1"
+                                type="text"
+                                inputMode="numeric"
+                                value={stockDisplay}
+                                onChange={handleStockChange}
+                                onBlur={handleStockBlur}
                                 placeholder="0"
                                 disabled={isSubmitting}
                             />
+                            <input type="hidden" name="stock" />
                         </Field>
                     </div>
 
@@ -335,13 +352,15 @@ export default function CreateProducts() {
                             <FieldLabel htmlFor="min_stock">Min Stock</FieldLabel>
                             <Input
                                 id="min_stock"
-                                name="min_stock"
-                                type="number"
-                                min={0}
-                                step="1"
+                                type="text"
+                                inputMode="numeric"
+                                value={minStockDisplay}
+                                onChange={handleMinStockChange}
+                                onBlur={handleMinStockBlur}
                                 placeholder="0"
                                 disabled={isSubmitting}
                             />
+                            <input type="hidden" name="min_stock" />
                             <FieldDescription>Minimum stok sebelum dianggap menipis (opsional).</FieldDescription>
                         </Field>
 
