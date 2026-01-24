@@ -46,6 +46,8 @@ export function useStateCreateProducts() {
     const [modalDisplay, setModalDisplay] = React.useState("")
     const [stockDisplay, setStockDisplay] = React.useState("")
     const [minStockDisplay, setMinStockDisplay] = React.useState("")
+    const [sizeDisplay, setSizeDisplay] = React.useState("")
+    const [unit, setUnit] = React.useState("")
 
     // Generate barcode only on client side to avoid hydration mismatch
     React.useEffect(() => {
@@ -159,6 +161,8 @@ export function useStateCreateProducts() {
         setModalDisplay("")
         setStockDisplay("")
         setMinStockDisplay("")
+        setSizeDisplay("")
+        setUnit("")
     }
 
     const generateNewBarcode = () => {
@@ -364,6 +368,34 @@ export function useStateCreateProducts() {
         }
     }
 
+    const handleSizeBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setSizeDisplay(formatNumber(parsed))
+        } else {
+            setSizeDisplay("")
+        }
+    }
+
+    const handleSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+        if (!value || value.trim() === "") {
+            setSizeDisplay("")
+            return
+        }
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+        if (!cleaned) {
+            setSizeDisplay("")
+            return
+        }
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setSizeDisplay(formatNumber(num))
+        } else {
+            setSizeDisplay(cleaned)
+        }
+    }
+
     // Update hidden input setiap kali display value berubah
     React.useEffect(() => {
         const priceHidden = formRef.current?.querySelector('input[name="price"]') as HTMLInputElement
@@ -411,27 +443,34 @@ export function useStateCreateProducts() {
         const modal = formData.get("modal") as string
         const stock = formData.get("stock") as string
         const minStock = formData.get("min_stock") as string
-        const unit = formData.get("unit") as string
         const barcode = formData.get("barcode") as string
         const expirationDate = formData.get("expiration_date") as string
         const description = formData.get("description") as string
         const isActiveValue = isActive === "true"
 
         try {
-            // Find branch_name and category_name from selected IDs
+            // Find branch_name, supplier_name and category_name from selected IDs
             // Ensure proper type comparison (ID might be string or number)
             let branchName: string | undefined = undefined
             let categoryName: string | undefined = undefined
+            let supplierName: string | undefined = undefined
 
             if (branchId) {
-                const selectedBranch = branches.find(b => String(b.id) === String(branchId))
+                const selectedBranch = branches.find((b) => String(b.id) === String(branchId))
                 if (selectedBranch && selectedBranch.name) {
                     branchName = selectedBranch.name
                 }
             }
 
+            if (supplierId) {
+                const selectedSupplier = suppliers.find((s) => String(s.id) === String(supplierId))
+                if (selectedSupplier && selectedSupplier.name) {
+                    supplierName = selectedSupplier.name
+                }
+            }
+
             if (categoryId) {
-                const selectedCategory = categories.find(c => String(c.id) === String(categoryId))
+                const selectedCategory = categories.find((c) => String(c.id) === String(categoryId))
                 if (selectedCategory && selectedCategory.name) {
                     categoryName = selectedCategory.name
                 }
@@ -449,7 +488,8 @@ export function useStateCreateProducts() {
                     modal: modal ? Number(modal) : undefined,
                     stock: stock ? Number(stock) : undefined,
                     min_stock: minStock ? Number(minStock) : undefined,
-                    unit,
+                    size: sizeDisplay ? Number(parseNumber(sizeDisplay)) : undefined,
+                    unit: unit || undefined,
                     barcode,
                     expiration_date: expirationDate ? expirationDate : undefined,
                     description: description ? description : undefined,
@@ -459,6 +499,7 @@ export function useStateCreateProducts() {
                     branch_id: branchId || undefined,
                     branch_name: branchName,
                     supplier_id: supplierId || undefined,
+                    supplier_name: supplierName,
                     category_id: categoryId || undefined,
                     category_name: categoryName,
                 }),
@@ -516,11 +557,16 @@ export function useStateCreateProducts() {
         modalDisplay,
         stockDisplay,
         minStockDisplay,
+        sizeDisplay,
+        unit,
+        setUnit,
         // Format number handlers
         handlePriceChange,
         handleModalChange,
         handleStockChange,
         handleMinStockChange,
+        handleSizeChange,
+        handleSizeBlur,
         handlePriceBlur,
         handleModalBlur,
         handleStockBlur,

@@ -4,7 +4,7 @@ import * as React from "react"
 
 import Link from "next/link"
 
-import { IconPackage, IconPlus } from "@tabler/icons-react"
+import { IconFilter, IconPackage, IconPlus } from "@tabler/icons-react"
 
 import {
     flexRender,
@@ -27,7 +27,13 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination"
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 import { Input } from "@/components/ui/input"
 
@@ -42,6 +48,8 @@ import SupplierModal from "@/components/dashboard/products/modal/SupplierModal"
 import BranchModal from "@/components/dashboard/products/modal/BranchModal"
 
 import ProductsDetails from "@/components/dashboard/products/modal/ProductsDetails"
+
+import { ProductFiltersSheet } from "@/components/BottomSheets"
 
 import { useStateProducts } from "@/services/products/useStateProducts"
 
@@ -87,6 +95,44 @@ export default function Products() {
         handleViewBranch,
     } = useStateProducts()
 
+    const [filterSheetOpen, setFilterSheetOpen] = React.useState(false)
+
+    const branchOptions = React.useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    products
+                        .map((product) => product.branch_name)
+                        .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+                )
+            ),
+        [products]
+    )
+
+    const categoryOptions = React.useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    products
+                        .map((product) => product.category_name)
+                        .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+                )
+            ),
+        [products]
+    )
+
+    const supplierOptions = React.useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    products
+                        .map((product) => product.supplier_name)
+                        .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+                )
+            ),
+        [products]
+    )
+
     const columns = React.useMemo(
         () =>
             createColumns({
@@ -97,6 +143,35 @@ export default function Products() {
             }),
         [handleOpenDeleteDialog, handleViewSupplier, handleViewBranch, handleViewDetails]
     )
+
+    const handleApplyProductFilters = React.useCallback(
+        (branch: string, category: string, supplier: string, status: string) => {
+            setColumnFilters((prev) => {
+                const rest = prev.filter(
+                    (f) =>
+                        !["branch_name", "category_name", "supplier_name", "is_active"].includes(
+                            f.id
+                        )
+                )
+                const next = [...rest]
+                if (branch) next.push({ id: "branch_name", value: branch })
+                if (category) next.push({ id: "category_name", value: category })
+                if (supplier) next.push({ id: "supplier_name", value: supplier })
+                if (status) next.push({ id: "is_active", value: status })
+                return next
+            })
+        },
+        [setColumnFilters]
+    )
+
+    const branchFilter =
+        (columnFilters.find((f) => f.id === "branch_name")?.value as string) ?? ""
+    const categoryFilter =
+        (columnFilters.find((f) => f.id === "category_name")?.value as string) ?? ""
+    const supplierFilter =
+        (columnFilters.find((f) => f.id === "supplier_name")?.value as string) ?? ""
+    const statusFilter =
+        (columnFilters.find((f) => f.id === "is_active")?.value as string) ?? ""
 
     // eslint-disable-next-line react-hooks/incompatible-library
     const table = useReactTable({
@@ -199,12 +274,27 @@ export default function Products() {
             <Card className="border-2">
                 <CardHeader className="pb-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="max-w-sm">
-                            <Input
-                                placeholder="Search product name..."
-                                value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-                                onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
-                            />
+                        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+                            <div className="w-full sm:w-64">
+                                <Input
+                                    placeholder="Search product name..."
+                                    value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+                                    onChange={(event) =>
+                                        table.getColumn("name")?.setFilterValue(event.target.value)
+                                    }
+                                />
+                            </div>
+                            <Button
+                                variant="outline"
+                                onClick={() => setFilterSheetOpen(true)}
+                                className="shrink-0"
+                            >
+                                <IconFilter className="mr-2 size-4" />
+                                Filter
+                                {(branchFilter || categoryFilter || supplierFilter || statusFilter) && (
+                                    <span className="ml-2 size-2 rounded-full bg-primary" />
+                                )}
+                            </Button>
                         </div>
                         <Button variant="outline" onClick={() => loadProducts()}>
                             Refresh
@@ -374,6 +464,19 @@ export default function Products() {
                 onOpenChange={setShowBranchDialog}
                 branch={branch}
                 isLoading={isLoadingBranch}
+            />
+
+            <ProductFiltersSheet
+                open={filterSheetOpen}
+                onOpenChange={setFilterSheetOpen}
+                branchFilter={branchFilter}
+                categoryFilter={categoryFilter}
+                supplierFilter={supplierFilter}
+                statusFilter={statusFilter}
+                onApply={handleApplyProductFilters}
+                branchOptions={branchOptions}
+                categoryOptions={categoryOptions}
+                supplierOptions={supplierOptions}
             />
         </section>
     )

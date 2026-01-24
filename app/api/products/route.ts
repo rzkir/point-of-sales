@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
         const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
         const offset = (page - 1) * limit;
 
-        const requestBody = {
+        const requestBody: Record<string, unknown> = {
             action: "list",
             sheet: "Products",
             page,
@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
             modal,
             stock,
             sold,
+            size,
             unit,
             image_url,
             category_id,
@@ -171,6 +172,7 @@ export async function POST(request: NextRequest) {
             min_stock,
             description,
             supplier_id,
+            supplier_name,
             expiration_date,
             created_by,
             branch_id,
@@ -202,6 +204,7 @@ export async function POST(request: NextRequest) {
             modal: modal !== undefined && modal !== null ? Number(modal) : 0,
             stock: stock !== undefined && stock !== null ? Number(stock) : 0,
             sold: sold !== undefined && sold !== null ? Number(sold) : 0,
+            size: size !== undefined && size !== null ? Number(size) : "",
             unit: unit ? String(unit).trim() : "",
             image_url: image_url ? String(image_url).trim() : "",
             category_id:
@@ -221,6 +224,7 @@ export async function POST(request: NextRequest) {
                 supplier_id !== undefined && supplier_id !== null
                     ? String(supplier_id).trim()
                     : "",
+            supplier_name: supplier_name ? String(supplier_name).trim() : "",
             expiration_date: expiration_date
                 ? String(expiration_date).trim()
                 : "",

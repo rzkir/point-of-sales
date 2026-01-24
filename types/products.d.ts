@@ -1,3 +1,11 @@
+type Unit =
+  | 'pcs'
+  | 'kg'
+  | 'liter'
+  | 'meter'
+  | 'pack'
+  | 'dus';
+
 interface Products {
   id: number;
   uid: string;
@@ -6,7 +14,8 @@ interface Products {
   modal: number;
   stock: number;
   sold: number;
-  unit: string;
+  size?: number;   // 1, 2, 5 (liter/kg/meter)
+  unit: Unit;
   image_url: string;
   category_id?: string;
   category_name?: string;
@@ -15,6 +24,7 @@ interface Products {
   min_stock?: number;
   description?: string;
   supplier_id?: string;
+  supplier_name?: string;
   expiration_date?: string;
   created_by?: string;
   updated_by?: string;
@@ -41,7 +51,8 @@ type ProductRow = {
   modal?: number
   stock?: number
   sold?: number
-  unit?: string
+  size?: number
+  unit?: Unit
   barcode?: string
   is_active?: boolean
   branch_id?: string

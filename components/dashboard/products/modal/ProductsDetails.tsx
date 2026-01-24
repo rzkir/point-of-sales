@@ -18,15 +18,12 @@ import {
 
 import { formatDate, formatDateTime } from "@/lib/format-date"
 
-import { formatCurrency } from "@/lib/format-idr"
+import { formatCurrency, formatNumber } from "@/lib/format-idr"
 
 export default function ProductsDetails({
     open,
     onOpenChange,
     product,
-    supplierName,
-    branchName,
-    categoryName,
 }: ProductsDetailsProps) {
     const isActive = Boolean(product?.is_active)
     const [isMobile, setIsMobile] = useState(false)
@@ -120,14 +117,14 @@ export default function ProductsDetails({
                                                 Stock
                                             </p>
                                             <p className="text-sm wrap-break-word">
-                                                {product?.stock ?? 0} {product?.unit ?? ""}
+                                                {formatNumber(product?.stock ?? 0)} {product?.unit ?? ""}
                                             </p>
                                         </div>
                                         <div className="space-y-1">
                                             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                                                 Sold
                                             </p>
-                                            <p className="text-sm">{product?.sold ?? 0}</p>
+                                            <p className="text-sm">{formatNumber(product?.sold ?? 0)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -175,7 +172,7 @@ export default function ProductsDetails({
                                             Supplier
                                         </div>
                                         <div className="text-sm wrap-break-word">
-                                            {product?.supplier_id ? supplierName ?? "Loading..." : "-"}
+                                            {product?.supplier_name}
                                         </div>
                                     </div>
 
@@ -184,7 +181,7 @@ export default function ProductsDetails({
                                             Branch
                                         </div>
                                         <div className="text-sm wrap-break-word">
-                                            {product?.branch_id ? branchName ?? "Loading..." : "-"}
+                                            {product?.branch_name}
                                         </div>
                                     </div>
 
@@ -193,7 +190,7 @@ export default function ProductsDetails({
                                             Category
                                         </div>
                                         <div className="text-sm wrap-break-word">
-                                            {product?.category_id ? categoryName ?? "Loading..." : "-"}
+                                            {product?.category_name ?? "-"}
                                         </div>
                                     </div>
 
@@ -208,7 +205,7 @@ export default function ProductsDetails({
                                         <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                                             Min Stock
                                         </div>
-                                        <div className="text-sm wrap-break-word">{product?.min_stock ?? "-"}</div>
+                                        <div className="text-sm wrap-break-word">{product?.min_stock != null ? formatNumber(product.min_stock) : "-"}</div>
                                     </div>
 
                                     <div className="space-y-1">

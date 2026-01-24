@@ -1,7 +1,12 @@
 export const formatCurrency = (value?: number) => {
     const n = Number(value ?? 0)
     if (Number.isNaN(n)) return "-"
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(n)
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(n)
 }
 
 export const formatNumber = (value: string | number | undefined): string => {

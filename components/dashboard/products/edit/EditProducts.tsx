@@ -75,6 +75,9 @@ export default function EditProducts({ productId }: { productId?: string }) {
         handleModalBlur,
         handleStockBlur,
         handleMinStockBlur,
+        sizeDisplay,
+        handleSizeChange,
+        handleSizeBlur,
         unit,
         setUnit,
         barcode,
@@ -412,14 +415,41 @@ export default function EditProducts({ productId }: { productId?: string }) {
                         </Field>
 
                         <Field>
-                            <FieldLabel htmlFor="unit">Unit</FieldLabel>
+                            <FieldLabel htmlFor="size">Size</FieldLabel>
                             <Input
-                                id="unit"
-                                value={unit}
-                                onChange={(e) => setUnit(e.target.value)}
-                                placeholder="pcs / box / kg"
+                                id="size"
+                                type="text"
+                                inputMode="numeric"
+                                value={sizeDisplay}
+                                onChange={handleSizeChange}
+                                onBlur={handleSizeBlur}
+                                placeholder="1, 2, 5 (liter/kg/meter)"
                                 disabled={isSubmitting}
                             />
+                            <FieldDescription>Ukuran per unit, mis. 1, 2, 5 (opsional).</FieldDescription>
+                        </Field>
+
+                        <Field>
+                            <FieldLabel htmlFor="unit">Unit</FieldLabel>
+                            <Select
+                                value={unit || "__none__"}
+                                onValueChange={(v) => setUnit(v === "__none__" ? "" : v)}
+                                disabled={isSubmitting}
+                            >
+                                <SelectTrigger id="unit">
+                                    <SelectValue placeholder="Pilih unit (opsional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="__none__">— Pilih unit —</SelectItem>
+                                    <SelectItem value="pcs">pcs</SelectItem>
+                                    <SelectItem value="kg">kg</SelectItem>
+                                    <SelectItem value="liter">liter</SelectItem>
+                                    <SelectItem value="meter">meter</SelectItem>
+                                    <SelectItem value="pack">pack</SelectItem>
+                                    <SelectItem value="dus">dus</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FieldDescription>Satuan produk (pcs, kg, liter, dll).</FieldDescription>
                         </Field>
 
                         <Field>

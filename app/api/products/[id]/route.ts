@@ -18,6 +18,7 @@ type AppsScriptProductUpdateRequest = {
   modal?: number;
   stock?: number;
   sold?: number;
+  size?: number;
   unit?: string;
   image_url?: string;
   category_id?: string;
@@ -27,6 +28,7 @@ type AppsScriptProductUpdateRequest = {
   min_stock?: number;
   description?: string;
   supplier_id?: string;
+  supplier_name?: string;
   expiration_date?: string;
   updated_by?: string;
   branch_id?: string;
@@ -155,6 +157,7 @@ export async function PUT(
       modal,
       stock,
       sold,
+      size,
       unit,
       image_url,
       category_id,
@@ -164,6 +167,7 @@ export async function PUT(
       min_stock,
       description,
       supplier_id,
+      supplier_name,
       expiration_date,
       updated_by,
       branch_id,
@@ -194,6 +198,9 @@ export async function PUT(
     if (sold !== undefined && sold !== null) {
       requestBody.sold = Number(sold);
     }
+    if (size !== undefined && size !== null) {
+      requestBody.size = Number(size);
+    }
     if (unit !== undefined && unit !== null) {
       requestBody.unit = String(unit).trim();
     }
@@ -220,6 +227,9 @@ export async function PUT(
     }
     if (supplier_id !== undefined && supplier_id !== null) {
       requestBody.supplier_id = String(supplier_id).trim();
+    }
+    if (supplier_name !== undefined && supplier_name !== null) {
+      requestBody.supplier_name = String(supplier_name).trim();
     }
     if (expiration_date !== undefined && expiration_date !== null) {
       requestBody.expiration_date = String(expiration_date).trim();

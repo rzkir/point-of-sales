@@ -44,6 +44,7 @@ function filterProductFields(product: unknown): {
     image_url?: string;
     category_name?: string;
     barcode?: string;
+    size?: number;
     unit?: string;
     stock?: number;
     sold?: number;
@@ -61,6 +62,7 @@ function filterProductFields(product: unknown): {
         image_url: p.image_url as string | undefined,
         category_name: p.category_name as string | undefined,
         barcode: p.barcode as string | undefined,
+        size: p.size as number | undefined,
         unit: p.unit as string | undefined,
         stock: p.stock as number | undefined,
         sold: p.sold as number | undefined,

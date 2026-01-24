@@ -762,6 +762,7 @@ const PRODUCTS_COLUMNS = [
   'stock',
   'sold',
   'unit',
+  'size',
   'image_url',
   'category_id',
   'category_name',
@@ -770,6 +771,7 @@ const PRODUCTS_COLUMNS = [
   'min_stock',
   'description',
   'supplier_id',
+  'supplier_name',
   'expiration_date',
   'created_by',
   'updated_by',
@@ -879,6 +881,7 @@ function handleCreateProduct(data) {
     stock,
     sold,
     unit,
+    size,
     image_url,
     category_id,
     category_name,
@@ -887,6 +890,7 @@ function handleCreateProduct(data) {
     min_stock,
     description,
     supplier_id,
+    supplier_name,
     expiration_date,
     created_by,
     branch_id,
@@ -918,6 +922,7 @@ function handleCreateProduct(data) {
   row[col.stock] = stock || 0;
   row[col.sold] = sold || 0;
   row[col.unit] = unit || '';
+  row[col.size] = size || '';
   row[col.image_url] = image_url || '';
   row[col.category_id] = category_id || '';
   row[col.category_name] = category_name || '';
@@ -926,6 +931,7 @@ function handleCreateProduct(data) {
   row[col.min_stock] = min_stock || '';
   row[col.description] = description || '';
   row[col.supplier_id] = supplier_id || '';
+  row[col.supplier_name] = supplier_name || '';
   row[col.expiration_date] = expiration_date || '';
   row[col.created_by] = created_by || '';
   row[col.updated_by] = '';
@@ -1008,6 +1014,7 @@ function handleUpdateProduct(data) {
     stock,
     sold,
     unit,
+    size,
     image_url,
     category_id,
     category_name,
@@ -1016,6 +1023,7 @@ function handleUpdateProduct(data) {
     min_stock,
     description,
     supplier_id,
+    supplier_name,
     expiration_date,
     updated_by,
     branch_id,
@@ -1052,6 +1060,7 @@ function handleUpdateProduct(data) {
       if (stock !== undefined && stock !== null) sheet.getRange(row, col.stock + 1).setValue(stock);
       if (sold !== undefined && sold !== null) sheet.getRange(row, col.sold + 1).setValue(sold);
       if (unit !== undefined && unit !== null) sheet.getRange(row, col.unit + 1).setValue(unit);
+      if (size !== undefined && size !== null) sheet.getRange(row, col.size + 1).setValue(size);
       if (image_url !== undefined && image_url !== null) sheet.getRange(row, col.image_url + 1).setValue(image_url);
       if (category_id !== undefined && category_id !== null) sheet.getRange(row, col.category_id + 1).setValue(category_id);
       if (category_name !== undefined && category_name !== null) sheet.getRange(row, col.category_name + 1).setValue(category_name);
@@ -1060,6 +1069,7 @@ function handleUpdateProduct(data) {
       if (min_stock !== undefined && min_stock !== null) sheet.getRange(row, col.min_stock + 1).setValue(min_stock);
       if (description !== undefined && description !== null) sheet.getRange(row, col.description + 1).setValue(description);
       if (supplier_id !== undefined && supplier_id !== null) sheet.getRange(row, col.supplier_id + 1).setValue(supplier_id);
+      if (supplier_name !== undefined && supplier_name !== null) sheet.getRange(row, col.supplier_name + 1).setValue(supplier_name);
       if (expiration_date !== undefined && expiration_date !== null) sheet.getRange(row, col.expiration_date + 1).setValue(expiration_date);
       
       if (updated_by !== undefined && updated_by !== null) {

@@ -41,6 +41,7 @@ export function useStateEditProducts(productId?: string) {
     const [modalDisplay, setModalDisplay] = React.useState("")
     const [stockDisplay, setStockDisplay] = React.useState("")
     const [minStockDisplay, setMinStockDisplay] = React.useState("")
+    const [sizeDisplay, setSizeDisplay] = React.useState("")
     const [unit, setUnit] = React.useState("")
     const [barcode, setBarcode] = React.useState("")
     const [imageUrl, setImageUrl] = React.useState("")
@@ -84,6 +85,7 @@ export function useStateEditProducts(productId?: string) {
             setModalDisplay(p.modal !== undefined && p.modal !== null ? formatNumber(p.modal) : "")
             setStockDisplay(p.stock !== undefined && p.stock !== null ? formatNumber(p.stock) : "")
             setMinStockDisplay(p.min_stock !== undefined && p.min_stock !== null ? formatNumber(p.min_stock) : "")
+            setSizeDisplay(p.size !== undefined && p.size !== null ? formatNumber(p.size) : "")
             setUnit(p.unit ? String(p.unit) : "")
             setBarcode(p.barcode ? String(p.barcode) : "")
             setImageUrl(p.image_url ? String(p.image_url) : "")
@@ -397,6 +399,34 @@ export function useStateEditProducts(productId?: string) {
         }
     }
 
+    const handleSizeBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const parsed = parseNumber(e.target.value)
+        if (parsed) {
+            setSizeDisplay(formatNumber(parsed))
+        } else {
+            setSizeDisplay("")
+        }
+    }
+
+    const handleSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+        if (!value || value.trim() === "") {
+            setSizeDisplay("")
+            return
+        }
+        const cleaned = value.replace(/\./g, "").replace(/[^\d]/g, "")
+        if (!cleaned) {
+            setSizeDisplay("")
+            return
+        }
+        const num = parseFloat(cleaned)
+        if (!isNaN(num)) {
+            setSizeDisplay(formatNumber(num))
+        } else {
+            setSizeDisplay(cleaned)
+        }
+    }
+
     // Update hidden input setiap kali display value berubah
     React.useEffect(() => {
         const priceHidden = formRef.current?.querySelector('input[name="price"]') as HTMLInputElement
@@ -433,20 +463,28 @@ export function useStateEditProducts(productId?: string) {
         // Sekarang kita kirim kembali ID murni (bukan nama)
         setIsSubmitting(true)
         try {
-            // Find branch_name and category_name from selected IDs
+            // Find branch_name, supplier_name and category_name from selected IDs
             // Ensure proper type comparison (ID might be string or number)
             let branchName: string | undefined = undefined
             let categoryName: string | undefined = undefined
+            let supplierName: string | undefined = undefined
 
             if (branchId) {
-                const selectedBranch = branches.find(b => String(b.id) === String(branchId))
+                const selectedBranch = branches.find((b) => String(b.id) === String(branchId))
                 if (selectedBranch && selectedBranch.name) {
                     branchName = selectedBranch.name
                 }
             }
 
+            if (supplierId) {
+                const selectedSupplier = suppliers.find((s) => String(s.id) === String(supplierId))
+                if (selectedSupplier && selectedSupplier.name) {
+                    supplierName = selectedSupplier.name
+                }
+            }
+
             if (categoryId) {
-                const selectedCategory = categories.find(c => String(c.id) === String(categoryId))
+                const selectedCategory = categories.find((c) => String(c.id) === String(categoryId))
                 if (selectedCategory && selectedCategory.name) {
                     categoryName = selectedCategory.name
                 }
@@ -464,7 +502,8 @@ export function useStateEditProducts(productId?: string) {
                     modal: modalDisplay ? Number(parseNumber(modalDisplay)) : undefined,
                     stock: stockDisplay ? Number(parseNumber(stockDisplay)) : undefined,
                     min_stock: minStockDisplay ? Number(parseNumber(minStockDisplay)) : undefined,
-                    unit,
+                    size: sizeDisplay ? Number(parseNumber(sizeDisplay)) : undefined,
+                    unit: unit || undefined,
                     barcode,
                     expiration_date: expirationDate ? expirationDate : undefined,
                     description: description ? description : undefined,
@@ -474,6 +513,7 @@ export function useStateEditProducts(productId?: string) {
                     branch_id: branchId || undefined,
                     branch_name: branchName,
                     supplier_id: supplierId || undefined,
+                    supplier_name: supplierName,
                     category_id: categoryId || undefined,
                     category_name: categoryName,
                 }),
@@ -518,6 +558,9 @@ export function useStateEditProducts(productId?: string) {
         handleModalBlur,
         handleStockBlur,
         handleMinStockBlur,
+        sizeDisplay,
+        handleSizeChange,
+        handleSizeBlur,
         unit,
         setUnit,
         barcode,

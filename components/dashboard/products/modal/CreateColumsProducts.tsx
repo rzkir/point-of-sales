@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 
 import { ProductActions } from "@/components/dashboard/products/modal/ProductActions"
 
-import { formatCurrency } from "@/lib/format-idr"
+import { formatCurrency, formatNumber } from "@/lib/format-idr"
 
 export const createColumns = ({
     onDelete,
@@ -55,6 +55,30 @@ export const createColumns = ({
             ),
         },
         {
+            accessorKey: "supplier_name",
+            header: () => <span className="font-semibold">Supplier</span>,
+            cell: ({ row }) => {
+                const value = row.getValue("supplier_name") as string | null | undefined
+                return <span className="text-sm text-muted-foreground">{value || "—"}</span>
+            },
+        },
+        {
+            accessorKey: "branch_name",
+            header: () => <span className="font-semibold">Branch</span>,
+            cell: ({ row }) => {
+                const value = row.getValue("branch_name") as string | null | undefined
+                return <span className="text-sm text-muted-foreground">{value || "—"}</span>
+            },
+        },
+        {
+            accessorKey: "category_name",
+            header: () => <span className="font-semibold">Category</span>,
+            cell: ({ row }) => {
+                const value = row.getValue("category_name") as string | null | undefined
+                return <span className="text-sm text-muted-foreground">{value || "—"}</span>
+            },
+        },
+        {
             accessorKey: "price",
             header: () => <span className="font-semibold">Price</span>,
             cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatCurrency(row.getValue("price"))}</span>,
@@ -62,16 +86,23 @@ export const createColumns = ({
         {
             accessorKey: "stock",
             header: () => <span className="font-semibold">Stock</span>,
-            cell: ({ row }) => <span className="text-sm text-muted-foreground">{String(row.getValue("stock") ?? 0)}</span>,
+            cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatNumber(row.getValue("stock") ?? 0)}</span>,
         },
         {
             accessorKey: "sold",
             header: () => <span className="font-semibold">Sold</span>,
-            cell: ({ row }) => <span className="text-sm text-muted-foreground">{String(row.getValue("sold") ?? 0)}</span>,
+            cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatNumber(row.getValue("sold") ?? 0)}</span>,
         },
         {
             accessorKey: "is_active",
             header: () => <span className="font-semibold">Status</span>,
+            filterFn: (row, _columnId, filterValue: string) => {
+                if (!filterValue || filterValue === "all") return true
+                const isActive = Boolean(row.getValue("is_active"))
+                if (filterValue === "active") return isActive
+                if (filterValue === "inactive") return !isActive
+                return true
+            },
             cell: ({ row }) => {
                 const isActive = Boolean(row.getValue("is_active"))
                 return (

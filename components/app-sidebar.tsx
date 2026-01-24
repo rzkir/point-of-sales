@@ -85,7 +85,7 @@ const data = {
   documents: [
     {
       name: "Transactions",
-      url: "dashboard/transactions",
+      url: "/dashboard/transactions",
       icon: IconCreditCardFilled,
     },
     {
