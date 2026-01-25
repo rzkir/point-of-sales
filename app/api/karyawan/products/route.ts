@@ -59,7 +59,8 @@ async function callAppsScript(
 ) {
     // Extract branch_name for filtering in Next.js (don't send to Apps Script)
     const branchNameFilter = requestBody.branch_name as string | undefined;
-    const { branch_name, ...appsScriptRequestBody } = requestBody;
+    const appsScriptRequestBody = { ...requestBody };
+    delete appsScriptRequestBody.branch_name;
 
     const response = await fetch(APPS_SCRIPT_URL!, {
         method: "POST",

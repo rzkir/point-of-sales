@@ -1,17 +1,11 @@
 "use client"
 
-import * as React from "react"
-
 import Link from "next/link"
 
 import { IconFilter, IconPackage, IconPlus } from "@tabler/icons-react"
 
 import {
     flexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getSortedRowModel,
-    useReactTable,
 } from "@tanstack/react-table"
 
 import { Button } from "@/components/ui/button"
@@ -53,16 +47,10 @@ import { ProductFiltersSheet } from "@/components/BottomSheets"
 
 import { useStateProducts } from "@/services/products/useStateProducts"
 
-import { createColumns } from "@/components/dashboard/products/modal/CreateColumsProducts"
-
 export default function Products() {
     const {
         products,
         isLoading,
-        sorting,
-        setSorting,
-        columnFilters,
-        setColumnFilters,
         page,
         limit,
         total,
@@ -89,105 +77,18 @@ export default function Products() {
         supplierName,
         branchName,
         categoryName,
-        handleOpenDeleteDialog,
-        handleViewDetails,
-        handleViewSupplier,
-        handleViewBranch,
+        table,
+        branchOptions,
+        categoryOptions,
+        supplierOptions,
+        filterSheetOpen,
+        setFilterSheetOpen,
+        branchFilter,
+        categoryFilter,
+        supplierFilter,
+        statusFilter,
+        handleApplyProductFilters,
     } = useStateProducts()
-
-    const [filterSheetOpen, setFilterSheetOpen] = React.useState(false)
-
-    const branchOptions = React.useMemo(
-        () =>
-            Array.from(
-                new Set(
-                    products
-                        .map((product) => product.branch_name)
-                        .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
-                )
-            ),
-        [products]
-    )
-
-    const categoryOptions = React.useMemo(
-        () =>
-            Array.from(
-                new Set(
-                    products
-                        .map((product) => product.category_name)
-                        .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
-                )
-            ),
-        [products]
-    )
-
-    const supplierOptions = React.useMemo(
-        () =>
-            Array.from(
-                new Set(
-                    products
-                        .map((product) => product.supplier_name)
-                        .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
-                )
-            ),
-        [products]
-    )
-
-    const columns = React.useMemo(
-        () =>
-            createColumns({
-                onDelete: (product) => handleOpenDeleteDialog(product),
-                onViewSupplier: (product) => void handleViewSupplier(product),
-                onViewBranch: (product) => void handleViewBranch(product),
-                onViewDetails: (product) => handleViewDetails(product),
-            }),
-        [handleOpenDeleteDialog, handleViewSupplier, handleViewBranch, handleViewDetails]
-    )
-
-    const handleApplyProductFilters = React.useCallback(
-        (branch: string, category: string, supplier: string, status: string) => {
-            setColumnFilters((prev) => {
-                const rest = prev.filter(
-                    (f) =>
-                        !["branch_name", "category_name", "supplier_name", "is_active"].includes(
-                            f.id
-                        )
-                )
-                const next = [...rest]
-                if (branch) next.push({ id: "branch_name", value: branch })
-                if (category) next.push({ id: "category_name", value: category })
-                if (supplier) next.push({ id: "supplier_name", value: supplier })
-                if (status) next.push({ id: "is_active", value: status })
-                return next
-            })
-        },
-        [setColumnFilters]
-    )
-
-    const branchFilter =
-        (columnFilters.find((f) => f.id === "branch_name")?.value as string) ?? ""
-    const categoryFilter =
-        (columnFilters.find((f) => f.id === "category_name")?.value as string) ?? ""
-    const supplierFilter =
-        (columnFilters.find((f) => f.id === "supplier_name")?.value as string) ?? ""
-    const statusFilter =
-        (columnFilters.find((f) => f.id === "is_active")?.value as string) ?? ""
-
-    // eslint-disable-next-line react-hooks/incompatible-library
-    const table = useReactTable({
-        data: products,
-        columns,
-        state: {
-            sorting,
-            columnFilters,
-        },
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        manualPagination: true,
-    })
 
     return (
         <section className="space-y-6">

@@ -18,8 +18,16 @@ export const API_CONFIG = {
             base: `${API_BASE_URL}/api/products`,
             upload: `${API_BASE_URL}/api/products/upload`,
             byId: (id: string | number) => `${API_BASE_URL}/api/products/${encodeURIComponent(String(id))}`,
-            list: (page: number = 1, limit: number = 10) =>
-                `${API_BASE_URL}/api/products?page=${page}&limit=${limit}`,
+            list: (page: number = 1, limit: number = 10, branchName?: string) => {
+                const params = new URLSearchParams({
+                    page: String(page),
+                    limit: String(limit),
+                });
+                if (branchName && branchName.trim() !== "") {
+                    params.append("branch_name", branchName.trim());
+                }
+                return `${API_BASE_URL}/api/products?${params.toString()}`;
+            },
         },
         branches: {
             base: `${API_BASE_URL}/api/branches`,
@@ -51,11 +59,16 @@ export const API_CONFIG = {
  * Fetch products with pagination
  * @param page - Page number (default: 1)
  * @param limit - Items per page (default: 10)
+ * @param branchName - Optional branch name to filter products
  * @returns Promise with products data and pagination info
  */
-export async function fetchProducts(page: number = 1, limit: number = 10): Promise<ProductsResponse> {
+export async function fetchProducts(
+    page: number = 1,
+    limit: number = 10,
+    branchName?: string
+): Promise<ProductsResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.products.list(page, limit), {
+        const response = await fetch(API_CONFIG.ENDPOINTS.products.list(page, limit, branchName), {
             headers: {
                 Authorization: `Bearer ${API_CONFIG.SECRET}`,
             },

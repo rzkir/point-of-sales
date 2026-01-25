@@ -44,14 +44,24 @@ function getSessionUser(request: NextRequest): User | null {
 }
 
 // Helper: Call Apps Script API and handle response
-async function callAppsScript(requestBody: Record<string, unknown>, includePagination = false) {
+async function callAppsScript(
+    requestBody: Record<string, unknown>,
+    includePagination = false,
+    clientPage?: number,
+    clientLimit?: number
+) {
+    // Extract branch_name for filtering in Next.js (don't send to Apps Script)
+    const branchNameFilter = requestBody.branch_name as string | undefined;
+    const appsScriptRequestBody = { ...requestBody };
+    delete appsScriptRequestBody.branch_name;
+
     const response = await fetch(APPS_SCRIPT_URL!, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${API_SECRET}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(appsScriptRequestBody), // Don't send branch_name to Apps Script
     });
 
     const contentType = response.headers.get("content-type");
@@ -77,10 +87,6 @@ async function callAppsScript(requestBody: Record<string, unknown>, includePagin
 
     if (includePagination) {
         const allProducts = Array.isArray(data.data) ? data.data : [];
-        const total = data.total !== undefined ? data.total : allProducts.length;
-        const page = (requestBody.page as number) || 1;
-        const limit = (requestBody.limit as number) || 10;
-        const offset = (requestBody.offset as number) || 0;
 
         // Sort products by created_at or updated_at (newest first), fallback to id
         const sortedProducts = [...allProducts].sort((a: ProductRow, b: ProductRow) => {
@@ -99,10 +105,30 @@ async function callAppsScript(requestBody: Record<string, unknown>, includePagin
             return 0;
         });
 
-        // Slice the products array based on pagination if Apps Script returns all data
-        const products = sortedProducts.slice(offset, offset + limit);
+        // Filter by branch_name if provided (case-insensitive)
+        let filteredByBranch = sortedProducts;
+        if (branchNameFilter) {
+            const branchNameLower = branchNameFilter.trim().toLowerCase();
+            filteredByBranch = sortedProducts.filter((product: Record<string, unknown>) => {
+                const productBranchName = String(product.branch_name || "").trim().toLowerCase();
+                return productBranchName === branchNameLower;
+            });
+        }
 
-        const totalPages = Math.ceil(total / limit);
+        // Total count is based on filtered data (after branch filter)
+        const total = filteredByBranch.length;
+
+        // Use client-side pagination parameters if provided, otherwise use requestBody
+        const page = clientPage !== undefined ? clientPage : ((requestBody.page as number) || 1);
+        const limit = clientLimit !== undefined ? clientLimit : ((requestBody.limit as number) || 10);
+        const offset = (page - 1) * limit;
+
+        // Apply pagination to filtered results
+        const startIndex = Math.min(offset, total);
+        const endIndex = Math.min(offset + limit, total);
+        const products = filteredByBranch.slice(startIndex, endIndex);
+
+        const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
         const hasNext = page < totalPages;
         const hasPrev = page > 1;
 
@@ -133,6 +159,7 @@ async function callAppsScript(requestBody: Record<string, unknown>, includePagin
  * Query params:
  *   - page: page number (default: 1)
  *   - limit: items per page (default: 10, max: 100)
+ *   - branch_name: filter by branch name (optional)
  */
 export async function GET(request: NextRequest) {
     try {
@@ -145,17 +172,27 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
         const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
-        const offset = (page - 1) * limit;
+        const branchName = searchParams.get("branch_name");
 
+        // If branch_name filter is provided, request ALL data from Apps Script without pagination
+        // We'll do filtering and pagination in Next.js after getting all data
         const requestBody: Record<string, unknown> = {
             action: "list",
             sheet: "Products",
-            page,
-            limit,
-            offset,
         };
 
-        return await callAppsScript(requestBody, true);
+        // Only send pagination params to Apps Script if no branch filter
+        if (!branchName || branchName.trim() === "") {
+            const offset = (page - 1) * limit;
+            requestBody.page = page;
+            requestBody.limit = limit;
+            requestBody.offset = offset;
+        } else {
+            // Pass branch_name separately for filtering in Next.js (not to Apps Script)
+            requestBody.branch_name = branchName.trim();
+        }
+
+        return await callAppsScript(requestBody, true, page, limit);
     } catch (error) {
         return NextResponse.json(
             {
