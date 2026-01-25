@@ -12,6 +12,7 @@ import {
 } from "@/lib/config"
 
 import { getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable, type ColumnFiltersState, type SortingState } from "@tanstack/react-table"
+
 import { createColumns } from "@/components/dashboard/products/modal/CreateColumsProducts"
 
 export function useStateProducts() {
@@ -19,7 +20,6 @@ export function useStateProducts() {
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-    const hasLoadedOnce = React.useRef(false)
 
     // Pagination state
     const [page, setPage] = React.useState(1)
@@ -59,6 +59,28 @@ export function useStateProducts() {
     // Filter sheet state
     const [filterSheetOpen, setFilterSheetOpen] = React.useState(false)
 
+    // Local state for search input (not applied until "Terapkan" is clicked)
+    const [searchInput, setSearchInput] = React.useState("")
+
+    // Handler to apply search filter
+    const handleApplySearch = () => {
+        setColumnFilters((prev: ColumnFiltersState) => {
+            const rest = prev.filter((f) => f.id !== "name")
+            if (searchInput.trim() !== "") {
+                return [...rest, { id: "name", value: searchInput.trim() }]
+            }
+            return rest
+        })
+    }
+
+    // Handler for Enter key in search input
+    const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+            handleApplySearch()
+        }
+    }
+
+
     // Helper function to extract filter value
     const getFilterValue = React.useCallback((filterId: string): string => {
         const filter = columnFilters.find((f) => f.id === filterId)
@@ -82,10 +104,7 @@ export function useStateProducts() {
 
     const loadProducts = React.useCallback(async () => {
         try {
-            // Only show loading skeleton on initial load
-            if (!hasLoadedOnce.current) {
-                setIsLoading(true)
-            }
+            setIsLoading(true)
 
             const response = await fetchProducts(
                 page,
@@ -104,9 +123,6 @@ export function useStateProducts() {
                 setTotal(response.pagination.total || 0)
                 setTotalPages(response.pagination.totalPages || 0)
             }
-
-            // Mark that we've loaded at least once
-            hasLoadedOnce.current = true
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "Failed to fetch products")
         } finally {
@@ -374,5 +390,9 @@ export function useStateProducts() {
         statusFilter,
         searchFilter,
         handleApplyProductFilters,
+        searchInput,
+        setSearchInput,
+        handleApplySearch,
+        handleSearchKeyDown,
     }
 }

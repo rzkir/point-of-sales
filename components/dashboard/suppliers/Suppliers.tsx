@@ -42,16 +42,16 @@ export default function Suppliers() {
                             <div className="space-y-2 flex-1">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                                        Suppliers
+                                        Pemasok
                                     </h1>
                                     {!isLoading && suppliers.length > 0 && (
                                         <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
-                                            {suppliers.length} {suppliers.length === 1 ? 'supplier' : 'suppliers'}
+                                            {suppliers.length} {suppliers.length === 1 ? 'pemasok' : 'pemasok'}
                                         </span>
                                     )}
                                 </div>
                                 <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                                    Manage your suppliers and vendor information. Create, edit, and organize all your supplier contacts in one place.
+                                    Kelola pemasok dan informasi vendor Anda. Buat, edit, dan atur semua kontak pemasok Anda di satu tempat.
                                 </p>
                             </div>
                         </div>
@@ -82,7 +82,7 @@ export default function Suppliers() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Active Suppliers</span>
+                                    <span className="text-sm font-medium text-muted-foreground">Pemasok Aktif</span>
                                     <IconUser className="size-4 text-muted-foreground" />
                                 </div>
                             </CardHeader>
@@ -93,7 +93,7 @@ export default function Suppliers() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Displayed</span>
+                                    <span className="text-sm font-medium text-muted-foreground">Ditampilkan</span>
                                     <IconMail className="size-4 text-muted-foreground" />
                                 </div>
                             </CardHeader>
@@ -176,8 +176,8 @@ export default function Suppliers() {
             {!isLoading && suppliers.length > 0 && (
                 <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
                     <div className="text-sm text-muted-foreground">
-                        Showing <span className="font-semibold text-foreground">{table.getRowModel().rows.length}</span> of{" "}
-                        <span className="font-semibold text-foreground">{suppliers.length}</span> supplier{suppliers.length !== 1 ? "s" : ""}
+                        Menampilkan <span className="font-semibold text-foreground">{table.getRowModel().rows.length}</span> dari{" "}
+                        <span className="font-semibold text-foreground">{suppliers.length}</span> pemasok
                     </div>
                 </div>
             )}

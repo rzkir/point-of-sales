@@ -129,9 +129,9 @@ export default function EditProducts({ productId }: { productId?: string }) {
     if (!productId) {
         return (
             <Card className="mx-auto max-w-3xl p-6">
-                <p className="text-sm text-muted-foreground">Missing product id in URL. Example: `/dashboard/products/edit?id=...`</p>
+                <p className="text-sm text-muted-foreground">ID produk tidak ditemukan di URL. Contoh: `/dashboard/products/edit?id=...`</p>
                 <div className="mt-4 flex justify-end">
-                    <Button variant="outline" onClick={() => router.back()}>Back</Button>
+                    <Button variant="outline" onClick={() => router.back()}>Kembali</Button>
                 </div>
             </Card>
         )
@@ -142,7 +142,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
             <Card className="mx-auto max-w-3xl p-6">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <IconLoader className="size-4 animate-spin" />
-                    Loading product...
+                    Memuat produk...
                 </div>
             </Card>
         )
@@ -162,7 +162,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
     return (
         <section className="flex flex-col gap-6 rounded-lg border bg-card p-6 shadow-sm">
             <div>
-                <h1 className="text-2xl font-semibold tracking-tight">Edit Product</h1>
+                <h1 className="text-2xl font-semibold tracking-tight">Edit Produk</h1>
                 <p className="text-sm text-muted-foreground">
                     Update produk. Data akan disimpan ke Google Sheets &quot;Products&quot;.
                 </p>
@@ -172,7 +172,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
                 <FieldGroup>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <Field>
-                            <FieldLabel htmlFor="name">Name</FieldLabel>
+                            <FieldLabel htmlFor="name">Nama</FieldLabel>
                             <Input
                                 id="name"
                                 value={name}
@@ -192,11 +192,11 @@ export default function EditProducts({ productId }: { productId?: string }) {
                                 disabled={isSubmitting}
                             >
                                 <SelectTrigger id="is_active">
-                                    <SelectValue placeholder="Select status" />
+                                    <SelectValue placeholder="Pilih status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="true">Active</SelectItem>
-                                    <SelectItem value="false">Inactive</SelectItem>
+                                    <SelectItem value="true">Aktif</SelectItem>
+                                    <SelectItem value="false">Tidak Aktif</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FieldDescription>
@@ -245,7 +245,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
                             </FieldDescription>
                             {barcode && (
                                 <div className="mt-4 flex flex-col items-center gap-2 rounded-lg border border-border bg-muted/30 p-4">
-                                    <p className="text-xs font-medium text-muted-foreground">Barcode Preview</p>
+                                    <p className="text-xs font-medium text-muted-foreground">Pratinjau Barcode</p>
                                     <div className="flex items-center justify-center rounded-md bg-white p-4">
                                         <Barcode
                                             value={barcode}
@@ -312,7 +312,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
                                             <div className="relative aspect-video w-full">
                                                 <Image
                                                     src={imageUrl}
-                                                    alt="Product preview"
+                                                    alt="Pratinjau produk"
                                                     fill
                                                     className="object-contain"
                                                     unoptimized
@@ -379,7 +379,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
                         </FieldDescription>
                         {imageUrl && (
                             <p className="mt-2 text-xs text-muted-foreground break-all">
-                                Image URL: {imageUrl}
+                                URL Gambar: {imageUrl}
                             </p>
                         )}
                     </Field>
@@ -398,7 +398,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
 
                     <div className="grid gap-4 sm:grid-cols-3">
                         <Field>
-                            <FieldLabel htmlFor="price">Price</FieldLabel>
+                            <FieldLabel htmlFor="price">Harga</FieldLabel>
                             <Input
                                 id="price"
                                 type="text"
@@ -427,7 +427,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
                             <input type="hidden" name="modal" />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor="stock">Stock</FieldLabel>
+                            <FieldLabel htmlFor="stock">Stok</FieldLabel>
                             <Input
                                 id="stock"
                                 type="text"
@@ -444,7 +444,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
 
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <Field>
-                            <FieldLabel htmlFor="min_stock">Min Stock</FieldLabel>
+                            <FieldLabel htmlFor="min_stock">Stok Minimum</FieldLabel>
                             <Input
                                 id="min_stock"
                                 type="text"
@@ -498,7 +498,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
                         </Field>
 
                         <Field>
-                            <FieldLabel htmlFor="expiration_date">Expiration Date</FieldLabel>
+                            <FieldLabel htmlFor="expiration_date">Tanggal Kedaluwarsa</FieldLabel>
                             <Input
                                 id="expiration_date"
                                 type="date"
@@ -522,8 +522,8 @@ export default function EditProducts({ productId }: { productId?: string }) {
                                 onValueChange={setSupplierId}
                                 placeholder={
                                     isLoadingSuppliers
-                                        ? "Loading suppliers..."
-                                        : "Select supplier (optional)"
+                                        ? "Memuat pemasok..."
+                                        : "Pilih pemasok (opsional)"
                                 }
                                 searchPlaceholder="Cari supplier..."
                                 emptyText="Tidak ada supplier ditemukan."
@@ -558,10 +558,10 @@ export default function EditProducts({ productId }: { productId?: string }) {
                         </Field>
 
                         <Field>
-                            <FieldLabel htmlFor="branch_id">Branch</FieldLabel>
+                            <FieldLabel htmlFor="branch_id">Cabang</FieldLabel>
                             <Combobox
                                 options={[
-                                    { value: NO_BRANCH_VALUE, label: "No Branch" },
+                                    { value: NO_BRANCH_VALUE, label: "Tidak Ada Cabang" },
                                     ...branches.map((branch) => ({
                                         value: branch.id,
                                         label: branch.name,
@@ -571,8 +571,8 @@ export default function EditProducts({ productId }: { productId?: string }) {
                                 onValueChange={(value) => setBranchId(value === NO_BRANCH_VALUE ? "" : value)}
                                 placeholder={
                                     isLoadingBranches
-                                        ? "Loading branches..."
-                                        : "Select branch (optional)"
+                                        ? "Memuat cabang..."
+                                        : "Pilih cabang (opsional)"
                                 }
                                 searchPlaceholder="Cari branch..."
                                 emptyText="Tidak ada branch ditemukan."
@@ -605,7 +605,7 @@ export default function EditProducts({ productId }: { productId?: string }) {
             <Dialog open={showScanDialog} onOpenChange={(open) => !open && stopScanning()}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Scan Barcode</DialogTitle>
+                        <DialogTitle>Pindai Barcode</DialogTitle>
                         <DialogDescription>
                             Arahkan kamera ke barcode untuk memindainya. Pastikan izin kamera telah diberikan.
                         </DialogDescription>

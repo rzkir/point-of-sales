@@ -83,16 +83,16 @@ export default function Transactions() {
                             <div className="space-y-2 flex-1">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                                        Transactions
+                                        Transaksi
                                     </h1>
                                     {!isLoading && total > 0 && (
                                         <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
-                                            {total} {total === 1 ? "transaction" : "transactions"}
+                                            {total} {total === 1 ? "transaksi" : "transaksi"}
                                         </span>
                                     )}
                                 </div>
                                 <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                                    View and manage all your sales transactions. Track payments, credits, and transaction history.
+                                    Lihat dan kelola semua transaksi penjualan Anda. Lacak pembayaran, kredit, dan riwayat transaksi.
                                 </p>
                             </div>
                         </div>
@@ -119,7 +119,7 @@ export default function Transactions() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Completed</span>
+                                    <span className="text-sm font-medium text-muted-foreground">Selesai</span>
                                     <div className="size-2 rounded-full bg-green-500" />
                                 </div>
                             </CardHeader>
@@ -130,7 +130,7 @@ export default function Transactions() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Pending</span>
+                                    <span className="text-sm font-medium text-muted-foreground">Menunggu</span>
                                     <div className="size-2 rounded-full bg-yellow-500" />
                                 </div>
                             </CardHeader>
@@ -149,7 +149,7 @@ export default function Transactions() {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex flex-1 items-center gap-2 max-w-md">
                                 <Input
-                                    placeholder="Search transaction number or customer..."
+                                    placeholder="Cari nomor transaksi atau pelanggan..."
                                     value={searchInput}
                                     onChange={(event) => setSearchInput(event.target.value)}
                                     onKeyDown={(e) => {
@@ -175,7 +175,7 @@ export default function Transactions() {
                                 </Button>
                                 <Button variant="outline" onClick={() => loadTransactions()}>
                                     <IconRefresh className="mr-2 size-4" />
-                                    Refresh
+                                    Muat Ulang
                                 </Button>
                             </div>
                         </div>
@@ -216,9 +216,9 @@ export default function Transactions() {
                                                     <IconReceipt className="size-8 text-muted-foreground" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <h3 className="text-lg font-semibold">No transactions found</h3>
+                                                    <h3 className="text-lg font-semibold">Tidak ada transaksi ditemukan</h3>
                                                     <p className="text-sm text-muted-foreground max-w-sm">
-                                                        Transactions will appear here once you start making sales
+                                                        Transaksi akan muncul di sini setelah Anda mulai melakukan penjualan
                                                     </p>
                                                 </div>
                                             </div>
@@ -234,18 +234,18 @@ export default function Transactions() {
             {!isLoading && (
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-muted/30 px-4 py-3">
                     <div className="text-sm text-muted-foreground">
-                        Showing <span className="font-semibold text-foreground">
+                        Menampilkan <span className="font-semibold text-foreground">
                             {transactions.length > 0 ? (page - 1) * limit + 1 : 0}
-                        </span> to{" "}
+                        </span> hingga{" "}
                         <span className="font-semibold text-foreground">
                             {Math.min(page * limit, total)}
-                        </span> of{" "}
-                        <span className="font-semibold text-foreground">{total}</span> transaction{total !== 1 ? "s" : ""}
+                        </span> dari{" "}
+                        <span className="font-semibold text-foreground">{total}</span> transaksi
                     </div>
 
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">Rows per page:</span>
+                            <span className="text-sm text-muted-foreground">Baris per halaman:</span>
                             <Select value={String(limit)} onValueChange={handleLimitChange}>
                                 <SelectTrigger className="w-20">
                                     <SelectValue />

@@ -6,7 +6,6 @@ import { IconFilter, IconPackage, IconPlus } from "@tabler/icons-react"
 
 import {
     flexRender,
-    type ColumnFiltersState,
 } from "@tanstack/react-table"
 
 import { Button } from "@/components/ui/button"
@@ -79,7 +78,6 @@ export default function Products() {
         branchName,
         categoryName,
         table,
-        setColumnFilters,
         branchOptions,
         categoryOptions,
         supplierOptions,
@@ -89,43 +87,49 @@ export default function Products() {
         categoryFilter,
         supplierFilter,
         statusFilter,
-        searchFilter,
         handleApplyProductFilters,
+        searchInput,
+        setSearchInput,
+        handleApplySearch,
+        handleSearchKeyDown,
     } = useStateProducts()
+
 
     return (
         <section className="space-y-6">
-            <Card className="border-2 bg-linear-to-br from-card via-card to-muted/20 shadow-lg overflow-hidden">
-                <CardContent>
-                    <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-start gap-4">
-                            <div className="relative">
+            <Card className="border-2 bg-linear-to-br from-card p-0 via-card to-muted/20 shadow-lg overflow-hidden">
+                <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col gap-4 sm:gap-6 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3 sm:gap-4">
+                            <div className="relative shrink-0">
                                 <div className="absolute inset-0 bg-primary/20 blur-xl rounded-2xl" />
-                                <div className="relative flex size-14 items-center justify-center rounded-2xl bg-linear-to-br from-primary/20 to-primary/10 text-primary shadow-lg ring-2 ring-primary/20">
-                                    <IconPackage className="size-7" />
+                                <div className="relative flex size-12 sm:size-14 items-center justify-center rounded-2xl bg-linear-to-br from-primary/20 to-primary/10 text-primary shadow-lg ring-2 ring-primary/20">
+                                    <IconPackage className="size-6 sm:size-7" />
                                 </div>
                             </div>
-                            <div className="space-y-2 flex-1">
-                                <div className="flex items-center gap-3">
-                                    <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                                        Products
+                            <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                                        Produk
                                     </h1>
                                     {!isLoading && total > 0 && (
-                                        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
-                                            {total} {total === 1 ? "product" : "products"}
+                                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
+                                            {total} {total === 1 ? "produk" : "produk"}
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                                    Manage your product catalog. Create, edit, and organize all your items in one place.
+                                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl">
+                                    Kelola katalog produk Anda. Buat, edit, dan atur semua item Anda di satu tempat.
                                 </p>
                             </div>
                         </div>
-                        <div className="shrink-0 flex items-center gap-2">
-                            <Button asChild>
+
+                        <div className="shrink-0 w-full md:w-auto gap-2">
+                            <Button asChild size="sm" className="sm:size-default w-full md:w-auto">
                                 <Link href="/dashboard/products/create">
                                     <IconPlus className="mr-2 size-4" />
-                                    Add Product
+                                    <span className="hidden xs:inline">Tambah Produk</span>
+                                    <span className="xs:hidden">Tambah</span>
                                 </Link>
                             </Button>
                         </div>
@@ -179,34 +183,39 @@ export default function Products() {
                 <CardHeader className="pb-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-                            <div className="w-full sm:w-64">
-                                <Input
-                                    placeholder="Search product name..."
-                                    value={searchFilter}
-                                    onChange={(event) => {
-                                        const value = event.target.value
-                                        setColumnFilters((prev: ColumnFiltersState) => {
-                                            const rest = prev.filter((f) => f.id !== "name")
-                                            if (value.trim() !== "") {
-                                                return [...rest, { id: "name", value }]
-                                            }
-                                            return rest
-                                        })
-                                    }}
-                                />
+                            <div className="flex w-full gap-2 sm:w-auto">
+                                <div className="flex-1 sm:w-64">
+                                    <Input
+                                        placeholder="Search product name..."
+                                        value={searchInput}
+                                        onChange={(event) => {
+                                            setSearchInput(event.target.value)
+                                        }}
+                                        onKeyDown={handleSearchKeyDown}
+                                    />
+                                </div>
+                                <Button
+                                    variant="default"
+                                    onClick={handleApplySearch}
+                                    className="shrink-0"
+                                >
+                                    Terapkan
+                                </Button>
                             </div>
-                            <Button
-                                variant="outline"
-                                onClick={() => setFilterSheetOpen(true)}
-                                className="shrink-0"
-                            >
-                                <IconFilter className="mr-2 size-4" />
-                                Filter
-                                {(branchFilter || categoryFilter || supplierFilter || statusFilter) && (
-                                    <span className="ml-2 size-2 rounded-full bg-primary" />
-                                )}
-                            </Button>
                         </div>
+
+                        <Button
+                            variant="outline"
+                            onClick={() => setFilterSheetOpen(true)}
+                            className="shrink-0"
+                        >
+                            <IconFilter className="mr-2 size-4" />
+                            Filter
+                            {(branchFilter || categoryFilter || supplierFilter || statusFilter) && (
+                                <span className="ml-2 size-2 rounded-full bg-primary" />
+                            )}
+                        </Button>
+
                         <Button variant="outline" onClick={() => loadProducts()}>
                             Refresh
                         </Button>
@@ -247,15 +256,15 @@ export default function Products() {
                                                     <IconPackage className="size-8 text-muted-foreground" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <h3 className="text-lg font-semibold">No products found</h3>
+                                                    <h3 className="text-lg font-semibold">Tidak ada produk ditemukan</h3>
                                                     <p className="text-sm text-muted-foreground max-w-sm">
-                                                        Get started by creating your first product
+                                                        Mulai dengan membuat produk pertama Anda
                                                     </p>
                                                 </div>
                                                 <Button asChild>
                                                     <Link href="/dashboard/products/create">
                                                         <IconPlus className="mr-2 size-4" />
-                                                        Add Product
+                                                        Tambah Produk
                                                     </Link>
                                                 </Button>
                                             </div>
@@ -270,19 +279,18 @@ export default function Products() {
 
             {!isLoading && (
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-muted/30 px-4 py-3">
-                    <div className="text-sm text-muted-foreground">
-                        Showing <span className="font-semibold text-foreground">
-                            {products.length > 0 ? (page - 1) * limit + 1 : 0}
-                        </span> to{" "}
-                        <span className="font-semibold text-foreground">
-                            {Math.min(page * limit, total)}
-                        </span> of{" "}
-                        <span className="font-semibold text-foreground">{total}</span> product{total !== 1 ? "s" : ""}
-                    </div>
-
                     <div className="flex items-center gap-4">
+                        <div className="text-sm text-muted-foreground hidden md:block">
+                            Menampilkan <span className="font-semibold text-foreground">
+                                {products.length > 0 ? (page - 1) * limit + 1 : 0}
+                            </span> hingga{" "}
+                            <span className="font-semibold text-foreground">
+                                {Math.min(page * limit, total)}
+                            </span> dari{" "}
+                            <span className="font-semibold text-foreground">{total}</span> produk
+                        </div>
+
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">Rows per page:</span>
                             <Select value={String(limit)} onValueChange={handleLimitChange}>
                                 <SelectTrigger className="w-20">
                                     <SelectValue />
@@ -294,8 +302,11 @@ export default function Products() {
                                     <SelectItem value="100">100</SelectItem>
                                 </SelectContent>
                             </Select>
+                            <span className="text-sm text-muted-foreground">Baris per halaman:</span>
                         </div>
+                    </div>
 
+                    <div className="flex items-center gap-4">
                         {totalPages > 0 && (
                             <Pagination>
                                 <PaginationContent>

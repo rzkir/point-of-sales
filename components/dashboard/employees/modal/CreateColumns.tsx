@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 export const CreateColumns = (onUpdate: () => void): ColumnDef<EmployeeRow>[] => [
     {
         accessorKey: "name",
-        header: () => <span className="font-semibold">Name</span>,
+        header: () => <span className="font-semibold">Nama</span>,
         cell: ({ row }) => (
             <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -32,7 +32,7 @@ export const CreateColumns = (onUpdate: () => void): ColumnDef<EmployeeRow>[] =>
                 <div className="flex items-center gap-2 max-w-md">
                     <IconMail className="size-4 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground text-sm">
-                        {email || <span className="italic">No email provided</span>}
+                        {email || <span className="italic">Tidak ada email</span>}
                     </span>
                 </div>
             )
@@ -40,7 +40,7 @@ export const CreateColumns = (onUpdate: () => void): ColumnDef<EmployeeRow>[] =>
     },
     {
         accessorKey: "roleType",
-        header: () => <span className="font-semibold">Role</span>,
+        header: () => <span className="font-semibold">Peran</span>,
         cell: ({ row }) => {
             const roleType = row.getValue("roleType") as string
             const roleColors: Record<string, string> = {
@@ -60,14 +60,14 @@ export const CreateColumns = (onUpdate: () => void): ColumnDef<EmployeeRow>[] =>
     },
     {
         accessorKey: "branchName",
-        header: () => <span className="font-semibold">Branch</span>,
+        header: () => <span className="font-semibold">Cabang</span>,
         cell: ({ row }) => {
             const branchName = row.getValue("branchName") as string
             return (
                 <div className="flex items-center gap-2">
                     <IconBuilding className="size-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                        {branchName ? branchName : <span className="italic">No Branch</span>}
+                        {branchName ? branchName : <span className="italic">Tidak Ada Cabang</span>}
                     </span>
                 </div>
             )
@@ -75,7 +75,7 @@ export const CreateColumns = (onUpdate: () => void): ColumnDef<EmployeeRow>[] =>
     },
     {
         accessorKey: "createdAt",
-        header: () => <span className="font-semibold">Created At</span>,
+        header: () => <span className="font-semibold">Dibuat Pada</span>,
         cell: ({ row }) => {
             const dateStr = row.getValue("createdAt") as string
             if (!dateStr) return (
@@ -106,7 +106,7 @@ export const CreateColumns = (onUpdate: () => void): ColumnDef<EmployeeRow>[] =>
     },
     {
         id: "actions",
-        header: () => <span className="font-semibold">Actions</span>,
+        header: () => <span className="font-semibold">Aksi</span>,
         cell: ({ row }) => <EmployeeActions employee={row.original} onUpdate={onUpdate} />,
     },
 ]

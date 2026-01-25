@@ -32,12 +32,12 @@ export function DeleteProduct({
         setIsDeleting(true)
         try {
             await deleteProduct(product.id)
-            toast.success("Product deleted successfully")
+            toast.success("Produk berhasil dihapus")
             onOpenChange(false)
             onUpdate()
         } catch (error) {
             console.error("Delete product error:", error)
-            toast.error(error instanceof Error ? error.message : "Failed to delete product")
+            toast.error(error instanceof Error ? error.message : "Gagal menghapus produk")
         } finally {
             setIsDeleting(false)
         }
@@ -47,9 +47,9 @@ export function DeleteProduct({
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Delete Product</DialogTitle>
+                    <DialogTitle>Hapus Produk</DialogTitle>
                     <DialogDescription>
-                        Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone.
+                        Apakah Anda yakin ingin menghapus &quot;{product.name}&quot;? Tindakan ini tidak dapat dibatalkan.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -72,7 +72,7 @@ export function DeleteProduct({
                     </Button>
                     <DialogClose asChild>
                         <Button variant="outline" disabled={isDeleting}>
-                            Cancel
+                            Batal
                         </Button>
                     </DialogClose>
                 </DialogFooter>

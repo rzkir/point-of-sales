@@ -25,7 +25,7 @@ export function CategoryActions({ category, onUpdate }: { category: CategoryRow;
                         size="icon"
                     >
                         <IconDotsVertical className="size-4" />
-                        <span className="sr-only">Open menu</span>
+                        <span className="sr-only">Buka menu</span>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
@@ -44,7 +44,7 @@ export function CategoryActions({ category, onUpdate }: { category: CategoryRow;
                         className="cursor-pointer text-destructive focus:text-destructive"
                     >
                         <IconTrash className="mr-2 size-4" />
-                        Delete
+                        Hapus
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

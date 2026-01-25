@@ -35,11 +35,11 @@ export function ProductActions({ product, onDelete, onViewSupplier, onViewBranch
                 <DropdownMenuTrigger asChild>
                     <Button
                         variant="ghost"
-                        className="data-[state=open]:bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 flex size-9 transition-colors"
+                        className="data-[state=open]:bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 flex size-8 sm:size-9 transition-colors"
                         size="icon"
                     >
-                        <IconDotsVertical className="size-4" />
-                        <span className="sr-only">Open menu</span>
+                        <IconDotsVertical className="size-3.5 sm:size-4" />
+                        <span className="sr-only">Buka menu</span>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
@@ -58,7 +58,7 @@ export function ProductActions({ product, onDelete, onViewSupplier, onViewBranch
                         className="cursor-pointer"
                     >
                         <IconEye className="mr-2 size-4" />
-                        View Details
+                        Lihat Detail
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {product.supplier_id && (
@@ -70,7 +70,7 @@ export function ProductActions({ product, onDelete, onViewSupplier, onViewBranch
                             className="cursor-pointer"
                         >
                             <IconTruck className="mr-2 size-4" />
-                            View Supplier
+                            Lihat Pemasok
                         </DropdownMenuItem>
                     )}
                     {product.branch_id && (
@@ -82,7 +82,7 @@ export function ProductActions({ product, onDelete, onViewSupplier, onViewBranch
                             className="cursor-pointer"
                         >
                             <IconBuildingStore className="mr-2 size-4" />
-                            View Branch
+                            Lihat Cabang
                         </DropdownMenuItem>
                     )}
                     {(product.supplier_id || product.branch_id) && <DropdownMenuSeparator />}
@@ -95,7 +95,7 @@ export function ProductActions({ product, onDelete, onViewSupplier, onViewBranch
                         className="cursor-pointer text-destructive focus:text-destructive"
                     >
                         <IconTrash className="mr-2 size-4" />
-                        Delete
+                        Hapus
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

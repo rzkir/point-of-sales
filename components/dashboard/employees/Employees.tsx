@@ -42,16 +42,16 @@ export default function Employees() {
                             <div className="space-y-2 flex-1">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                                        Employees
+                                        Karyawan
                                     </h1>
                                     {!isLoading && employees.length > 0 && (
                                         <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
-                                            {employees.length} {employees.length === 1 ? 'employee' : 'employees'}
+                                            {employees.length} {employees.length === 1 ? 'karyawan' : 'karyawan'}
                                         </span>
                                     )}
                                 </div>
                                 <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                                    Manage your employees and user accounts. Create, edit, and organize all your team members in one place.
+                                    Kelola karyawan dan akun pengguna Anda. Buat, edit, dan atur semua anggota tim Anda di satu tempat.
                                 </p>
                             </div>
                         </div>
@@ -82,7 +82,7 @@ export default function Employees() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Displayed</span>
+                                    <span className="text-sm font-medium text-muted-foreground">Ditampilkan</span>
                                     <IconMail className="size-4 text-muted-foreground" />
                                 </div>
                             </CardHeader>
@@ -156,9 +156,9 @@ export default function Employees() {
                                                     <IconUser className="size-8 text-muted-foreground" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <h3 className="text-lg font-semibold">No employees found</h3>
+                                                    <h3 className="text-lg font-semibold">Tidak ada karyawan ditemukan</h3>
                                                     <p className="text-sm text-muted-foreground max-w-sm">
-                                                        Get started by creating your first employee account
+                                                        Mulai dengan membuat akun karyawan pertama Anda
                                                     </p>
                                                 </div>
                                                 <EmployeeCreateForm onUpdate={loadEmployees} />
@@ -176,8 +176,8 @@ export default function Employees() {
             {!isLoading && employees.length > 0 && (
                 <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
                     <div className="text-sm text-muted-foreground">
-                        Showing <span className="font-semibold text-foreground">{table.getRowModel().rows.length}</span> of{" "}
-                        <span className="font-semibold text-foreground">{employees.length}</span> employee{employees.length !== 1 ? "s" : ""}
+                        Menampilkan <span className="font-semibold text-foreground">{table.getRowModel().rows.length}</span> dari{" "}
+                        <span className="font-semibold text-foreground">{employees.length}</span> karyawan
                     </div>
                 </div>
             )}

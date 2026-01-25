@@ -77,16 +77,16 @@ export default function Categories() {
                             <div className="space-y-2 flex-1">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                                        Categories
+                                        Kategori
                                     </h1>
                                     {!isLoading && categories.length > 0 && (
                                         <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
-                                            {categories.length} {categories.length === 1 ? "category" : "categories"}
+                                            {categories.length} {categories.length === 1 ? "kategori" : "kategori"}
                                         </span>
                                     )}
                                 </div>
                                 <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                                    Manage product categories. Create, edit, and keep them organized.
+                                    Kelola kategori produk. Buat, edit, dan jaga agar tetap terorganisir.
                                 </p>
                             </div>
                         </div>
@@ -105,7 +105,7 @@ export default function Categories() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Total Categories</span>
+                                    <span className="text-sm font-medium text-muted-foreground">Total Kategori</span>
                                     <IconCategory className="size-4 text-muted-foreground" />
                                 </div>
                             </CardHeader>
@@ -116,7 +116,7 @@ export default function Categories() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Active Categories</span>
+                                    <span className="text-sm font-medium text-muted-foreground">Kategori Aktif</span>
                                     <IconCategory className="size-4 text-muted-foreground" />
                                 </div>
                             </CardHeader>
@@ -189,9 +189,9 @@ export default function Categories() {
                                                     <IconCategory className="size-8 text-muted-foreground" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <h3 className="text-lg font-semibold">No categories found</h3>
+                                                    <h3 className="text-lg font-semibold">Tidak ada kategori ditemukan</h3>
                                                     <p className="text-sm text-muted-foreground max-w-sm">
-                                                        Start by creating your first category.
+                                                        Mulai dengan membuat kategori pertama Anda.
                                                     </p>
                                                 </div>
                                                 <CategoryCreateForm onUpdate={loadCategories} />
@@ -208,8 +208,8 @@ export default function Categories() {
             {!isLoading && categories.length > 0 && (
                 <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
                     <div className="text-sm text-muted-foreground">
-                        Showing <span className="font-semibold text-foreground">{table.getRowModel().rows.length}</span> of{" "}
-                        <span className="font-semibold text-foreground">{categories.length}</span> categor{categories.length !== 1 ? "ies" : "y"}
+                        Menampilkan <span className="font-semibold text-foreground">{table.getRowModel().rows.length}</span> dari{" "}
+                        <span className="font-semibold text-foreground">{categories.length}</span> kategori
                     </div>
                 </div>
             )}

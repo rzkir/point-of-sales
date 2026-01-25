@@ -78,6 +78,7 @@ export const API_CONFIG = {
  * @param categoryName - Optional category name to filter products
  * @param supplierName - Optional supplier name to filter products
  * @param search - Optional search term to filter products by name
+ * @param revalidate - Optional revalidate time in seconds
  * @returns Promise with products data and pagination info
  */
 export async function fetchProducts(
@@ -87,12 +88,12 @@ export async function fetchProducts(
     categoryId?: string,
     categoryName?: string,
     supplierName?: string,
-    search?: string
+    search?: string,
+    revalidate?: number
 ): Promise<ProductsResponse> {
     try {
         const data = await apiFetch<ProductsResponse>(API_CONFIG.ENDPOINTS.products.list(page, limit, branchName, categoryId, categoryName, supplierName, search), {
-            revalidate: 10,
-            tags: ["products"],
+            revalidate,
         })
 
         if (!data.success) {
@@ -146,13 +147,13 @@ export async function deleteProduct(productId: string | number): Promise<DeleteP
 
 /**
  * Fetch all categories
+ * @param revalidate - Optional revalidate time in seconds
  * @returns Promise with categories data
  */
-export async function fetchCategories(): Promise<CategoriesResponse> {
+export async function fetchCategories(revalidate?: number): Promise<CategoriesResponse> {
     try {
         const data = await apiFetch<CategoriesResponse>(API_CONFIG.ENDPOINTS.categories.base, {
-            revalidate: 10,
-            tags: ["categories"],
+            revalidate,
         })
 
         if (!data.success) {
@@ -205,13 +206,13 @@ export async function deleteCategory(categoryId: string | number): Promise<Delet
 
 /**
  * Fetch all branches
+ * @param revalidate - Optional revalidate time in seconds
  * @returns Promise with branches data
  */
-export async function fetchBranches(): Promise<BranchesResponse> {
+export async function fetchBranches(revalidate?: number): Promise<BranchesResponse> {
     try {
         const data = await apiFetch<BranchesResponse>(API_CONFIG.ENDPOINTS.branches.base, {
-            revalidate: 10,
-            tags: ["branches"],
+            revalidate,
         })
 
         if (!data.success) {
@@ -239,10 +240,7 @@ export async function fetchBranches(): Promise<BranchesResponse> {
  */
 export async function fetchBranchById(branchId: string | number): Promise<BranchResponse> {
     try {
-        const data = await apiFetch<BranchResponse>(API_CONFIG.ENDPOINTS.branches.byId(branchId), {
-            revalidate: 10,
-            tags: ["branches"],
-        })
+        const data = await apiFetch<BranchResponse>(API_CONFIG.ENDPOINTS.branches.byId(branchId))
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch branch")
@@ -294,13 +292,13 @@ export async function deleteBranch(branchId: string | number): Promise<DeleteBra
 
 /**
  * Fetch all employees
+ * @param revalidate - Optional revalidate time in seconds
  * @returns Promise with employees data
  */
-export async function fetchEmployees(): Promise<EmployeesResponse> {
+export async function fetchEmployees(revalidate?: number): Promise<EmployeesResponse> {
     try {
         const data = await apiFetch<EmployeesResponse>(API_CONFIG.ENDPOINTS.employees.base, {
-            revalidate: 10,
-            tags: ["employees"],
+            revalidate,
         })
 
         if (!data.success) {
@@ -357,10 +355,7 @@ export async function deleteEmployee(employeeId: string | number): Promise<Delet
  */
 export async function fetchSuppliers(): Promise<SuppliersResponse> {
     try {
-        const data = await apiFetch<SuppliersResponse>(API_CONFIG.ENDPOINTS.suppliers.base, {
-            revalidate: 10,
-            tags: ["suppliers"],
-        })
+        const data = await apiFetch<SuppliersResponse>(API_CONFIG.ENDPOINTS.suppliers.base)
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch suppliers")
@@ -383,12 +378,13 @@ export async function fetchSuppliers(): Promise<SuppliersResponse> {
 /**
  * Fetch a supplier by ID
  * @param supplierId - Supplier ID to fetch
+ * @param revalidate - Optional revalidate time in seconds
  * @returns Promise with supplier data
  */
-export async function fetchSupplierById(supplierId: string | number): Promise<SupplierResponse> {
+export async function fetchSupplierById(supplierId: string | number, revalidate?: number): Promise<SupplierResponse> {
     try {
         const data = await apiFetch<SupplierResponse>(API_CONFIG.ENDPOINTS.suppliers.byId(supplierId), {
-            revalidate: 10,
+            revalidate,
         })
 
         if (!data.success) {
@@ -443,13 +439,13 @@ export async function deleteSupplier(supplierId: string | number): Promise<Delet
  * Fetch transactions with pagination
  * @param page - Page number (default: 1)
  * @param limit - Items per page (default: 10)
+ * @param revalidate - Optional revalidate time in seconds
  * @returns Promise with transactions data and pagination info
  */
-export async function fetchTransactions(page: number = 1, limit: number = 10): Promise<TransactionsResponse> {
+export async function fetchTransactions(page: number = 1, limit: number = 10, revalidate?: number): Promise<TransactionsResponse> {
     try {
         const data = await apiFetch<TransactionsResponse>(API_CONFIG.ENDPOINTS.transactions.list(page, limit), {
-            revalidate: 10,
-            tags: ["transactions"],
+            revalidate,
         })
 
         if (!data.success) {

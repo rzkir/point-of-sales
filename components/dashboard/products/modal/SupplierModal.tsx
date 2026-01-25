@@ -15,28 +15,28 @@ export default function SupplierModal({ open, onOpenChange, supplier, isLoading 
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Supplier Information</DialogTitle>
-                    <DialogDescription>Details of the supplier for this product</DialogDescription>
+                    <DialogTitle>Informasi Pemasok</DialogTitle>
+                    <DialogDescription>Detail pemasok untuk produk ini</DialogDescription>
                 </DialogHeader>
                 {isLoading ? (
                     <div className="py-8 text-center">
-                        <div className="text-sm text-muted-foreground">Loading supplier...</div>
+                        <div className="text-sm text-muted-foreground">Memuat pemasok...</div>
                     </div>
                 ) : supplier ? (
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <div className="text-sm font-medium text-muted-foreground">Name</div>
+                            <div className="text-sm font-medium text-muted-foreground">Nama</div>
                             <div className="text-base font-semibold">{supplier.name}</div>
                         </div>
                         {supplier.contact_person && (
                             <div className="space-y-2">
-                                <div className="text-sm font-medium text-muted-foreground">Contact Person</div>
+                                <div className="text-sm font-medium text-muted-foreground">Kontak Person</div>
                                 <div className="text-base">{supplier.contact_person}</div>
                             </div>
                         )}
                         {supplier.phone && (
                             <div className="space-y-2">
-                                <div className="text-sm font-medium text-muted-foreground">Phone</div>
+                                <div className="text-sm font-medium text-muted-foreground">Telepon</div>
                                 <div className="text-base">{supplier.phone}</div>
                             </div>
                         )}
@@ -48,20 +48,20 @@ export default function SupplierModal({ open, onOpenChange, supplier, isLoading 
                         )}
                         {supplier.address && (
                             <div className="space-y-2">
-                                <div className="text-sm font-medium text-muted-foreground">Address</div>
+                                <div className="text-sm font-medium text-muted-foreground">Alamat</div>
                                 <div className="text-base">{supplier.address}</div>
                             </div>
                         )}
                         <div className="space-y-2">
                             <div className="text-sm font-medium text-muted-foreground">Status</div>
                             <Badge className={supplier.is_active ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400"}>
-                                {supplier.is_active ? "Active" : "Inactive"}
+                                {supplier.is_active ? "Aktif" : "Tidak Aktif"}
                             </Badge>
                         </div>
                     </div>
                 ) : (
                     <div className="py-8 text-center">
-                        <div className="text-sm text-muted-foreground">No supplier data available</div>
+                        <div className="text-sm text-muted-foreground">Tidak ada data pemasok tersedia</div>
                     </div>
                 )}
             </DialogContent>

@@ -42,7 +42,7 @@ export default function ProductsDetails({
             <DialogContent className="w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6">
                 <DialogHeader className="border-b border-border/60 pb-3 sm:pb-4">
                     <DialogTitle className="text-base sm:text-lg font-semibold tracking-tight">
-                        Product Details
+                        Detail Produk
                     </DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground">
                         Informasi lengkap produk yang dipilih.
@@ -65,7 +65,7 @@ export default function ProductsDetails({
                                         />
                                     ) : (
                                         <span className="text-xs text-muted-foreground px-2 text-center">
-                                            No image
+                                            Tidak ada gambar
                                         </span>
                                     )}
                                 </div>
@@ -87,7 +87,7 @@ export default function ProductsDetails({
                                                 " rounded-full px-3 py-1 text-[11px] font-medium w-fit"
                                             }
                                         >
-                                            {isActive ? "Active" : "Inactive"}
+                                            {isActive ? "Aktif" : "Tidak Aktif"}
                                         </Badge>
                                     </div>
 
@@ -114,7 +114,7 @@ export default function ProductsDetails({
                                     <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 pt-2 border-t border-dashed border-border/60 mt-1">
                                         <div className="space-y-1">
                                             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                                Stock
+                                                Stok
                                             </p>
                                             <p className="text-sm wrap-break-word">
                                                 {formatNumber(product?.stock ?? 0)} {product?.unit ?? ""}
@@ -122,7 +122,7 @@ export default function ProductsDetails({
                                         </div>
                                         <div className="space-y-1">
                                             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                                Sold
+                                                Terjual
                                             </p>
                                             <p className="text-sm">{formatNumber(product?.sold ?? 0)}</p>
                                         </div>
@@ -169,7 +169,7 @@ export default function ProductsDetails({
                                 <div className="grid gap-3">
                                     <div className="space-y-1">
                                         <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                            Supplier
+                                            Pemasok
                                         </div>
                                         <div className="text-sm wrap-break-word">
                                             {product?.supplier_name}
@@ -178,7 +178,7 @@ export default function ProductsDetails({
 
                                     <div className="space-y-1">
                                         <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                            Branch
+                                            Cabang
                                         </div>
                                         <div className="text-sm wrap-break-word">
                                             {product?.branch_name}
@@ -187,7 +187,7 @@ export default function ProductsDetails({
 
                                     <div className="space-y-1">
                                         <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                            Category
+                                            Kategori
                                         </div>
                                         <div className="text-sm wrap-break-word">
                                             {product?.category_name ?? "-"}
@@ -203,14 +203,14 @@ export default function ProductsDetails({
 
                                     <div className="space-y-1">
                                         <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                            Min Stock
+                                            Stok Minimum
                                         </div>
                                         <div className="text-sm wrap-break-word">{product?.min_stock != null ? formatNumber(product.min_stock) : "-"}</div>
                                     </div>
 
                                     <div className="space-y-1">
                                         <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                                            Expired
+                                            Kedaluwarsa
                                         </div>
                                         <div className="text-sm wrap-break-word">
                                             {product?.expiration_date ? formatDate(product?.expiration_date) : "-"}

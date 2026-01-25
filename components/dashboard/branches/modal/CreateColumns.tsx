@@ -7,7 +7,7 @@ import { ColumnDef } from "@tanstack/react-table"
 export const createColumns = (onUpdate: () => void): ColumnDef<BranchRow>[] => [
     {
         accessorKey: "name",
-        header: () => <span className="font-semibold">Branch Name</span>,
+        header: () => <span className="font-semibold">Nama Cabang</span>,
         cell: ({ row }) => (
             <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -21,14 +21,14 @@ export const createColumns = (onUpdate: () => void): ColumnDef<BranchRow>[] => [
     },
     {
         accessorKey: "address",
-        header: () => <span className="font-semibold">Address</span>,
+        header: () => <span className="font-semibold">Alamat</span>,
         cell: ({ row }) => {
             const address = row.getValue("address") as string
             return (
                 <div className="flex items-start gap-2 max-w-md">
                     <IconMapPin className="size-4 mt-0.5 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground text-sm leading-relaxed">
-                        {address || <span className="italic">No address provided</span>}
+                        {address || <span className="italic">Tidak ada alamat</span>}
                     </span>
                 </div>
             )
@@ -36,7 +36,7 @@ export const createColumns = (onUpdate: () => void): ColumnDef<BranchRow>[] => [
     },
     {
         accessorKey: "createdAt",
-        header: () => <span className="font-semibold">Created At</span>,
+        header: () => <span className="font-semibold">Dibuat Pada</span>,
         cell: ({ row }) => {
             const dateStr = row.getValue("createdAt") as string
             if (!dateStr) return (
@@ -67,7 +67,7 @@ export const createColumns = (onUpdate: () => void): ColumnDef<BranchRow>[] => [
     },
     {
         id: "actions",
-        header: () => <span className="font-semibold">Actions</span>,
+        header: () => <span className="font-semibold">Aksi</span>,
         cell: ({ row }) => <BranchActions branch={row.original as Branch} onUpdate={onUpdate} />,
     },
 ]

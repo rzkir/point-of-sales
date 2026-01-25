@@ -119,7 +119,7 @@ export default function CreateProducts() {
     return (
         <section className="flex flex-col gap-6 rounded-lg border bg-card p-6 shadow-sm">
             <div>
-                <h1 className="text-2xl font-semibold tracking-tight">Create Product</h1>
+                <h1 className="text-2xl font-semibold tracking-tight">Buat Produk</h1>
                 <p className="text-sm text-muted-foreground">
                     Tambahkan produk baru ke sistem. Data akan disimpan ke Google Sheets &quot;Products&quot;.
                 </p>
@@ -129,7 +129,7 @@ export default function CreateProducts() {
                 <FieldGroup>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <Field>
-                            <FieldLabel htmlFor="name">Name</FieldLabel>
+                            <FieldLabel htmlFor="name">Nama</FieldLabel>
                             <Input
                                 id="name"
                                 name="name"
@@ -148,11 +148,11 @@ export default function CreateProducts() {
                                 disabled={isSubmitting}
                             >
                                 <SelectTrigger id="is_active">
-                                    <SelectValue placeholder="Select status" />
+                                    <SelectValue placeholder="Pilih status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="true">Active</SelectItem>
-                                    <SelectItem value="false">Inactive</SelectItem>
+                                    <SelectItem value="true">Aktif</SelectItem>
+                                    <SelectItem value="false">Tidak Aktif</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FieldDescription>
@@ -202,7 +202,7 @@ export default function CreateProducts() {
                             </FieldDescription>
                             {barcode && (
                                 <div className="mt-4 flex flex-col items-center gap-2 rounded-lg border border-border bg-muted/30 p-4">
-                                    <p className="text-xs font-medium text-muted-foreground">Barcode Preview</p>
+                                    <p className="text-xs font-medium text-muted-foreground">Pratinjau Barcode</p>
                                     <div className="flex items-center justify-center rounded-md bg-white p-4">
                                         <Barcode
                                             value={barcode}
@@ -229,8 +229,8 @@ export default function CreateProducts() {
                                 className="w-full"
                             >
                                 <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="upload">Upload File</TabsTrigger>
-                                    <TabsTrigger value="url">Input URL</TabsTrigger>
+                                    <TabsTrigger value="upload">Unggah File</TabsTrigger>
+                                    <TabsTrigger value="url">Masukkan URL</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="upload" className="space-y-2 mt-4">
                                     <Input
@@ -336,13 +336,13 @@ export default function CreateProducts() {
                         </FieldDescription>
                         {imageUrl && (
                             <p className="mt-2 text-xs text-muted-foreground break-all">
-                                Image URL: {imageUrl}
+                                URL Gambar: {imageUrl}
                             </p>
                         )}
                     </Field>
 
                     <Field>
-                        <FieldLabel htmlFor="description">Description</FieldLabel>
+                        <FieldLabel htmlFor="description">Deskripsi</FieldLabel>
                         <Textarea
                             id="description"
                             name="description"
@@ -354,7 +354,7 @@ export default function CreateProducts() {
 
                     <div className="grid gap-4 sm:grid-cols-3">
                         <Field>
-                            <FieldLabel htmlFor="price">Price</FieldLabel>
+                            <FieldLabel htmlFor="price">Harga</FieldLabel>
                             <Input
                                 id="price"
                                 type="text"
@@ -368,7 +368,7 @@ export default function CreateProducts() {
                             <input type="hidden" name="price" />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor="modal">Modal</FieldLabel>
+                            <FieldLabel htmlFor="modal">Biaya (Modal)</FieldLabel>
                             <Input
                                 id="modal"
                                 type="text"
@@ -399,7 +399,7 @@ export default function CreateProducts() {
 
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <Field>
-                            <FieldLabel htmlFor="min_stock">Min Stock</FieldLabel>
+                            <FieldLabel htmlFor="min_stock">Stok Minimum</FieldLabel>
                             <Input
                                 id="min_stock"
                                 type="text"
@@ -453,7 +453,7 @@ export default function CreateProducts() {
                         </Field>
 
                         <Field>
-                            <FieldLabel htmlFor="expiration_date">Expiration Date</FieldLabel>
+                            <FieldLabel htmlFor="expiration_date">Tanggal Kedaluwarsa</FieldLabel>
                             <Input
                                 id="expiration_date"
                                 name="expiration_date"
@@ -476,8 +476,8 @@ export default function CreateProducts() {
                                 onValueChange={setSupplierId}
                                 placeholder={
                                     isLoadingSuppliers
-                                        ? "Loading suppliers..."
-                                        : "Select supplier (optional)"
+                                        ? "Memuat pemasok..."
+                                        : "Pilih pemasok (opsional)"
                                 }
                                 searchPlaceholder="Cari supplier..."
                                 emptyText="Tidak ada supplier ditemukan."
@@ -499,8 +499,8 @@ export default function CreateProducts() {
                                 onValueChange={setCategoryId}
                                 placeholder={
                                     isLoadingCategories
-                                        ? "Loading categories..."
-                                        : "Select category (optional)"
+                                        ? "Memuat kategori..."
+                                        : "Pilih kategori (opsional)"
                                 }
                                 searchPlaceholder="Cari kategori..."
                                 emptyText="Tidak ada kategori ditemukan."
@@ -512,7 +512,7 @@ export default function CreateProducts() {
                         </Field>
 
                         <Field>
-                            <FieldLabel htmlFor="branch_id">Branch</FieldLabel>
+                            <FieldLabel htmlFor="branch_id">Cabang</FieldLabel>
                             <Combobox
                                 options={[
                                     { value: NO_BRANCH_VALUE, label: "No Branch" },
@@ -525,8 +525,8 @@ export default function CreateProducts() {
                                 onValueChange={(value) => setBranchId(value === NO_BRANCH_VALUE ? "" : value)}
                                 placeholder={
                                     isLoadingBranches
-                                        ? "Loading branches..."
-                                        : "Select branch (optional)"
+                                        ? "Memuat cabang..."
+                                        : "Pilih cabang (opsional)"
                                 }
                                 searchPlaceholder="Cari branch..."
                                 emptyText="Tidak ada branch ditemukan."
@@ -564,7 +564,7 @@ export default function CreateProducts() {
             <Dialog open={showScanDialog} onOpenChange={(open) => !open && stopScanning()}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Scan Barcode</DialogTitle>
+                        <DialogTitle>Pindai Barcode</DialogTitle>
                         <DialogDescription>
                             Arahkan kamera ke barcode untuk memindainya. Pastikan izin kamera telah diberikan.
                         </DialogDescription>

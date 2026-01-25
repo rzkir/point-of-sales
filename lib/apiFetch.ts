@@ -2,7 +2,6 @@ const API_SECRET = `${process.env.NEXT_PUBLIC_API_SECRET}`;
 
 interface ApiFetchOptions {
     revalidate?: number;
-    tags?: string[];
 }
 
 export async function apiFetch<T>(
@@ -22,8 +21,7 @@ export async function apiFetch<T>(
         const fetchOptions: RequestInit = {
             headers,
             next: {
-                revalidate: options.revalidate,
-                tags: options.tags,
+                revalidate: options.revalidate ?? 10,
             },
         };
 

@@ -11,7 +11,7 @@ import { CategoryActions } from "@/components/dashboard/categories/modal/Categor
 export const CreateColumnsCategories = (onUpdate: () => void): ColumnDef<CategoryRow>[] => [
     {
         accessorKey: "name",
-        header: () => <span className="font-semibold">Name</span>,
+        header: () => <span className="font-semibold">Nama</span>,
         cell: ({ row }) => (
             <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -28,14 +28,14 @@ export const CreateColumnsCategories = (onUpdate: () => void): ColumnDef<Categor
             const isActive = row.getValue("is_active") as boolean
             return (
                 <Badge className={isActive ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400"}>
-                    {isActive ? "Active" : "Inactive"}
+                    {isActive ? "Aktif" : "Tidak Aktif"}
                 </Badge>
             )
         },
     },
     {
         accessorKey: "created_at",
-        header: () => <span className="font-semibold">Created At</span>,
+        header: () => <span className="font-semibold">Dibuat Pada</span>,
         cell: ({ row }) => {
             const dateStr = row.getValue("created_at") as string
             if (!dateStr) return (
@@ -66,7 +66,7 @@ export const CreateColumnsCategories = (onUpdate: () => void): ColumnDef<Categor
     },
     {
         id: "actions",
-        header: () => <span className="font-semibold">Actions</span>,
+        header: () => <span className="font-semibold">Aksi</span>,
         cell: ({ row }) => <CategoryActions category={row.original} onUpdate={onUpdate} />,
     },
 ]
