@@ -24,6 +24,8 @@ export function useStateCreateProducts() {
     const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [isUploadingImage, setIsUploadingImage] = React.useState(false)
     const [imageUrl, setImageUrl] = React.useState("")
+    const [imageInputMode, setImageInputMode] = React.useState<"url" | "upload">("upload")
+    const [imageUrlManual, setImageUrlManual] = React.useState("")
     const [branchId, setBranchId] = React.useState("")
     const [branches, setBranches] = React.useState<BranchRow[]>([])
     const [isLoadingBranches, setIsLoadingBranches] = React.useState(false)
@@ -53,6 +55,20 @@ export function useStateCreateProducts() {
     React.useEffect(() => {
         setBarcode(generateBarcode())
     }, [])
+
+    // Reset image inputs when switching modes
+    React.useEffect(() => {
+        if (imageInputMode === "upload") {
+            // When switching to upload, clear manual URL input
+            setImageUrlManual("")
+        } else {
+            // When switching to URL, clear file input
+            const fileInput = formRef.current?.querySelector('input[type="file"]') as HTMLInputElement
+            if (fileInput) {
+                fileInput.value = ""
+            }
+        }
+    }, [imageInputMode])
 
     React.useEffect(() => {
         loadBranches()
@@ -139,6 +155,42 @@ export function useStateCreateProducts() {
         }
     }
 
+    const handleImageUrlChange = (url: string) => {
+        setImageUrlManual(url)
+        // Validate URL format
+        if (url.trim() === "") {
+            setImageUrl("")
+            return
+        }
+
+        try {
+            // Basic URL validation
+            new URL(url)
+            setImageUrl(url)
+        } catch {
+            // Invalid URL, but allow user to keep typing
+            setImageUrl("")
+        }
+    }
+
+    const handleImageUrlBlur = () => {
+        // On blur, validate and set final URL
+        if (imageUrlManual.trim() === "") {
+            setImageUrl("")
+            return
+        }
+
+        try {
+            new URL(imageUrlManual)
+            setImageUrl(imageUrlManual)
+            toast.success("Image URL validated")
+        } catch {
+            toast.error("Invalid URL format")
+            setImageUrl("")
+            setImageUrlManual("")
+        }
+    }
+
     const removeImage = () => {
         setImageUrl("")
         // Reset file input
@@ -152,6 +204,8 @@ export function useStateCreateProducts() {
     const resetForm = () => {
         formRef.current?.reset()
         setImageUrl("")
+        setImageUrlManual("")
+        setImageInputMode("upload")
         setBranchId("")
         setSupplierId("")
         setCategoryId("")
@@ -529,6 +583,9 @@ export function useStateCreateProducts() {
         setIsSubmitting,
         isUploadingImage,
         imageUrl,
+        imageInputMode,
+        setImageInputMode,
+        imageUrlManual,
         branchId,
         setBranchId,
         branches,
@@ -573,6 +630,8 @@ export function useStateCreateProducts() {
         handleMinStockBlur,
         // Functions
         handleImageChange,
+        handleImageUrlChange,
+        handleImageUrlBlur,
         handleSubmit,
         removeImage,
         resetForm,

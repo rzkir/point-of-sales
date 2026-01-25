@@ -24,6 +24,8 @@ export function useStateEditProducts(productId?: string) {
     const [isLoading, setIsLoading] = React.useState(true)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [isUploadingImage, setIsUploadingImage] = React.useState(false)
+    const [imageInputMode, setImageInputMode] = React.useState<"url" | "upload">("upload")
+    const [imageUrlManual, setImageUrlManual] = React.useState("")
 
     const [branches, setBranches] = React.useState<BranchRow[]>([])
     const [isLoadingBranches, setIsLoadingBranches] = React.useState(false)
@@ -88,7 +90,12 @@ export function useStateEditProducts(productId?: string) {
             setSizeDisplay(p.size !== undefined && p.size !== null ? formatNumber(p.size) : "")
             setUnit(p.unit ? String(p.unit) : "")
             setBarcode(p.barcode ? String(p.barcode) : "")
-            setImageUrl(p.image_url ? String(p.image_url) : "")
+            const existingImageUrl = p.image_url ? String(p.image_url) : ""
+            setImageUrl(existingImageUrl)
+            // Set imageUrlManual jika ada URL yang sudah ada (untuk mode URL)
+            setImageUrlManual(existingImageUrl)
+            // Tentukan mode berdasarkan apakah URL sudah ada (asumsi URL external)
+            setImageInputMode(existingImageUrl ? "url" : "upload")
             setExpirationDate(toDateInputValue(p.expiration_date))
             setDescription(p.description ? String(p.description) : "")
             setIsActive(p.is_active === false ? "false" : "true")
@@ -242,8 +249,45 @@ export function useStateEditProducts(productId?: string) {
         }
     }
 
+    const handleImageUrlChange = (url: string) => {
+        setImageUrlManual(url)
+        // Validate URL format
+        if (url.trim() === "") {
+            setImageUrl("")
+            return
+        }
+
+        try {
+            // Basic URL validation
+            new URL(url)
+            setImageUrl(url)
+        } catch {
+            // Invalid URL, but allow user to keep typing
+            setImageUrl("")
+        }
+    }
+
+    const handleImageUrlBlur = () => {
+        // On blur, validate and set final URL
+        if (imageUrlManual.trim() === "") {
+            setImageUrl("")
+            return
+        }
+
+        try {
+            new URL(imageUrlManual)
+            setImageUrl(imageUrlManual)
+            toast.success("Image URL validated")
+        } catch {
+            toast.error("Invalid URL format")
+            setImageUrl("")
+            setImageUrlManual("")
+        }
+    }
+
     const removeImage = () => {
         setImageUrl("")
+        setImageUrlManual("")
         // Reset file input
         const fileInput = formRef.current?.querySelector('input[type="file"]') as HTMLInputElement
         if (fileInput) {
@@ -265,6 +309,20 @@ export function useStateEditProducts(productId?: string) {
             }
         }
     }, [])
+
+    // Reset image inputs when switching modes
+    React.useEffect(() => {
+        if (imageInputMode === "upload") {
+            // When switching to upload, clear manual URL input
+            setImageUrlManual("")
+        } else {
+            // When switching to URL, clear file input
+            const fileInput = formRef.current?.querySelector('input[type="file"]') as HTMLInputElement
+            if (fileInput) {
+                fileInput.value = ""
+            }
+        }
+    }, [imageInputMode])
 
     // Handler untuk format saat blur (selesai mengetik)
     const handlePriceBlur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -566,6 +624,9 @@ export function useStateEditProducts(productId?: string) {
         barcode,
         setBarcode,
         imageUrl,
+        imageInputMode,
+        setImageInputMode,
+        imageUrlManual,
         expirationDate,
         setExpirationDate,
         description,
@@ -595,6 +656,8 @@ export function useStateEditProducts(productId?: string) {
         NO_BRANCH_VALUE,
         // Functions
         handleImageChange,
+        handleImageUrlChange,
+        handleImageUrlBlur,
         handleSubmit,
         removeImage,
         generateNewBarcode,

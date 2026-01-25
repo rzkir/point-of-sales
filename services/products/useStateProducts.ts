@@ -50,7 +50,14 @@ export function useStateProducts() {
             setIsLoading(true)
             const response = await fetchProducts(page, limit)
 
-            setProducts(response.data || [])
+            // Sort products by created_at descending (newest first)
+            const sortedProducts = (response.data || []).sort((a, b) => {
+                const dateA = a.created_at ? new Date(a.created_at).getTime() : 0
+                const dateB = b.created_at ? new Date(b.created_at).getTime() : 0
+                return dateB - dateA // Descending order (newest first)
+            })
+
+            setProducts(sortedProducts)
 
             // Update pagination metadata
             if (response.pagination) {

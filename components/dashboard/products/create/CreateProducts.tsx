@@ -49,6 +49,13 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 
+import {
+    Tabs,
+    TabsList,
+    TabsTrigger,
+    TabsContent,
+} from "@/components/ui/tabs"
+
 import { useStateCreateProducts } from "@/services/products/create/useStateCreateProducts"
 
 export default function CreateProducts() {
@@ -58,6 +65,9 @@ export default function CreateProducts() {
         isSubmitting,
         isUploadingImage,
         imageUrl,
+        imageInputMode,
+        setImageInputMode,
+        imageUrlManual,
         branchId,
         setBranchId,
         branches,
@@ -97,6 +107,8 @@ export default function CreateProducts() {
         handleStockBlur,
         handleMinStockBlur,
         handleImageChange,
+        handleImageUrlChange,
+        handleImageUrlBlur,
         handleSubmit,
         removeImage,
         generateNewBarcode,
@@ -210,16 +222,46 @@ export default function CreateProducts() {
 
                     <Field>
                         <FieldLabel htmlFor="image">Image</FieldLabel>
-                        <div className="space-y-2">
-                            <Input
-                                id="image"
-                                name="image"
-                                type="file"
-                                accept="image/*"
-                                disabled={isSubmitting || isUploadingImage}
-                                onChange={handleImageChange}
-                                className="cursor-pointer"
-                            />
+                        <div className="space-y-4">
+                            <Tabs
+                                value={imageInputMode}
+                                onValueChange={(value) => setImageInputMode(value as "url" | "upload")}
+                                className="w-full"
+                            >
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="upload">Upload File</TabsTrigger>
+                                    <TabsTrigger value="url">Input URL</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="upload" className="space-y-2 mt-4">
+                                    <Input
+                                        id="image"
+                                        name="image"
+                                        type="file"
+                                        accept="image/*"
+                                        disabled={isSubmitting || isUploadingImage}
+                                        onChange={handleImageChange}
+                                        className="cursor-pointer"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Upload gambar produk. Gambar akan diunggah ke ImageKit.
+                                    </p>
+                                </TabsContent>
+                                <TabsContent value="url" className="space-y-2 mt-4">
+                                    <Input
+                                        id="image_url"
+                                        name="image_url"
+                                        type="url"
+                                        value={imageUrlManual}
+                                        onChange={(e) => handleImageUrlChange(e.target.value)}
+                                        onBlur={handleImageUrlBlur}
+                                        placeholder="https://example.com/image.jpg"
+                                        disabled={isSubmitting}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Masukkan URL gambar produk. Pastikan URL valid dan dapat diakses.
+                                    </p>
+                                </TabsContent>
+                            </Tabs>
                             {imageUrl && (
                                 <ContextMenu>
                                     <ContextMenuTrigger asChild>
@@ -280,14 +322,17 @@ export default function CreateProducts() {
                                             Format: JPG, PNG, GIF
                                         </ContextMenuItem>
                                         <ContextMenuItem disabled className="text-xs text-muted-foreground">
-                                            Upload ke ImageKit
+                                            {imageInputMode === "upload" ? "Upload ke ImageKit" : "URL External"}
                                         </ContextMenuItem>
                                     </ContextMenuContent>
                                 </ContextMenu>
                             )}
                         </div>
                         <FieldDescription>
-                            Upload gambar produk (opsional). {imageUrl ? "Klik kanan pada preview untuk opsi lebih lanjut." : "Gambar akan diunggah ke ImageKit."}
+                            {imageInputMode === "upload"
+                                ? "Upload gambar produk (opsional). Gambar akan diunggah ke ImageKit."
+                                : "Masukkan URL gambar produk (opsional). Pastikan URL valid dan dapat diakses."}
+                            {imageUrl && " Klik kanan pada preview untuk opsi lebih lanjut."}
                         </FieldDescription>
                         {imageUrl && (
                             <p className="mt-2 text-xs text-muted-foreground break-all">
