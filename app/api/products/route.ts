@@ -76,10 +76,32 @@ async function callAppsScript(requestBody: Record<string, unknown>, includePagin
     }
 
     if (includePagination) {
-        const products = Array.isArray(data.data) ? data.data : [];
-        const total = data.total !== undefined ? data.total : products.length;
+        const allProducts = Array.isArray(data.data) ? data.data : [];
+        const total = data.total !== undefined ? data.total : allProducts.length;
         const page = (requestBody.page as number) || 1;
         const limit = (requestBody.limit as number) || 10;
+        const offset = (requestBody.offset as number) || 0;
+
+        // Sort products by created_at or updated_at (newest first), fallback to id
+        const sortedProducts = [...allProducts].sort((a: ProductRow, b: ProductRow) => {
+            // Try updated_at first (most recent update)
+            if (a.updated_at && b.updated_at) {
+                return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+            }
+            // Fallback to created_at
+            if (a.created_at && b.created_at) {
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            }
+            // Fallback to id (higher id = newer, assuming auto-increment)
+            if (a.id && b.id) {
+                return Number(b.id) - Number(a.id);
+            }
+            return 0;
+        });
+
+        // Slice the products array based on pagination if Apps Script returns all data
+        const products = sortedProducts.slice(offset, offset + limit);
+
         const totalPages = Math.ceil(total / limit);
         const hasNext = page < totalPages;
         const hasPrev = page > 1;
