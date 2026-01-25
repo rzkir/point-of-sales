@@ -19,14 +19,17 @@ export function useStateProducts() {
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+    const hasLoadedOnce = React.useRef(false)
 
     // Pagination state
     const [page, setPage] = React.useState(1)
     const [limit, setLimit] = React.useState(10)
     const [total, setTotal] = React.useState(0)
     const [totalPages, setTotalPages] = React.useState(0)
-    const [hasNext, setHasNext] = React.useState(false)
-    const [hasPrev, setHasPrev] = React.useState(false)
+
+    // Derived pagination values
+    const hasNext = React.useMemo(() => page < totalPages, [page, totalPages])
+    const hasPrev = React.useMemo(() => page > 1, [page])
 
     // Dialog & detail state
     const [selectedProduct, setSelectedProduct] = React.useState<ProductRow | null>(null)
@@ -56,40 +59,43 @@ export function useStateProducts() {
     // Filter sheet state
     const [filterSheetOpen, setFilterSheetOpen] = React.useState(false)
 
+    // Helper function to extract filter value
+    const getFilterValue = React.useCallback((filterId: string): string => {
+        const filter = columnFilters.find((f) => f.id === filterId)
+        return (filter?.value as string) || ""
+    }, [columnFilters])
+
     // Get filters from columnFilters
-    const branchFilter = React.useMemo(() => {
-        const filter = columnFilters.find((f) => f.id === "branch_name")
-        return (filter?.value as string) || ""
-    }, [columnFilters])
+    const branchFilter = React.useMemo(() => getFilterValue("branch_name"), [getFilterValue])
+    const categoryFilter = React.useMemo(() => getFilterValue("category_name"), [getFilterValue])
+    const supplierFilter = React.useMemo(() => getFilterValue("supplier_name"), [getFilterValue])
+    const statusFilter = React.useMemo(() => getFilterValue("is_active"), [getFilterValue])
+    const searchFilter = React.useMemo(() => getFilterValue("name"), [getFilterValue])
 
-    const categoryFilter = React.useMemo(() => {
-        const filter = columnFilters.find((f) => f.id === "category_name")
-        return (filter?.value as string) || ""
-    }, [columnFilters])
-
-    const supplierFilter = React.useMemo(() => {
-        const filter = columnFilters.find((f) => f.id === "supplier_name")
-        return (filter?.value as string) || ""
-    }, [columnFilters])
-
-    const statusFilter = React.useMemo(() => {
-        const filter = columnFilters.find((f) => f.id === "is_active")
-        return (filter?.value as string) || ""
-    }, [columnFilters])
-
-    const searchFilter = React.useMemo(() => {
-        const filter = columnFilters.find((f) => f.id === "name")
-        return (filter?.value as string) || ""
-    }, [columnFilters])
+    // Memoize filter values to prevent unnecessary re-renders
+    const filterParams = React.useMemo(() => ({
+        branchFilter: branchFilter || undefined,
+        categoryFilter: categoryFilter || undefined,
+        supplierFilter: supplierFilter || undefined,
+        searchFilter: searchFilter || undefined,
+    }), [branchFilter, categoryFilter, supplierFilter, searchFilter])
 
     const loadProducts = React.useCallback(async () => {
         try {
-            setIsLoading(true)
-            const branchFilterValue = branchFilter || undefined
-            const categoryFilterValue = categoryFilter || undefined
-            const supplierFilterValue = supplierFilter || undefined
-            const searchFilterValue = searchFilter || undefined
-            const response = await fetchProducts(page, limit, branchFilterValue, undefined, categoryFilterValue, supplierFilterValue, searchFilterValue)
+            // Only show loading skeleton on initial load
+            if (!hasLoadedOnce.current) {
+                setIsLoading(true)
+            }
+
+            const response = await fetchProducts(
+                page,
+                limit,
+                filterParams.branchFilter,
+                undefined,
+                filterParams.categoryFilter,
+                filterParams.supplierFilter,
+                filterParams.searchFilter
+            )
 
             setProducts(response.data || [])
 
@@ -97,24 +103,36 @@ export function useStateProducts() {
             if (response.pagination) {
                 setTotal(response.pagination.total || 0)
                 setTotalPages(response.pagination.totalPages || 0)
-                setHasNext(response.pagination.hasNext || false)
-                setHasPrev(response.pagination.hasPrev || false)
             }
+
+            // Mark that we've loaded at least once
+            hasLoadedOnce.current = true
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "Failed to fetch products")
         } finally {
             setIsLoading(false)
         }
-    }, [page, limit, branchFilter, categoryFilter, supplierFilter, searchFilter])
+    }, [page, limit, filterParams])
 
+    // Load products when dependencies change
     React.useEffect(() => {
         void loadProducts()
     }, [loadProducts])
 
-    // Reset to page 1 when any filter changes
+    // Reset to page 1 when any filter changes (but prevent double fetch)
+    const prevFilters = React.useRef(filterParams)
     React.useEffect(() => {
-        setPage(1)
-    }, [branchFilter, categoryFilter, supplierFilter, searchFilter])
+        const filtersChanged =
+            prevFilters.current.branchFilter !== filterParams.branchFilter ||
+            prevFilters.current.categoryFilter !== filterParams.categoryFilter ||
+            prevFilters.current.supplierFilter !== filterParams.supplierFilter ||
+            prevFilters.current.searchFilter !== filterParams.searchFilter
+
+        if (filtersChanged && page !== 1) {
+            setPage(1)
+        }
+        prevFilters.current = filterParams
+    }, [filterParams, page])
 
     // Fetch all branches, categories, and suppliers for filter options
     React.useEffect(() => {
@@ -150,20 +168,22 @@ export function useStateProducts() {
             return
         }
 
+        let cancelled = false
+
         void (async () => {
             try {
                 if (selectedProduct.supplier_id) {
                     const res = await fetchSupplierById(selectedProduct.supplier_id)
-                    setSupplierName(res.data.name)
+                    if (!cancelled) setSupplierName(res.data.name)
                 } else {
-                    setSupplierName(null)
+                    if (!cancelled) setSupplierName(null)
                 }
 
                 if (selectedProduct.branch_id) {
                     const res = await fetchBranchById(selectedProduct.branch_id)
-                    setBranchName(res.data.name)
+                    if (!cancelled) setBranchName(res.data.name)
                 } else {
-                    setBranchName(null)
+                    if (!cancelled) setBranchName(null)
                 }
 
                 if (selectedProduct.category_id) {
@@ -172,17 +192,25 @@ export function useStateProducts() {
                         (c: { id: number | string; name?: string | null }) =>
                             String(c.id) === String(selectedProduct.category_id)
                     )
-                    setCategoryName(found?.name ?? null)
+                    if (!cancelled) setCategoryName(found?.name ?? null)
                 } else {
-                    setCategoryName(null)
+                    if (!cancelled) setCategoryName(null)
                 }
             } catch {
                 // Biarkan fallback ke value yang sudah ada di selectedProduct
             }
         })()
+
+        return () => {
+            cancelled = true
+        }
     }, [showDetailsDialog, selectedProduct])
 
-    const activeCount = products.filter((p) => p.is_active).length
+    // Memoize activeCount to prevent recalculation on every render
+    const activeCount = React.useMemo(
+        () => products.filter((p) => p.is_active).length,
+        [products]
+    )
 
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= totalPages) {
@@ -254,12 +282,8 @@ export function useStateProducts() {
     const handleApplyProductFilters = React.useCallback(
         (branch: string, category: string, supplier: string, status: string) => {
             setColumnFilters((prev) => {
-                const rest = prev.filter(
-                    (f) =>
-                        !["branch_name", "category_name", "supplier_name", "is_active"].includes(
-                            f.id
-                        )
-                )
+                const filterIds = ["branch_name", "category_name", "supplier_name", "is_active"]
+                const rest = prev.filter((f) => !filterIds.includes(f.id))
                 const next = [...rest]
                 if (branch) next.push({ id: "branch_name", value: branch })
                 if (category) next.push({ id: "category_name", value: category })
@@ -268,7 +292,7 @@ export function useStateProducts() {
                 return next
             })
         },
-        [setColumnFilters]
+        []
     )
 
     const columns = React.useMemo(
@@ -352,4 +376,3 @@ export function useStateProducts() {
         handleApplyProductFilters,
     }
 }
-
