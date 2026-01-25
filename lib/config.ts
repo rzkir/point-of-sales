@@ -65,6 +65,18 @@ export const API_CONFIG = {
             list: (page: number = 1, limit: number = 10) =>
                 `${API_BASE_URL}/api/transactions?page=${page}&limit=${limit}`,
         },
+        karyawan: {
+            products: {
+                list: (branchName: string, page: number = 1, limit: number = 100) => {
+                    const params = new URLSearchParams({
+                        branch_name: branchName.trim(),
+                        page: String(page),
+                        limit: String(limit),
+                    });
+                    return `${API_BASE_URL}/api/karyawan/products?${params.toString()}`;
+                },
+            },
+        },
     },
     SECRET: API_SECRET,
 }
@@ -464,5 +476,111 @@ export async function fetchTransactions(page: number = 1, limit: number = 10, re
             throw new Error("Unauthorized")
         }
         throw error instanceof Error ? error : new Error("Failed to fetch transactions")
+    }
+}
+
+/**
+ * Create a new transaction
+ * @param transactionData - Transaction data including items
+ * @returns Promise with created transaction data
+ */
+export async function createTransaction(transactionData: {
+    branch_name: string
+    subtotal: number
+    discount?: number
+    tax?: number
+    total: number
+    paid_amount?: number
+    is_credit?: boolean
+    customer_name?: string
+    payment_method?: "cash"
+    status?: "pending" | "completed" | "cancelled" | "return"
+    items: Array<{
+        product_id: string | number
+        product_name: string
+        quantity: number
+        price: number
+        subtotal: number
+    }>
+}): Promise<{ success: boolean; message?: string; data?: TransactionRow }> {
+    try {
+        const response = await fetch(API_CONFIG.ENDPOINTS.transactions.base, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${API_CONFIG.SECRET}`,
+            },
+            body: JSON.stringify({
+                branch_name: transactionData.branch_name,
+                subtotal: transactionData.subtotal,
+                discount: transactionData.discount || 0,
+                tax: transactionData.tax || 0,
+                total: transactionData.total,
+                paid_amount: transactionData.paid_amount || transactionData.total,
+                is_credit: transactionData.is_credit || false,
+                customer_name: transactionData.customer_name || "",
+                payment_method: transactionData.payment_method || "cash",
+                status: transactionData.status || "pending",
+                items: transactionData.items,
+            }),
+        })
+
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok || !data?.success) {
+            throw new Error(data?.message || "Failed to create transaction")
+        }
+
+        return {
+            success: true,
+            message: data.message || "Transaction created successfully",
+            data: data.data,
+        }
+    } catch (error) {
+        console.error("Create transaction error:", error)
+        throw error instanceof Error ? error : new Error("Failed to create transaction")
+    }
+}
+
+/**
+ * Fetch products for karyawan (employee) view
+ * @param branchName - Branch name to filter products (required)
+ * @param page - Page number (default: 1)
+ * @param limit - Items per page (default: 100, max: 100)
+ * @param revalidate - Optional revalidate time in seconds
+ * @returns Promise with products data and pagination info
+ */
+export async function fetchKaryawanProducts(
+    branchName: string,
+    page: number = 1,
+    limit: number = 100,
+    revalidate?: number
+): Promise<KaryawanProductsResponse> {
+    try {
+        if (!branchName || branchName.trim() === "") {
+            throw new Error("Branch name is required")
+        }
+
+        const data = await apiFetch<KaryawanProductsResponse>(
+            API_CONFIG.ENDPOINTS.karyawan.products.list(branchName, page, limit),
+            { revalidate }
+        )
+
+        if (!data.success) {
+            throw new Error(data.message || "Failed to fetch products")
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            data: data.data || [],
+            pagination: data.pagination,
+        }
+    } catch (error) {
+        console.error("Fetch karyawan products error:", error)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            throw new Error("Unauthorized")
+        }
+        throw error instanceof Error ? error : new Error("Failed to fetch products")
     }
 }

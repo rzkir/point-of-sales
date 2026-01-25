@@ -39,14 +39,36 @@ function getSessionUser(request: NextRequest): { name?: string; email?: string }
 }
 
 // Helper: Call Apps Script API and handle response
-async function callAppsScript(requestBody: Record<string, unknown>, includePagination = false) {
+async function callAppsScript(
+    requestBody: Record<string, unknown>,
+    includePagination = false,
+    clientPage?: number,
+    clientLimit?: number
+) {
+    // Extract filters for filtering in Next.js (don't send to Apps Script)
+    // Only remove these for GET/list operations, not for create/update operations
+    const branchNameFilter = requestBody.branch_name as string | undefined;
+    const statusFilter = requestBody.status as string | undefined;
+    const paymentStatusFilter = requestBody.payment_status as string | undefined;
+    const searchFilter = requestBody.search as string | undefined;
+    const appsScriptRequestBody = { ...requestBody };
+
+    // Only remove filters for list operations (when action is "list")
+    // For create/update operations, keep branch_name and status
+    if (requestBody.action === "list") {
+        delete appsScriptRequestBody.branch_name;
+        delete appsScriptRequestBody.status;
+        delete appsScriptRequestBody.payment_status;
+        delete appsScriptRequestBody.search;
+    }
+
     const response = await fetch(APPS_SCRIPT_URL!, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${API_SECRET}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(appsScriptRequestBody), // Don't send filters to Apps Script
     });
 
     // Cek content type
@@ -76,11 +98,74 @@ async function callAppsScript(requestBody: Record<string, unknown>, includePagin
         );
     }
 
-    if (includePagination && data.pagination) {
+    if (includePagination) {
+        const allTransactions = Array.isArray(data.data) ? data.data : [];
+
+        // Filter by branch_name if provided (case-insensitive)
+        let filteredByBranch = allTransactions;
+        if (branchNameFilter) {
+            const branchNameLower = branchNameFilter.trim().toLowerCase();
+            filteredByBranch = allTransactions.filter((transaction: Record<string, unknown>) => {
+                const transactionBranchName = String(transaction.branch_name || "").trim().toLowerCase();
+                return transactionBranchName === branchNameLower;
+            });
+        }
+
+        // Filter by status if provided (case-insensitive)
+        let filteredByStatus = filteredByBranch;
+        if (statusFilter) {
+            const statusLower = statusFilter.trim().toLowerCase();
+            filteredByStatus = filteredByBranch.filter((transaction: Record<string, unknown>) => {
+                const transactionStatus = String(transaction.status || "").trim().toLowerCase();
+                return transactionStatus === statusLower;
+            });
+        }
+
+        // Filter by payment_status if provided (case-insensitive)
+        let filteredByPaymentStatus = filteredByStatus;
+        if (paymentStatusFilter) {
+            const paymentStatusLower = paymentStatusFilter.trim().toLowerCase();
+            filteredByPaymentStatus = filteredByStatus.filter((transaction: Record<string, unknown>) => {
+                const transactionPaymentStatus = String(transaction.payment_status || "").trim().toLowerCase();
+                return transactionPaymentStatus === paymentStatusLower;
+            });
+        }
+
+        // Filter by search (transaction_number or customer_name) if provided (case-insensitive, partial match)
+        let filteredBySearch = filteredByPaymentStatus;
+        if (searchFilter) {
+            const searchLower = searchFilter.trim().toLowerCase();
+            filteredBySearch = filteredByPaymentStatus.filter((transaction: Record<string, unknown>) => {
+                const transactionNumber = String(transaction.transaction_number || "").trim().toLowerCase();
+                const customerName = String(transaction.customer_name || "").trim().toLowerCase();
+                return transactionNumber.includes(searchLower) || customerName.includes(searchLower);
+            });
+        }
+
+        // Total count is based on filtered data (after all filters)
+        const total = filteredBySearch.length;
+
+        // Use client-side pagination parameters if provided, otherwise use requestBody
+        const page = clientPage || (requestBody.page as number) || 1;
+        const limit = clientLimit || (requestBody.limit as number) || 10;
+        const totalPages = Math.ceil(total / limit);
+
+        // Apply pagination to filtered data
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedData = filteredBySearch.slice(startIndex, endIndex);
+
         return NextResponse.json({
             success: true,
-            data: data.data,
-            pagination: data.pagination,
+            data: paginatedData,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages,
+                hasNext: page < totalPages,
+                hasPrev: page > 1,
+            },
         });
     }
 
@@ -92,6 +177,13 @@ async function callAppsScript(requestBody: Record<string, unknown>, includePagin
 
 /**
  * GET /api/transactions - Get all transactions with pagination
+ * Query params:
+ *   - page: page number (default: 1)
+ *   - limit: items per page (default: 10, max: 100)
+ *   - branch_name: filter by branch name (optional)
+ *   - status: filter by transaction status (optional: pending, completed, cancelled, return)
+ *   - payment_status: filter by payment status (optional: paid, unpaid, partial)
+ *   - search: search by transaction number or customer name (optional, partial match)
  */
 export async function GET(request: NextRequest) {
     try {
@@ -101,19 +193,49 @@ export async function GET(request: NextRequest) {
         const urlError = validateAppsScriptUrl();
         if (urlError) return urlError;
 
-        // Get query parameters
         const { searchParams } = new URL(request.url);
-        const page = searchParams.get("page") || "1";
-        const limit = searchParams.get("limit") || "10";
+        const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
+        const branchName = searchParams.get("branch_name");
+        const status = searchParams.get("status");
+        const paymentStatus = searchParams.get("payment_status");
+        const search = searchParams.get("search");
 
-        const requestBody = {
+        // If any filter is provided, request ALL data from Apps Script without pagination
+        // We'll do filtering and pagination in Next.js after getting all data
+        const requestBody: Record<string, unknown> = {
             action: "list",
             sheet: "Transactions",
-            page: Number(page),
-            limit: Number(limit),
         };
 
-        return await callAppsScript(requestBody, true);
+        const hasFilter = (branchName && branchName.trim() !== "") ||
+            (status && status.trim() !== "") ||
+            (paymentStatus && paymentStatus.trim() !== "") ||
+            (search && search.trim() !== "");
+
+        // Only send pagination params to Apps Script if no filters
+        if (!hasFilter) {
+            const offset = (page - 1) * limit;
+            requestBody.page = page;
+            requestBody.limit = limit;
+            requestBody.offset = offset;
+        } else {
+            // Pass filters separately for filtering in Next.js (not to Apps Script)
+            if (branchName && branchName.trim() !== "") {
+                requestBody.branch_name = branchName.trim();
+            }
+            if (status && status.trim() !== "") {
+                requestBody.status = status.trim();
+            }
+            if (paymentStatus && paymentStatus.trim() !== "") {
+                requestBody.payment_status = paymentStatus.trim();
+            }
+            if (search && search.trim() !== "") {
+                requestBody.search = search.trim();
+            }
+        }
+
+        return await callAppsScript(requestBody, true, page, limit);
     } catch (error) {
         return NextResponse.json(
             {
@@ -147,6 +269,7 @@ export async function POST(request: NextRequest) {
             status = "pending",
             paid_amount = 0,
             is_credit = false,
+            items = [], // Array of items/products in the transaction
         } = body;
 
         if (!subtotal || subtotal === undefined || isNaN(Number(subtotal))) {
@@ -159,6 +282,13 @@ export async function POST(request: NextRequest) {
         if (!total || total === undefined || isNaN(Number(total))) {
             return NextResponse.json(
                 { success: false, message: "Total is required" },
+                { status: 400 }
+            );
+        }
+
+        if (!branch_name || branch_name.trim() === "") {
+            return NextResponse.json(
+                { success: false, message: "Branch name is required" },
                 { status: 400 }
             );
         }
@@ -189,6 +319,16 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Hitung payment_status berdasarkan paid_amount dan total
+        let paymentStatus: "paid" | "unpaid" | "partial";
+        if (paidAmount <= 0) {
+            paymentStatus = "unpaid";
+        } else if (paidAmount >= totalAmount) {
+            paymentStatus = "paid";
+        } else {
+            paymentStatus = "partial";
+        }
+
         const requestBody = {
             action: "create",
             sheet: "Transactions",
@@ -201,11 +341,114 @@ export async function POST(request: NextRequest) {
             is_credit: isCredit,
             branch_name: branch_name || "",
             payment_method: payment_method || "cash",
+            payment_status: paymentStatus,
             status: finalStatus,
             created_by: sessionUser?.name || sessionUser?.email || "",
         };
 
-        return await callAppsScript(requestBody);
+        // Create transaction first
+        const transactionResponse = await callAppsScript(requestBody);
+
+        // Clone response to read data without consuming the original
+        const responseClone = transactionResponse.clone();
+        const transactionResponseData = await responseClone.json();
+
+        // If transaction created successfully and items are provided, save transaction items
+        if (transactionResponseData.success && Array.isArray(items) && items.length > 0) {
+            const transactionId = transactionResponseData.data?.id || transactionResponseData.data?.transaction_number;
+
+            if (transactionId) {
+                // Save each item to TransactionItems sheet
+                const itemsPromises = items.map(async (item: {
+                    product_id?: string | number;
+                    product_name?: string;
+                    quantity?: number;
+                    price?: number;
+                    subtotal?: number;
+                }) => {
+                    if (!item.product_id || !item.quantity || item.quantity <= 0) {
+                        return null; // Skip invalid items
+                    }
+
+                    const itemRequestBody = {
+                        action: "create",
+                        sheet: "TransactionItems",
+                        transaction_id: transactionId,
+                        product_id: String(item.product_id),
+                        product_name: item.product_name || "",
+                        quantity: Number(item.quantity) || 0,
+                        price: Number(item.price) || 0,
+                        subtotal: Number(item.subtotal) || (Number(item.quantity) * Number(item.price)),
+                    };
+
+                    try {
+                        const itemResponse = await callAppsScript(itemRequestBody);
+                        const itemData = await itemResponse.json();
+
+                        // Update product stock if transaction is completed OR if status is pending but payment_status is partial
+                        // Stock should be reduced when:
+                        // 1. Status is completed (fully paid or credit fully paid)
+                        // 2. Status is pending but payment_status is partial (partially paid credit)
+                        const shouldUpdateStock = finalStatus === "completed" ||
+                            (finalStatus === "pending" && paymentStatus === "partial");
+
+                        if (shouldUpdateStock && item.product_id) {
+                            try {
+                                // Get current product stock
+                                const getProductResponse = await fetch(
+                                    `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${item.product_id}`,
+                                    {
+                                        method: "GET",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                            Authorization: `Bearer ${API_SECRET}`,
+                                        },
+                                    }
+                                );
+
+                                if (getProductResponse.ok) {
+                                    const productData = await getProductResponse.json();
+                                    if (productData.success && productData.data) {
+                                        const currentStock = Number(productData.data.stock) || 0;
+                                        const soldQuantity = Number(productData.data.sold) || 0;
+                                        const newStock = Math.max(0, currentStock - Number(item.quantity));
+                                        const newSold = soldQuantity + Number(item.quantity);
+
+                                        // Update product stock
+                                        await fetch(
+                                            `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${item.product_id}`,
+                                            {
+                                                method: "PUT",
+                                                headers: {
+                                                    "Content-Type": "application/json",
+                                                    Authorization: `Bearer ${API_SECRET}`,
+                                                },
+                                                body: JSON.stringify({
+                                                    stock: newStock,
+                                                    sold: newSold,
+                                                }),
+                                            }
+                                        );
+                                    }
+                                }
+                            } catch (stockError) {
+                                console.error("Error updating product stock:", stockError);
+                                // Don't fail transaction if stock update fails
+                            }
+                        }
+                        return itemData;
+                    } catch (error) {
+                        console.error("Error saving transaction item:", error);
+                        return null;
+                    }
+                });
+
+                // Wait for all items to be saved
+                await Promise.all(itemsPromises);
+            }
+        }
+
+        return transactionResponse;
     } catch (error) {
         return NextResponse.json(
             {

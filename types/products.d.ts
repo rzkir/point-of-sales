@@ -103,3 +103,28 @@ interface ProductActionsProps {
   onViewBranch: (product: ProductRow) => void
   onViewDetails: (product: ProductRow) => void
 }
+
+// Karyawan Products
+type KaryawanProductRow = {
+  id: string
+  price: number
+  name: string
+  image_url: string
+  category_name: string
+  barcode: string
+  branch_name: string
+}
+
+type KaryawanProductsResponse = {
+  success: boolean
+  message?: string
+  data: KaryawanProductRow[]
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}

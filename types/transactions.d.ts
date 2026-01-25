@@ -8,7 +8,6 @@ interface Transaction {
     // Financial
     subtotal: number;
     discount: number;
-    tax: number;
     total: number;
 
     paid_amount: number;     // jumlah yang sudah dibayar
@@ -18,6 +17,12 @@ interface Transaction {
     // Payment
     payment_method: "cash";
     payment_status: "paid" | "unpaid" | "partial";
+    products: {
+        id: string | number;
+        product_name: string;
+        quantity: number;
+        price: number;
+    }[];
 
     // Transaction lifecycle
     status: "pending" | "completed" | "cancelled" | "return";
@@ -30,6 +35,35 @@ interface Transaction {
 }
 
 type TransactionRow = Transaction;
+
+// Transaction Items
+interface TransactionItem {
+    id?: number | string;
+    transaction_id: string | number;
+    product_id: string | number;
+    product_name: string;
+    quantity: number;
+    price: number;
+    subtotal: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
+type TransactionItemRow = TransactionItem;
+
+type TransactionItemsResponse = {
+    success: boolean;
+    message?: string;
+    data: TransactionItemRow[];
+    pagination?: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+    };
+};
 
 type TransactionsResponse = {
     success: boolean;
