@@ -3,6 +3,8 @@
  * Centralized API endpoints and configuration for easier maintenance
  */
 
+import { apiFetch } from "./apiFetch"
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
 const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET
 
@@ -88,17 +90,10 @@ export async function fetchProducts(
     search?: string
 ): Promise<ProductsResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.products.list(page, limit, branchName, categoryId, categoryName, supplierName, search), {
-            headers: {
-                Authorization: `Bearer ${API_CONFIG.SECRET}`,
-            },
+        const data = await apiFetch<ProductsResponse>(API_CONFIG.ENDPOINTS.products.list(page, limit, branchName, categoryId, categoryName, supplierName, search), {
+            revalidate: 10,
+            tags: ["products"],
         })
-
-        if (response.status === 401) {
-            throw new Error("Unauthorized")
-        }
-
-        const data = await response.json()
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch products")
@@ -112,6 +107,9 @@ export async function fetchProducts(
         }
     } catch (error) {
         console.error("Fetch products error:", error)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            throw new Error("Unauthorized")
+        }
         throw error instanceof Error ? error : new Error("Failed to fetch products")
     }
 }
@@ -152,17 +150,10 @@ export async function deleteProduct(productId: string | number): Promise<DeleteP
  */
 export async function fetchCategories(): Promise<CategoriesResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.categories.base, {
-            headers: {
-                Authorization: `Bearer ${API_CONFIG.SECRET}`,
-            },
+        const data = await apiFetch<CategoriesResponse>(API_CONFIG.ENDPOINTS.categories.base, {
+            revalidate: 10,
+            tags: ["categories"],
         })
-
-        if (response.status === 401) {
-            throw new Error("Unauthorized")
-        }
-
-        const data = await response.json()
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch categories")
@@ -175,6 +166,9 @@ export async function fetchCategories(): Promise<CategoriesResponse> {
         }
     } catch (error) {
         console.error("Fetch categories error:", error)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            throw new Error("Unauthorized")
+        }
         throw error instanceof Error ? error : new Error("Failed to fetch categories")
     }
 }
@@ -215,17 +209,10 @@ export async function deleteCategory(categoryId: string | number): Promise<Delet
  */
 export async function fetchBranches(): Promise<BranchesResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.branches.base, {
-            headers: {
-                Authorization: `Bearer ${API_CONFIG.SECRET}`,
-            },
+        const data = await apiFetch<BranchesResponse>(API_CONFIG.ENDPOINTS.branches.base, {
+            revalidate: 10,
+            tags: ["branches"],
         })
-
-        if (response.status === 401) {
-            throw new Error("Unauthorized")
-        }
-
-        const data = await response.json()
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch branches")
@@ -238,6 +225,9 @@ export async function fetchBranches(): Promise<BranchesResponse> {
         }
     } catch (error) {
         console.error("Fetch branches error:", error)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            throw new Error("Unauthorized")
+        }
         throw error instanceof Error ? error : new Error("Failed to fetch branches")
     }
 }
@@ -249,17 +239,10 @@ export async function fetchBranches(): Promise<BranchesResponse> {
  */
 export async function fetchBranchById(branchId: string | number): Promise<BranchResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.branches.byId(branchId), {
-            headers: {
-                Authorization: `Bearer ${API_CONFIG.SECRET}`,
-            },
+        const data = await apiFetch<BranchResponse>(API_CONFIG.ENDPOINTS.branches.byId(branchId), {
+            revalidate: 10,
+            tags: ["branches"],
         })
-
-        if (response.status === 401) {
-            throw new Error("Unauthorized")
-        }
-
-        const data = await response.json()
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch branch")
@@ -272,6 +255,9 @@ export async function fetchBranchById(branchId: string | number): Promise<Branch
         }
     } catch (error) {
         console.error("Fetch branch error:", error)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            throw new Error("Unauthorized")
+        }
         throw error instanceof Error ? error : new Error("Failed to fetch branch")
     }
 }
@@ -312,17 +298,10 @@ export async function deleteBranch(branchId: string | number): Promise<DeleteBra
  */
 export async function fetchEmployees(): Promise<EmployeesResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.employees.base, {
-            headers: {
-                Authorization: `Bearer ${API_CONFIG.SECRET}`,
-            },
+        const data = await apiFetch<EmployeesResponse>(API_CONFIG.ENDPOINTS.employees.base, {
+            revalidate: 10,
+            tags: ["employees"],
         })
-
-        if (response.status === 401) {
-            throw new Error("Unauthorized")
-        }
-
-        const data = await response.json()
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch employees")
@@ -335,6 +314,9 @@ export async function fetchEmployees(): Promise<EmployeesResponse> {
         }
     } catch (error) {
         console.error("Fetch employees error:", error)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            throw new Error("Unauthorized")
+        }
         throw error instanceof Error ? error : new Error("Failed to fetch employees")
     }
 }
@@ -375,17 +357,10 @@ export async function deleteEmployee(employeeId: string | number): Promise<Delet
  */
 export async function fetchSuppliers(): Promise<SuppliersResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.suppliers.base, {
-            headers: {
-                Authorization: `Bearer ${API_CONFIG.SECRET}`,
-            },
+        const data = await apiFetch<SuppliersResponse>(API_CONFIG.ENDPOINTS.suppliers.base, {
+            revalidate: 10,
+            tags: ["suppliers"],
         })
-
-        if (response.status === 401) {
-            throw new Error("Unauthorized")
-        }
-
-        const data = await response.json()
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch suppliers")
@@ -398,6 +373,9 @@ export async function fetchSuppliers(): Promise<SuppliersResponse> {
         }
     } catch (error) {
         console.error("Fetch suppliers error:", error)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            throw new Error("Unauthorized")
+        }
         throw error instanceof Error ? error : new Error("Failed to fetch suppliers")
     }
 }
@@ -409,17 +387,9 @@ export async function fetchSuppliers(): Promise<SuppliersResponse> {
  */
 export async function fetchSupplierById(supplierId: string | number): Promise<SupplierResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.suppliers.byId(supplierId), {
-            headers: {
-                Authorization: `Bearer ${API_CONFIG.SECRET}`,
-            },
+        const data = await apiFetch<SupplierResponse>(API_CONFIG.ENDPOINTS.suppliers.byId(supplierId), {
+            revalidate: 10,
         })
-
-        if (response.status === 401) {
-            throw new Error("Unauthorized")
-        }
-
-        const data = await response.json()
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch supplier")
@@ -432,6 +402,9 @@ export async function fetchSupplierById(supplierId: string | number): Promise<Su
         }
     } catch (error) {
         console.error("Fetch supplier error:", error)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            throw new Error("Unauthorized")
+        }
         throw error instanceof Error ? error : new Error("Failed to fetch supplier")
     }
 }
@@ -474,17 +447,10 @@ export async function deleteSupplier(supplierId: string | number): Promise<Delet
  */
 export async function fetchTransactions(page: number = 1, limit: number = 10): Promise<TransactionsResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.transactions.list(page, limit), {
-            headers: {
-                Authorization: `Bearer ${API_CONFIG.SECRET}`,
-            },
+        const data = await apiFetch<TransactionsResponse>(API_CONFIG.ENDPOINTS.transactions.list(page, limit), {
+            revalidate: 10,
+            tags: ["transactions"],
         })
-
-        if (response.status === 401) {
-            throw new Error("Unauthorized")
-        }
-
-        const data = await response.json()
 
         if (!data.success) {
             throw new Error(data.message || "Failed to fetch transactions")
@@ -498,6 +464,9 @@ export async function fetchTransactions(page: number = 1, limit: number = 10): P
         }
     } catch (error) {
         console.error("Fetch transactions error:", error)
+        if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+            throw new Error("Unauthorized")
+        }
         throw error instanceof Error ? error : new Error("Failed to fetch transactions")
     }
 }
