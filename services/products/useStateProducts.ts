@@ -77,11 +77,19 @@ export function useStateProducts() {
         return (filter?.value as string) || ""
     }, [columnFilters])
 
+    const searchFilter = React.useMemo(() => {
+        const filter = columnFilters.find((f) => f.id === "name")
+        return (filter?.value as string) || ""
+    }, [columnFilters])
+
     const loadProducts = React.useCallback(async () => {
         try {
             setIsLoading(true)
             const branchFilterValue = branchFilter || undefined
-            const response = await fetchProducts(page, limit, branchFilterValue)
+            const categoryFilterValue = categoryFilter || undefined
+            const supplierFilterValue = supplierFilter || undefined
+            const searchFilterValue = searchFilter || undefined
+            const response = await fetchProducts(page, limit, branchFilterValue, undefined, categoryFilterValue, supplierFilterValue, searchFilterValue)
 
             setProducts(response.data || [])
 
@@ -97,16 +105,16 @@ export function useStateProducts() {
         } finally {
             setIsLoading(false)
         }
-    }, [page, limit, branchFilter])
+    }, [page, limit, branchFilter, categoryFilter, supplierFilter, searchFilter])
 
     React.useEffect(() => {
         void loadProducts()
     }, [loadProducts])
 
-    // Reset to page 1 when branch filter changes
+    // Reset to page 1 when any filter changes
     React.useEffect(() => {
         setPage(1)
-    }, [branchFilter])
+    }, [branchFilter, categoryFilter, supplierFilter, searchFilter])
 
     // Fetch all branches, categories, and suppliers for filter options
     React.useEffect(() => {
@@ -340,6 +348,7 @@ export function useStateProducts() {
         categoryFilter,
         supplierFilter,
         statusFilter,
+        searchFilter,
         handleApplyProductFilters,
     }
 }

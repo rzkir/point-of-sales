@@ -50,10 +50,18 @@ async function callAppsScript(
     clientPage?: number,
     clientLimit?: number
 ) {
-    // Extract branch_name for filtering in Next.js (don't send to Apps Script)
+    // Extract filters for filtering in Next.js (don't send to Apps Script)
     const branchNameFilter = requestBody.branch_name as string | undefined;
+    const categoryIdFilter = requestBody.category_id as string | undefined;
+    const categoryNameFilter = requestBody.category_name as string | undefined;
+    const supplierNameFilter = requestBody.supplier_name as string | undefined;
+    const searchFilter = requestBody.search as string | undefined;
     const appsScriptRequestBody = { ...requestBody };
     delete appsScriptRequestBody.branch_name;
+    delete appsScriptRequestBody.category_id;
+    delete appsScriptRequestBody.category_name;
+    delete appsScriptRequestBody.supplier_name;
+    delete appsScriptRequestBody.search;
 
     const response = await fetch(APPS_SCRIPT_URL!, {
         method: "POST",
@@ -61,7 +69,7 @@ async function callAppsScript(
             "Content-Type": "application/json",
             Authorization: `Bearer ${API_SECRET}`,
         },
-        body: JSON.stringify(appsScriptRequestBody), // Don't send branch_name to Apps Script
+        body: JSON.stringify(appsScriptRequestBody), // Don't send filters (branch_name, category_id, category_name, supplier_name, search) to Apps Script
     });
 
     const contentType = response.headers.get("content-type");
@@ -115,8 +123,44 @@ async function callAppsScript(
             });
         }
 
-        // Total count is based on filtered data (after branch filter)
-        const total = filteredByBranch.length;
+        // Filter by category_id or category_name if provided
+        let filteredByCategory = filteredByBranch;
+        if (categoryIdFilter) {
+            const categoryIdLower = categoryIdFilter.trim().toLowerCase();
+            filteredByCategory = filteredByBranch.filter((product: Record<string, unknown>) => {
+                const productCategoryId = String(product.category_id || "").trim().toLowerCase();
+                return productCategoryId === categoryIdLower;
+            });
+        } else if (categoryNameFilter) {
+            const categoryNameLower = categoryNameFilter.trim().toLowerCase();
+            filteredByCategory = filteredByBranch.filter((product: Record<string, unknown>) => {
+                const productCategoryName = String(product.category_name || "").trim().toLowerCase();
+                return productCategoryName === categoryNameLower;
+            });
+        }
+
+        // Filter by supplier_name if provided (case-insensitive)
+        let filteredBySupplier = filteredByCategory;
+        if (supplierNameFilter) {
+            const supplierNameLower = supplierNameFilter.trim().toLowerCase();
+            filteredBySupplier = filteredByCategory.filter((product: Record<string, unknown>) => {
+                const productSupplierName = String(product.supplier_name || "").trim().toLowerCase();
+                return productSupplierName === supplierNameLower;
+            });
+        }
+
+        // Filter by search (product name) if provided (case-insensitive, partial match)
+        let filteredBySearch = filteredBySupplier;
+        if (searchFilter) {
+            const searchLower = searchFilter.trim().toLowerCase();
+            filteredBySearch = filteredBySupplier.filter((product: Record<string, unknown>) => {
+                const productName = String(product.name || "").trim().toLowerCase();
+                return productName.includes(searchLower);
+            });
+        }
+
+        // Total count is based on filtered data (after all filters)
+        const total = filteredBySearch.length;
 
         // Use client-side pagination parameters if provided, otherwise use requestBody
         const page = clientPage !== undefined ? clientPage : ((requestBody.page as number) || 1);
@@ -126,7 +170,7 @@ async function callAppsScript(
         // Apply pagination to filtered results
         const startIndex = Math.min(offset, total);
         const endIndex = Math.min(offset + limit, total);
-        const products = filteredByBranch.slice(startIndex, endIndex);
+        const products = filteredBySearch.slice(startIndex, endIndex);
 
         const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
         const hasNext = page < totalPages;
@@ -160,6 +204,10 @@ async function callAppsScript(
  *   - page: page number (default: 1)
  *   - limit: items per page (default: 10, max: 100)
  *   - branch_name: filter by branch name (optional)
+ *   - category_id: filter by category id (optional)
+ *   - category_name: filter by category name (optional)
+ *   - supplier_name: filter by supplier name (optional)
+ *   - search: search by product name (optional, partial match)
  */
 export async function GET(request: NextRequest) {
     try {
@@ -173,23 +221,47 @@ export async function GET(request: NextRequest) {
         const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
         const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
         const branchName = searchParams.get("branch_name");
+        const categoryId = searchParams.get("category_id");
+        const categoryName = searchParams.get("category_name");
+        const supplierName = searchParams.get("supplier_name");
+        const search = searchParams.get("search");
 
-        // If branch_name filter is provided, request ALL data from Apps Script without pagination
+        // If any filter is provided, request ALL data from Apps Script without pagination
         // We'll do filtering and pagination in Next.js after getting all data
         const requestBody: Record<string, unknown> = {
             action: "list",
             sheet: "Products",
         };
 
-        // Only send pagination params to Apps Script if no branch filter
-        if (!branchName || branchName.trim() === "") {
+        const hasFilter = (branchName && branchName.trim() !== "") ||
+            (categoryId && categoryId.trim() !== "") ||
+            (categoryName && categoryName.trim() !== "") ||
+            (supplierName && supplierName.trim() !== "") ||
+            (search && search.trim() !== "");
+
+        // Only send pagination params to Apps Script if no filters
+        if (!hasFilter) {
             const offset = (page - 1) * limit;
             requestBody.page = page;
             requestBody.limit = limit;
             requestBody.offset = offset;
         } else {
-            // Pass branch_name separately for filtering in Next.js (not to Apps Script)
-            requestBody.branch_name = branchName.trim();
+            // Pass filters separately for filtering in Next.js (not to Apps Script)
+            if (branchName && branchName.trim() !== "") {
+                requestBody.branch_name = branchName.trim();
+            }
+            if (categoryId && categoryId.trim() !== "") {
+                requestBody.category_id = categoryId.trim();
+            }
+            if (categoryName && categoryName.trim() !== "") {
+                requestBody.category_name = categoryName.trim();
+            }
+            if (supplierName && supplierName.trim() !== "") {
+                requestBody.supplier_name = supplierName.trim();
+            }
+            if (search && search.trim() !== "") {
+                requestBody.search = search.trim();
+            }
         }
 
         return await callAppsScript(requestBody, true, page, limit);

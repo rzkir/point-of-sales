@@ -6,6 +6,7 @@ import { IconFilter, IconPackage, IconPlus } from "@tabler/icons-react"
 
 import {
     flexRender,
+    type ColumnFiltersState,
 } from "@tanstack/react-table"
 
 import { Button } from "@/components/ui/button"
@@ -78,6 +79,7 @@ export default function Products() {
         branchName,
         categoryName,
         table,
+        setColumnFilters,
         branchOptions,
         categoryOptions,
         supplierOptions,
@@ -87,6 +89,7 @@ export default function Products() {
         categoryFilter,
         supplierFilter,
         statusFilter,
+        searchFilter,
         handleApplyProductFilters,
     } = useStateProducts()
 
@@ -179,10 +182,17 @@ export default function Products() {
                             <div className="w-full sm:w-64">
                                 <Input
                                     placeholder="Search product name..."
-                                    value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-                                    onChange={(event) =>
-                                        table.getColumn("name")?.setFilterValue(event.target.value)
-                                    }
+                                    value={searchFilter}
+                                    onChange={(event) => {
+                                        const value = event.target.value
+                                        setColumnFilters((prev: ColumnFiltersState) => {
+                                            const rest = prev.filter((f) => f.id !== "name")
+                                            if (value.trim() !== "") {
+                                                return [...rest, { id: "name", value }]
+                                            }
+                                            return rest
+                                        })
+                                    }}
                                 />
                             </div>
                             <Button

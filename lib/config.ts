@@ -18,13 +18,25 @@ export const API_CONFIG = {
             base: `${API_BASE_URL}/api/products`,
             upload: `${API_BASE_URL}/api/products/upload`,
             byId: (id: string | number) => `${API_BASE_URL}/api/products/${encodeURIComponent(String(id))}`,
-            list: (page: number = 1, limit: number = 10, branchName?: string) => {
+            list: (page: number = 1, limit: number = 10, branchName?: string, categoryId?: string, categoryName?: string, supplierName?: string, search?: string) => {
                 const params = new URLSearchParams({
                     page: String(page),
                     limit: String(limit),
                 });
                 if (branchName && branchName.trim() !== "") {
                     params.append("branch_name", branchName.trim());
+                }
+                if (categoryId && categoryId.trim() !== "") {
+                    params.append("category_id", categoryId.trim());
+                }
+                if (categoryName && categoryName.trim() !== "") {
+                    params.append("category_name", categoryName.trim());
+                }
+                if (supplierName && supplierName.trim() !== "") {
+                    params.append("supplier_name", supplierName.trim());
+                }
+                if (search && search.trim() !== "") {
+                    params.append("search", search.trim());
                 }
                 return `${API_BASE_URL}/api/products?${params.toString()}`;
             },
@@ -60,15 +72,23 @@ export const API_CONFIG = {
  * @param page - Page number (default: 1)
  * @param limit - Items per page (default: 10)
  * @param branchName - Optional branch name to filter products
+ * @param categoryId - Optional category id to filter products
+ * @param categoryName - Optional category name to filter products
+ * @param supplierName - Optional supplier name to filter products
+ * @param search - Optional search term to filter products by name
  * @returns Promise with products data and pagination info
  */
 export async function fetchProducts(
     page: number = 1,
     limit: number = 10,
-    branchName?: string
+    branchName?: string,
+    categoryId?: string,
+    categoryName?: string,
+    supplierName?: string,
+    search?: string
 ): Promise<ProductsResponse> {
     try {
-        const response = await fetch(API_CONFIG.ENDPOINTS.products.list(page, limit, branchName), {
+        const response = await fetch(API_CONFIG.ENDPOINTS.products.list(page, limit, branchName, categoryId, categoryName, supplierName, search), {
             headers: {
                 Authorization: `Bearer ${API_CONFIG.SECRET}`,
             },
