@@ -4,7 +4,6 @@ const PRODUCTS_SHEET_NAME = 'Products';
 const CATEGORIES_SHEET_NAME = 'Categories';
 const SUPPLIERS_SHEET_NAME = 'Suppliers';
 const TRANSACTIONS_SHEET_NAME = 'Transactions';
-const TRANSACTION_ITEMS_SHEET_NAME = 'TransactionItems';
 
 // SPREADSHEET_ID bisa di-set di bagian atas file ini jika ingin menggunakan spreadsheet tertentu
 // Jika tidak di-set (undefined), akan menggunakan spreadsheet aktif
@@ -189,8 +188,6 @@ function doPost(e) {
           response = handleCreateSupplier(requestData);
         } else if (sheet === 'Transactions') {
           response = handleCreateTransaction(requestData);
-        } else if (sheet === 'TransactionItems') {
-          response = handleCreateTransactionItem(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleCreateBranch(requestData);
@@ -207,8 +204,6 @@ function doPost(e) {
           response = handleListSuppliers(requestData);
         } else if (sheet === 'Transactions') {
           response = handleListTransactions(requestData);
-        } else if (sheet === 'TransactionItems') {
-          response = handleListTransactionItems(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleListBranches(requestData);
@@ -225,8 +220,6 @@ function doPost(e) {
           response = handleGetSupplier(requestData);
         } else if (sheet === 'Transactions') {
           response = handleGetTransaction(requestData);
-        } else if (sheet === 'TransactionItems') {
-          response = handleGetTransactionItem(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleGetBranch(requestData);
@@ -241,8 +234,6 @@ function doPost(e) {
           response = handleUpdateCategory(requestData);
         } else if (sheet === 'Suppliers') {
           response = handleUpdateSupplier(requestData);
-        } else if (sheet === 'TransactionItems') {
-          response = handleUpdateTransactionItem(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleUpdateBranch(requestData);
@@ -259,8 +250,6 @@ function doPost(e) {
           response = handleDeleteSupplier(requestData);
         } else if (sheet === 'Transactions') {
           response = handleDeleteTransaction(requestData);
-        } else if (sheet === 'TransactionItems') {
-          response = handleDeleteTransactionItem(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleDeleteBranch(requestData);
@@ -1953,7 +1942,6 @@ const TRANSACTIONS_COLUMNS = [
   'customer_name',
   'subtotal',
   'discount',
-  'tax',
   'total',
   'paid_amount',
   'due_amount',
@@ -1962,6 +1950,7 @@ const TRANSACTIONS_COLUMNS = [
   'payment_status',
   'status',
   'branch_name',
+  'items',
   'created_by',
   'created_at',
   'updated_at'
@@ -2035,7 +2024,6 @@ function handleCreateTransaction(data) {
   const {
     customer_name,
     discount = 0,
-    tax = 0,
     total,
     subtotal,
     paid_amount = 0,
@@ -2044,7 +2032,8 @@ function handleCreateTransaction(data) {
     payment_method = 'cash',
     payment_status = 'paid',
     status = 'pending',
-    created_by
+    created_by,
+    items = []
   } = data;
 
   if (!subtotal || subtotal === undefined || isNaN(Number(subtotal))) {
@@ -2107,8 +2096,6 @@ function handleCreateTransaction(data) {
       newRow.push(subtotal);
     } else if (key === 'discount') {
       newRow.push(discount || 0);
-    } else if (key === 'tax') {
-      newRow.push(tax || 0);
     } else if (key === 'total') {
       newRow.push(total);
     } else if (key === 'paid_amount') {
@@ -2125,6 +2112,9 @@ function handleCreateTransaction(data) {
       newRow.push(status);
     } else if (key === 'branch_name') {
       newRow.push(branch_name || '');
+    } else if (key === 'items') {
+      // Simpan items sebagai JSON string
+      newRow.push(Array.isArray(items) ? JSON.stringify(items) : '[]');
     } else if (key === 'created_by') {
       newRow.push(created_by || '');
     } else if (key === 'created_at') {
@@ -2267,7 +2257,12 @@ function handleUpdateTransaction(data) {
       // Update fields yang ada di data
       TRANSACTIONS_COLUMNS.forEach((key) => {
         if (key !== 'id' && key !== 'transaction_number' && key !== 'created_at' && key !== 'due_amount' && key !== 'payment_status' && data[key] !== undefined) {
-          sheet.getRange(i + 1, col[key] + 1).setValue(data[key]);
+          let value = data[key];
+          // Simpan items sebagai JSON string
+          if (key === 'items' && Array.isArray(value)) {
+            value = JSON.stringify(value);
+          }
+          sheet.getRange(i + 1, col[key] + 1).setValue(value);
         }
       });
       
@@ -2321,350 +2316,5 @@ function handleDeleteTransaction(data) {
   return {
     success: false,
     message: 'Transaction not found'
-  };
-}
-
-// ==================== TRANSACTION ITEMS ====================
-
-const TRANSACTION_ITEMS_COLUMNS = [
-  'id',
-  'transaction_id',
-  'product_id',
-  'product_name',
-  'quantity',
-  'price',
-  'subtotal',
-  'created_at',
-  'updated_at'
-];
-
-/**
- * Get TransactionItems column map
- */
-function getTransactionItemsColumnMap_() {
-  const sheet = getTransactionItemsSheet();
-  return ensureSheetColumns_(sheet, TRANSACTION_ITEMS_COLUMNS);
-}
-
-/**
- * Mendapatkan sheet TransactionItems
- */
-function getTransactionItemsSheet() {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(TRANSACTION_ITEMS_SHEET_NAME);
-  
-  // Jika sheet belum ada, buat sheet baru
-  if (!sheet) {
-    sheet = ss.insertSheet(TRANSACTION_ITEMS_SHEET_NAME);
-    // Header akan di-set otomatis oleh ensureSheetColumns_()
-  }
-
-  // Pastikan header selalu up-to-date walaupun schema berubah
-  ensureSheetColumns_(sheet, TRANSACTION_ITEMS_COLUMNS);
-  
-  return sheet;
-}
-
-/**
- * Cari transaction item berdasarkan ID
- */
-function findTransactionItemById(id) {
-  const sheet = getTransactionItemsSheet();
-  const col = getTransactionItemsColumnMap_();
-  const data = sheet.getDataRange().getValues();
-  
-  // Skip header
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][col.id] === id) {
-      const row = data[i];
-      const item = {};
-      TRANSACTION_ITEMS_COLUMNS.forEach((key) => {
-        item[key] = row[col[key]];
-      });
-      return item;
-    }
-  }
-  return null;
-}
-
-/**
- * Handle create transaction item
- */
-function handleCreateTransactionItem(data) {
-  const {
-    transaction_id,
-    product_id,
-    product_name,
-    quantity,
-    price,
-    subtotal
-  } = data;
-
-  // Validasi
-  if (!transaction_id || String(transaction_id).trim() === '') {
-    return {
-      success: false,
-      message: 'Transaction ID is required'
-    };
-  }
-
-  if (!product_id || String(product_id).trim() === '') {
-    return {
-      success: false,
-      message: 'Product ID is required'
-    };
-  }
-
-  if (!quantity || quantity <= 0) {
-    return {
-      success: false,
-      message: 'Quantity must be greater than 0'
-    };
-  }
-
-  if (!price || price < 0) {
-    return {
-      success: false,
-      message: 'Price must be greater than or equal to 0'
-    };
-  }
-
-  // Hitung subtotal jika tidak diberikan
-  const calculatedSubtotal = subtotal !== undefined ? Number(subtotal) : (Number(quantity) * Number(price));
-
-  const sheet = getTransactionItemsSheet();
-  const col = getTransactionItemsColumnMap_();
-  
-  const id = generateId();
-  const now = new Date().toISOString();
-  
-  const newRow = [];
-  TRANSACTION_ITEMS_COLUMNS.forEach((key) => {
-    if (key === 'id') {
-      newRow.push(id);
-    } else if (key === 'transaction_id') {
-      newRow.push(String(transaction_id).trim());
-    } else if (key === 'product_id') {
-      newRow.push(String(product_id).trim());
-    } else if (key === 'product_name') {
-      newRow.push(product_name || '');
-    } else if (key === 'quantity') {
-      newRow.push(Number(quantity));
-    } else if (key === 'price') {
-      newRow.push(Number(price));
-    } else if (key === 'subtotal') {
-      newRow.push(calculatedSubtotal);
-    } else if (key === 'created_at') {
-      newRow.push(now);
-    } else if (key === 'updated_at') {
-      newRow.push(now);
-    } else {
-      newRow.push('');
-    }
-  });
-  
-  sheet.appendRow(newRow);
-  
-  const item = findTransactionItemById(id);
-  
-  return {
-    success: true,
-    message: 'Transaction item created successfully',
-    data: item
-  };
-}
-
-/**
- * Handle list transaction items
- */
-function handleListTransactionItems(data) {
-  const { transaction_id, page = 1, limit = 100 } = data || {};
-  
-  const sheet = getTransactionItemsSheet();
-  const col = getTransactionItemsColumnMap_();
-  const dataRange = sheet.getDataRange().getValues();
-  
-  // Skip header
-  let allItems = [];
-  for (let i = 1; i < dataRange.length; i++) {
-    const row = dataRange[i];
-    const item = {};
-    TRANSACTION_ITEMS_COLUMNS.forEach((key) => {
-      item[key] = row[col[key]];
-    });
-    
-    // Filter by transaction_id if provided
-    if (transaction_id && String(item.transaction_id).trim() !== String(transaction_id).trim()) {
-      continue;
-    }
-    
-    allItems.push(item);
-  }
-  
-  // Reverse untuk mendapatkan yang terbaru di atas
-  allItems.reverse();
-  
-  // Pagination
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedItems = allItems.slice(startIndex, endIndex);
-  
-  const totalPages = Math.ceil(allItems.length / limit);
-  
-  return {
-    success: true,
-    data: paginatedItems,
-    pagination: {
-      page: Number(page),
-      limit: Number(limit),
-      total: allItems.length,
-      totalPages: totalPages,
-      hasNext: Number(page) < totalPages,
-      hasPrev: Number(page) > 1
-    }
-  };
-}
-
-/**
- * Handle get transaction item
- */
-function handleGetTransactionItem(data) {
-  const { id } = data;
-  
-  if (!id) {
-    return {
-      success: false,
-      message: 'Transaction item ID is required'
-    };
-  }
-  
-  const item = findTransactionItemById(id);
-  
-  if (!item) {
-    return {
-      success: false,
-      message: 'Transaction item not found'
-    };
-  }
-  
-  return {
-    success: true,
-    data: item
-  };
-}
-
-/**
- * Handle update transaction item
- */
-function handleUpdateTransactionItem(data) {
-  const { id } = data;
-  
-  if (!id) {
-    return {
-      success: false,
-      message: 'Transaction item ID is required'
-    };
-  }
-  
-  const existing = findTransactionItemById(id);
-  if (!existing) {
-    return {
-      success: false,
-      message: 'Transaction item not found'
-    };
-  }
-  
-  const sheet = getTransactionItemsSheet();
-  const col = getTransactionItemsColumnMap_();
-  const dataRange = sheet.getDataRange().getValues();
-  
-  for (let i = 1; i < dataRange.length; i++) {
-    if (dataRange[i][col.id] === id) {
-      const now = new Date().toISOString();
-      
-      // Update fields yang ada di data
-      let updatedQuantity = data.quantity !== undefined ? Number(data.quantity) : Number(dataRange[i][col.quantity]);
-      let updatedPrice = data.price !== undefined ? Number(data.price) : Number(dataRange[i][col.price]);
-      
-      TRANSACTION_ITEMS_COLUMNS.forEach((key) => {
-        if (key !== 'id' && key !== 'created_at' && data[key] !== undefined) {
-          sheet.getRange(i + 1, col[key] + 1).setValue(data[key]);
-          
-          // Update quantity atau price untuk perhitungan subtotal
-          if (key === 'quantity') {
-            updatedQuantity = Number(data.quantity);
-          }
-          if (key === 'price') {
-            updatedPrice = Number(data.price);
-          }
-        }
-      });
-      
-      // Hitung ulang subtotal jika quantity atau price diupdate (kecuali subtotal sudah diupdate manual)
-      if ((data.quantity !== undefined || data.price !== undefined) && data.subtotal === undefined) {
-        const newSubtotal = updatedQuantity * updatedPrice;
-        sheet.getRange(i + 1, col.subtotal + 1).setValue(newSubtotal);
-      }
-      
-      // Update updated_at
-      sheet.getRange(i + 1, col.updated_at + 1).setValue(now);
-      
-      const updatedItem = findTransactionItemById(id);
-      
-      return {
-        success: true,
-        message: 'Transaction item updated successfully',
-        data: updatedItem
-      };
-    }
-  }
-  
-  return {
-    success: false,
-    message: 'Transaction item not found'
-  };
-}
-
-/**
- * Handle delete transaction item
- */
-function handleDeleteTransactionItem(data) {
-  const { id } = data;
-  
-  if (!id) {
-    return {
-      success: false,
-      message: 'Transaction item ID is required'
-    };
-  }
-  
-  const item = findTransactionItemById(id);
-  
-  if (!item) {
-    return {
-      success: false,
-      message: 'Transaction item not found'
-    };
-  }
-  
-  // Hapus dari sheet
-  const sheet = getTransactionItemsSheet();
-  const col = getTransactionItemsColumnMap_();
-  const dataRange = sheet.getDataRange().getValues();
-  
-  for (let i = 1; i < dataRange.length; i++) {
-    if (dataRange[i][col.id] === id) {
-      sheet.deleteRow(i + 1); // +1 karena index sheet dimulai dari 1
-      
-      return {
-        success: true,
-        message: 'Transaction item deleted successfully'
-      };
-    }
-  }
-  
-  return {
-    success: false,
-    message: 'Transaction item not found'
   };
 }

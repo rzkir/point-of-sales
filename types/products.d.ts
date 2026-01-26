@@ -113,6 +113,7 @@ type KaryawanProductRow = {
   category_name: string
   barcode: string
   branch_name: string
+  unit?: Unit
 }
 
 type KaryawanProductsResponse = {

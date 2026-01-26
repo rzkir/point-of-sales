@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { IconPackage, IconRefresh, IconSearch, IconPlus, IconMinus, IconLoader, IconCash } from "@tabler/icons-react"
+import { IconPackage, IconRefresh, IconSearch, IconPlus, IconMinus, IconLoader, IconCash, IconEdit } from "@tabler/icons-react"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,7 @@ interface CartItem {
     price: number
     quantity: number
     image_url?: string
+    unit?: string
 }
 
 function ProductsKaryawanContent() {
@@ -56,6 +57,9 @@ function ProductsKaryawanContent() {
     const [cartItems, setCartItems] = useState<CartItem[]>([])
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [isQuantityDialogOpen, setIsQuantityDialogOpen] = useState(false)
+    const [selectedProductForQuantity, setSelectedProductForQuantity] = useState<{ id: string; name: string; unit?: string } | null>(null)
+    const [customQuantity, setCustomQuantity] = useState("")
     const [formData, setFormData] = useState({
         customer_name: "",
         discount: 0,
@@ -120,7 +124,7 @@ function ProductsKaryawanContent() {
             if (newQty === 0) {
                 setCartItems((prev) => prev.filter((item) => item.product_id !== productId))
             } else {
-                const product = filteredProducts.find((p) => p.id === productId)
+                const product = filteredProducts.find((p) => String(p.id) === productId)
                 if (product) {
                     setCartItems((prev) => {
                         const existingItem = prev.find((item) => item.product_id === productId)
@@ -134,11 +138,12 @@ function ProductsKaryawanContent() {
                             return [
                                 ...prev,
                                 {
-                                    product_id: product.id,
+                                    product_id: String(product.id),
                                     product_name: product.name,
                                     price: product.price,
                                     quantity: newQty,
                                     image_url: product.image_url,
+                                    unit: product.unit,
                                 },
                             ]
                         }
@@ -150,12 +155,71 @@ function ProductsKaryawanContent() {
         })
     }
 
+    // Handle open quantity dialog for custom input
+    const handleOpenQuantityDialog = (product: { id: string; name: string; unit?: string }) => {
+        setSelectedProductForQuantity(product)
+        setCustomQuantity(String(quantities[product.id] || ""))
+        setIsQuantityDialogOpen(true)
+    }
+
+    // Handle custom quantity submit
+    const handleCustomQuantitySubmit = () => {
+        if (!selectedProductForQuantity) return
+
+        const qty = parseFloat(customQuantity)
+        if (isNaN(qty) || qty < 0) {
+            toast.error("Jumlah tidak valid")
+            return
+        }
+
+        const productId = selectedProductForQuantity.id
+        setQuantities((prev) => {
+            const newQuantities = { ...prev, [productId]: qty }
+
+            // Update cart items
+            if (qty === 0) {
+                setCartItems((prev) => prev.filter((item) => item.product_id !== productId))
+            } else {
+                const product = filteredProducts.find((p) => String(p.id) === productId)
+                if (product) {
+                    setCartItems((prev) => {
+                        const existingItem = prev.find((item) => item.product_id === productId)
+                        if (existingItem) {
+                            return prev.map((item) =>
+                                item.product_id === productId
+                                    ? { ...item, quantity: qty }
+                                    : item
+                            )
+                        } else {
+                            return [
+                                ...prev,
+                                {
+                                    product_id: String(product.id),
+                                    product_name: product.name,
+                                    price: product.price,
+                                    quantity: qty,
+                                    image_url: product.image_url,
+                                    unit: product.unit,
+                                },
+                            ]
+                        }
+                    })
+                }
+            }
+
+            return newQuantities
+        })
+
+        setIsQuantityDialogOpen(false)
+        setSelectedProductForQuantity(null)
+        setCustomQuantity("")
+    }
+
     // Calculate totals
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
     const discountAmount = Number(formData.discount) || 0
     const subtotalAfterDiscount = Math.max(0, subtotal - discountAmount)
-    const tax = subtotalAfterDiscount * 0.04 // 4% tax
-    const total = subtotalAfterDiscount + tax
+    const total = subtotalAfterDiscount
 
     // Calculate paid_amount: if not credit, paid = total; if credit, use form value
     const paidAmount = formData.is_credit
@@ -172,8 +236,7 @@ function ProductsKaryawanContent() {
         const currentSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
         const currentDiscount = Number(formData.discount) || 0
         const currentSubtotalAfterDiscount = Math.max(0, currentSubtotal - currentDiscount)
-        const currentTax = currentSubtotalAfterDiscount * 0.04
-        const currentTotal = currentSubtotalAfterDiscount + currentTax
+        const currentTotal = currentSubtotalAfterDiscount
 
         setFormData((prev) => ({
             ...prev,
@@ -212,7 +275,7 @@ function ProductsKaryawanContent() {
                 body: JSON.stringify({
                     customer_name: formData.customer_name || "",
                     subtotal: subtotalAfterDiscount,
-                    tax: tax,
+                    tax: 0,
                     total: total,
                     discount: discountAmount,
                     paid_amount: paidAmount,
@@ -374,9 +437,10 @@ function ProductsKaryawanContent() {
                 ) : (
                     <div className="grid grid-cols-3 gap-4">
                         {filteredProducts.map((product) => {
-                            const quantity = quantities[product.id] || 0
+                            const productId = String(product.id)
+                            const quantity = quantities[productId] || 0
                             return (
-                                <Card key={product.id} className="overflow-hidden">
+                                <Card key={productId} className="overflow-hidden">
                                     <CardContent className="p-4">
                                         <div className="flex gap-4">
                                             <div className="relative w-20 h-20 rounded-full overflow-hidden bg-muted shrink-0">
@@ -395,34 +459,59 @@ function ProductsKaryawanContent() {
                                                         {product.category_name}
                                                     </p>
                                                 )}
-                                                <p className="text-xl font-bold text-primary mb-3">
+                                                <p className="text-xl font-bold text-primary mb-1">
                                                     {new Intl.NumberFormat("id-ID", {
                                                         style: "currency",
                                                         currency: "IDR",
                                                         minimumFractionDigits: 0,
                                                     }).format(product.price)}
                                                 </p>
+                                                {product.unit && (
+                                                    <p className="text-xs text-muted-foreground mb-3">
+                                                        Unit: {product.unit}
+                                                    </p>
+                                                )}
                                                 <div className="flex items-center gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className="h-8 w-8 rounded-full"
-                                                        onClick={() => handleQuantityChange(product.id, -1)}
-                                                        disabled={quantity === 0}
-                                                    >
-                                                        <IconMinus className="size-4" />
-                                                    </Button>
-                                                    <span className="w-8 text-center font-medium">
-                                                        {quantity}
-                                                    </span>
-                                                    <Button
-                                                        variant="default"
-                                                        size="icon"
-                                                        className="h-8 w-8 rounded-full"
-                                                        onClick={() => handleQuantityChange(product.id, 1)}
-                                                    >
-                                                        <IconPlus className="size-4" />
-                                                    </Button>
+                                                    {(product.unit === "meter" || product.unit === "liter") ? (
+                                                        <>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="flex-1"
+                                                                onClick={() => handleOpenQuantityDialog({
+                                                                    id: productId,
+                                                                    name: product.name,
+                                                                    unit: product.unit
+                                                                })}
+                                                            >
+                                                                <IconEdit className="size-4 mr-2" />
+                                                                {quantity > 0 ? `${quantity % 1 === 0 ? quantity : quantity.toFixed(2)} ${product.unit}` : `Input ${product.unit}`}
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="h-8 w-8 rounded-full"
+                                                                onClick={() => handleQuantityChange(productId, -1)}
+                                                                disabled={quantity === 0}
+                                                            >
+                                                                <IconMinus className="size-4" />
+                                                            </Button>
+                                                            <span className="w-8 text-center font-medium">
+                                                                {quantity}
+                                                            </span>
+                                                            <Button
+                                                                variant="default"
+                                                                size="icon"
+                                                                className="h-8 w-8 rounded-full"
+                                                                onClick={() => handleQuantityChange(productId, 1)}
+                                                            >
+                                                                <IconPlus className="size-4" />
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -464,7 +553,9 @@ function ProductsKaryawanContent() {
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium text-sm">{item.product_name}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {item.quantity}x
+                                            {item.quantity % 1 === 0 
+                                                ? `${item.quantity}${item.unit ? ` ${item.unit}` : "x"}` 
+                                                : `${item.quantity.toFixed(2)}${item.unit ? ` ${item.unit}` : ""}`}
                                         </p>
                                         <p className="text-sm font-semibold mt-1">
                                             {new Intl.NumberFormat("id-ID", {
@@ -506,16 +597,6 @@ function ProductsKaryawanContent() {
                                 </span>
                             </div>
                         )}
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Tax (4%)</span>
-                            <span className="font-medium">
-                                {new Intl.NumberFormat("id-ID", {
-                                    style: "currency",
-                                    currency: "IDR",
-                                    minimumFractionDigits: 0,
-                                }).format(tax)}
-                            </span>
-                        </div>
                         <div className="flex justify-between text-lg font-bold pt-2 border-t border-border">
                             <span>Total Payment</span>
                             <span>
@@ -633,8 +714,7 @@ function ProductsKaryawanContent() {
                                             )
                                             const currentDiscount = Number(formData.discount) || 0
                                             const currentSubtotal = Math.max(0, currentTotal - currentDiscount)
-                                            const currentTax = currentSubtotal * 0.04
-                                            const currentTotalAmount = currentSubtotal + currentTax
+                                            const currentTotalAmount = currentSubtotal
 
                                             setFormData((prev) => ({
                                                 ...prev,
@@ -703,16 +783,6 @@ function ProductsKaryawanContent() {
                                         </span>
                                     </div>
                                 )}
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Tax (4%)</span>
-                                    <span>
-                                        {new Intl.NumberFormat("id-ID", {
-                                            style: "currency",
-                                            currency: "IDR",
-                                            minimumFractionDigits: 0,
-                                        }).format(tax)}
-                                    </span>
-                                </div>
                                 <div className="flex justify-between pt-2 border-t border-border font-bold">
                                     <span>Total Payment</span>
                                     <span>
@@ -771,6 +841,54 @@ function ProductsKaryawanContent() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Custom Quantity Input Dialog */}
+            <Dialog open={isQuantityDialogOpen} onOpenChange={setIsQuantityDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Input Quantity</DialogTitle>
+                        <DialogDescription>
+                            Masukkan jumlah {selectedProductForQuantity?.unit || ""} untuk {selectedProductForQuantity?.name}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <Field>
+                            <FieldLabel htmlFor="custom_quantity">
+                                Jumlah ({selectedProductForQuantity?.unit || ""})
+                            </FieldLabel>
+                            <Input
+                                id="custom_quantity"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={customQuantity}
+                                onChange={(e) => setCustomQuantity(e.target.value)}
+                                autoFocus
+                            />
+                            <FieldDescription>
+                                Masukkan jumlah dengan desimal (contoh: 1.5 untuk 1.5 {selectedProductForQuantity?.unit || ""})
+                            </FieldDescription>
+                        </Field>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setIsQuantityDialogOpen(false)
+                                setSelectedProductForQuantity(null)
+                                setCustomQuantity("")
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="button" onClick={handleCustomQuantitySubmit}>
+                            Simpan
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </section>

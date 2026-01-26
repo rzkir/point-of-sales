@@ -261,7 +261,6 @@ export async function POST(request: NextRequest) {
         const {
             customer_name,
             discount = 0,
-            tax = 0,
             total,
             subtotal,
             branch_name,
@@ -329,12 +328,26 @@ export async function POST(request: NextRequest) {
             paymentStatus = "partial";
         }
 
+        // Format items untuk disimpan sebagai array
+        const formattedItems = Array.isArray(items) ? items.map((item: {
+            product_id?: string | number;
+            product_name?: string;
+            quantity?: number;
+            price?: number;
+            subtotal?: number;
+        }) => ({
+            product_id: String(item.product_id || ""),
+            product_name: item.product_name || "",
+            quantity: Number(item.quantity) || 0,
+            price: Number(item.price) || 0,
+            subtotal: Number(item.subtotal) || (Number(item.quantity) * Number(item.price)),
+        })) : [];
+
         const requestBody = {
             action: "create",
             sheet: "Transactions",
             customer_name: customer_name || "",
             discount: Number(discount) || 0,
-            tax: Number(tax) || 0,
             total: totalAmount,
             subtotal: Number(subtotal),
             paid_amount: paidAmount,
@@ -344,108 +357,82 @@ export async function POST(request: NextRequest) {
             payment_status: paymentStatus,
             status: finalStatus,
             created_by: sessionUser?.name || sessionUser?.email || "",
+            items: formattedItems,
         };
 
-        // Create transaction first
+        // Create transaction first (items akan disimpan sebagai JSON string di kolom items)
         const transactionResponse = await callAppsScript(requestBody);
 
         // Clone response to read data without consuming the original
         const responseClone = transactionResponse.clone();
         const transactionResponseData = await responseClone.json();
 
-        // If transaction created successfully and items are provided, save transaction items
-        if (transactionResponseData.success && Array.isArray(items) && items.length > 0) {
-            const transactionId = transactionResponseData.data?.id || transactionResponseData.data?.transaction_number;
+        // Update product stock if transaction is completed OR if status is pending but payment_status is partial
+        // Stock should be reduced when:
+        // 1. Status is completed (fully paid or credit fully paid)
+        // 2. Status is pending but payment_status is partial (partially paid credit)
+        const shouldUpdateStock = finalStatus === "completed" ||
+            (finalStatus === "pending" && paymentStatus === "partial");
 
-            if (transactionId) {
-                // Save each item to TransactionItems sheet
-                const itemsPromises = items.map(async (item: {
-                    product_id?: string | number;
-                    product_name?: string;
-                    quantity?: number;
-                    price?: number;
-                    subtotal?: number;
-                }) => {
-                    if (!item.product_id || !item.quantity || item.quantity <= 0) {
-                        return null; // Skip invalid items
-                    }
+        // If transaction created successfully and items are provided, update product stock
+        // Items sudah disimpan sebagai array di kolom items di Transactions sheet, tidak perlu disimpan ke TransactionItems sheet terpisah
+        if (transactionResponseData.success && shouldUpdateStock && Array.isArray(items) && items.length > 0) {
+            // Update stock for each item
+            const stockUpdatePromises = items.map(async (item: {
+                product_id?: string | number;
+                quantity?: number;
+            }) => {
+                if (!item.product_id || !item.quantity || item.quantity <= 0) {
+                    return null; // Skip invalid items
+                }
 
-                    const itemRequestBody = {
-                        action: "create",
-                        sheet: "TransactionItems",
-                        transaction_id: transactionId,
-                        product_id: String(item.product_id),
-                        product_name: item.product_name || "",
-                        quantity: Number(item.quantity) || 0,
-                        price: Number(item.price) || 0,
-                        subtotal: Number(item.subtotal) || (Number(item.quantity) * Number(item.price)),
-                    };
-
-                    try {
-                        const itemResponse = await callAppsScript(itemRequestBody);
-                        const itemData = await itemResponse.json();
-
-                        // Update product stock if transaction is completed OR if status is pending but payment_status is partial
-                        // Stock should be reduced when:
-                        // 1. Status is completed (fully paid or credit fully paid)
-                        // 2. Status is pending but payment_status is partial (partially paid credit)
-                        const shouldUpdateStock = finalStatus === "completed" ||
-                            (finalStatus === "pending" && paymentStatus === "partial");
-
-                        if (shouldUpdateStock && item.product_id) {
-                            try {
-                                // Get current product stock
-                                const getProductResponse = await fetch(
-                                    `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${item.product_id}`,
-                                    {
-                                        method: "GET",
-                                        headers: {
-                                            "Content-Type": "application/json",
-                                            Authorization: `Bearer ${API_SECRET}`,
-                                        },
-                                    }
-                                );
-
-                                if (getProductResponse.ok) {
-                                    const productData = await getProductResponse.json();
-                                    if (productData.success && productData.data) {
-                                        const currentStock = Number(productData.data.stock) || 0;
-                                        const soldQuantity = Number(productData.data.sold) || 0;
-                                        const newStock = Math.max(0, currentStock - Number(item.quantity));
-                                        const newSold = soldQuantity + Number(item.quantity);
-
-                                        // Update product stock
-                                        await fetch(
-                                            `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${item.product_id}`,
-                                            {
-                                                method: "PUT",
-                                                headers: {
-                                                    "Content-Type": "application/json",
-                                                    Authorization: `Bearer ${API_SECRET}`,
-                                                },
-                                                body: JSON.stringify({
-                                                    stock: newStock,
-                                                    sold: newSold,
-                                                }),
-                                            }
-                                        );
-                                    }
-                                }
-                            } catch (stockError) {
-                                console.error("Error updating product stock:", stockError);
-                                // Don't fail transaction if stock update fails
-                            }
+                try {
+                    // Get current product stock
+                    const getProductResponse = await fetch(
+                        `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${item.product_id}`,
+                        {
+                            method: "GET",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Authorization: `Bearer ${API_SECRET}`,
+                            },
                         }
-                        return itemData;
-                    } catch (error) {
-                        console.error("Error saving transaction item:", error);
-                        return null;
-                    }
-                });
+                    );
 
-                // Wait for all items to be saved
-                await Promise.all(itemsPromises);
-            }
+                    if (getProductResponse.ok) {
+                        const productData = await getProductResponse.json();
+                        if (productData.success && productData.data) {
+                            const currentStock = Number(productData.data.stock) || 0;
+                            const soldQuantity = Number(productData.data.sold) || 0;
+                            const newStock = Math.max(0, currentStock - Number(item.quantity));
+                            const newSold = soldQuantity + Number(item.quantity);
+
+                            // Update product stock
+                            await fetch(
+                                `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${item.product_id}`,
+                                {
+                                    method: "PUT",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        Authorization: `Bearer ${API_SECRET}`,
+                                    },
+                                    body: JSON.stringify({
+                                        stock: newStock,
+                                        sold: newSold,
+                                    }),
+                                }
+                            );
+                        }
+                    }
+                } catch (stockError) {
+                    console.error("Error updating product stock:", stockError);
+                    // Don't fail transaction if stock update fails
+                }
+                return null;
+            });
+
+            // Wait for all stock updates to complete
+            await Promise.all(stockUpdatePromises);
         }
 
         return transactionResponse;

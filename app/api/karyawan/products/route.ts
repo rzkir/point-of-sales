@@ -35,6 +35,7 @@ function filterProductFields(products: unknown[]): Array<{
     category_name?: string;
     barcode?: string;
     branch_name?: string;
+    unit?: string;
 }> {
     return products.map((product) => {
         const p = product as Record<string, unknown>;
@@ -46,6 +47,7 @@ function filterProductFields(products: unknown[]): Array<{
             category_name: p.category_name as string | undefined,
             barcode: p.barcode as string | undefined,
             branch_name: p.branch_name as string | undefined,
+            unit: p.unit as string | undefined,
         };
     });
 }
