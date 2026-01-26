@@ -2077,6 +2077,34 @@ function handleCreateTransaction(data) {
     }
   }
 
+  // Normalisasi items + pastikan ada field unit per item
+  // Jika client tidak kirim unit, ambil dari Products sheet berdasarkan product_id
+  const normalizedItems = Array.isArray(items)
+    ? items.map((it) => {
+        if (!it || typeof it !== 'object') return it;
+        const pid = it.product_id !== undefined && it.product_id !== null ? String(it.product_id) : '';
+        const qty = Number(it.quantity) || 0;
+        const priceNum = Number(it.price) || 0;
+        let unitVal = it.unit ? String(it.unit) : '';
+
+        if (!unitVal && pid) {
+          const prod = findProductById(pid);
+          if (prod && prod.unit) unitVal = String(prod.unit);
+        }
+
+        return {
+          product_id: pid,
+          product_name: it.product_name ? String(it.product_name) : '',
+          quantity: qty,
+          price: priceNum,
+          subtotal: it.subtotal !== undefined && it.subtotal !== null
+            ? Number(it.subtotal) || (qty * priceNum)
+            : (qty * priceNum),
+          unit: unitVal
+        };
+      })
+    : [];
+
   const sheet = getTransactionsSheet();
   const col = getTransactionsColumnMap_();
   
@@ -2114,7 +2142,7 @@ function handleCreateTransaction(data) {
       newRow.push(branch_name || '');
     } else if (key === 'items') {
       // Simpan items sebagai JSON string
-      newRow.push(Array.isArray(items) ? JSON.stringify(items) : '[]');
+      newRow.push(JSON.stringify(normalizedItems));
     } else if (key === 'created_by') {
       newRow.push(created_by || '');
     } else if (key === 'created_at') {
@@ -2141,7 +2169,9 @@ function handleCreateTransaction(data) {
  * Handle list transactions
  */
 function handleListTransactions(data) {
-  const { page = 1, limit = 10 } = data || {};
+  const hasPagination = data && (data.page !== undefined || data.limit !== undefined);
+  const page = hasPagination ? (data.page || 1) : 1;
+  const limit = hasPagination ? (data.limit || 10) : undefined;
   
   const sheet = getTransactionsSheet();
   const col = getTransactionsColumnMap_();
@@ -2160,6 +2190,14 @@ function handleListTransactions(data) {
   
   // Reverse untuk mendapatkan yang terbaru di atas
   allTransactions.reverse();
+  
+  // Jika tidak ada pagination, kembalikan semua data
+  if (!hasPagination || limit === undefined) {
+    return {
+      success: true,
+      data: allTransactions
+    };
+  }
   
   // Pagination
   const startIndex = (page - 1) * limit;

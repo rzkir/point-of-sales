@@ -1,16 +1,18 @@
 "use client"
 
-import { IconReceipt } from "@tabler/icons-react"
+import { IconReceipt, IconPackage } from "@tabler/icons-react"
 
 import { type ColumnDef } from "@tanstack/react-table"
 
 import { Badge } from "@/components/ui/badge"
 
+import { Button } from "@/components/ui/button"
+
 import { formatCurrency } from "@/lib/format-idr"
 
 import { formatDateTime } from "@/lib/format-date"
 
-export const createColumns = (): ColumnDef<TransactionRow>[] => [
+export const createColumns = (onViewItems?: (transaction: TransactionRow) => void): ColumnDef<TransactionRow>[] => [
     {
         accessorKey: "transaction_number",
         header: () => <span className="font-semibold">Nomor Transaksi</span>,
@@ -102,5 +104,23 @@ export const createColumns = (): ColumnDef<TransactionRow>[] => [
         cell: ({ row }) => (
             <span className="text-sm text-muted-foreground">{formatDateTime(row.getValue("created_at"))}</span>
         ),
+    },
+    {
+        id: "actions",
+        header: () => <span className="font-semibold">Aksi</span>,
+        cell: ({ row }) => {
+            const transaction = row.original
+            return (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onViewItems?.(transaction)}
+                    className="gap-2"
+                >
+                    <IconPackage className="size-4" />
+                    Lihat Item
+                </Button>
+            )
+        },
     },
 ]

@@ -15,7 +15,7 @@ import { fetchBranches } from "@/lib/config"
 
 import { createColumns } from "@/components/dashboard/transactions/modal/CreateColumnsTransactions"
 
-export function useStateTransactions() {
+export function useStateTransactions(onViewItems?: (transaction: TransactionRow) => void) {
     const [transactions, setTransactions] = React.useState<TransactionRow[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
@@ -55,7 +55,7 @@ export function useStateTransactions() {
     }, [])
 
 
-    const columns = React.useMemo(() => createColumns(), [])
+    const columns = React.useMemo(() => createColumns(onViewItems), [onViewItems])
 
     const table = useReactTable({
         data: transactions,

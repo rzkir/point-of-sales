@@ -17,12 +17,14 @@ interface Transaction {
     // Payment
     payment_method: "cash";
     payment_status: "paid" | "unpaid" | "partial";
-    products: {
-        id: string | number;
+    items?: string | Array<{
+        product_id?: string | number;
         product_name: string;
         quantity: number;
         price: number;
-    }[];
+        subtotal?: number;
+        unit?: string;
+    }>; // JSON string or array from API
 
     // Transaction lifecycle
     status: "pending" | "completed" | "cancelled" | "return";

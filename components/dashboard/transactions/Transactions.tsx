@@ -33,8 +33,17 @@ import { useStateTransactions } from "@/services/transactions/useStateTransactio
 
 import { TransactionFiltersSheet } from "@/components/BottomSheets"
 
+import TransactionItem from "@/components/dashboard/transactions/modal/TransactionItem"
+
 export default function Transactions() {
     const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false)
+    const [selectedTransaction, setSelectedTransaction] = React.useState<TransactionRow | null>(null)
+    const [isItemDialogOpen, setIsItemDialogOpen] = React.useState(false)
+
+    const handleViewItems = React.useCallback((transaction: TransactionRow) => {
+        setSelectedTransaction(transaction)
+        setIsItemDialogOpen(true)
+    }, [])
 
     const {
         transactions,
@@ -64,7 +73,7 @@ export default function Transactions() {
         isLoadingBranches,
         branches,
         table,
-    } = useStateTransactions()
+    } = useStateTransactions(handleViewItems)
 
     const hasActiveFilters = !!(statusFilter || paymentStatusFilter || branchFilter || searchQuery)
 
@@ -318,6 +327,17 @@ export default function Transactions() {
                 setBranchFilter={setBranchFilter}
                 branches={branches}
                 isLoadingBranches={isLoadingBranches}
+            />
+
+            <TransactionItem
+                open={isItemDialogOpen}
+                onOpenChange={(open) => {
+                    setIsItemDialogOpen(open)
+                    if (!open) {
+                        setSelectedTransaction(null)
+                    }
+                }}
+                transaction={selectedTransaction}
             />
         </section>
     )

@@ -201,38 +201,25 @@ export async function GET(request: NextRequest) {
         const paymentStatus = searchParams.get("payment_status");
         const search = searchParams.get("search");
 
-        // If any filter is provided, request ALL data from Apps Script without pagination
+        // Always request ALL data from Apps Script without pagination
         // We'll do filtering and pagination in Next.js after getting all data
         const requestBody: Record<string, unknown> = {
             action: "list",
             sheet: "Transactions",
         };
 
-        const hasFilter = (branchName && branchName.trim() !== "") ||
-            (status && status.trim() !== "") ||
-            (paymentStatus && paymentStatus.trim() !== "") ||
-            (search && search.trim() !== "");
-
-        // Only send pagination params to Apps Script if no filters
-        if (!hasFilter) {
-            const offset = (page - 1) * limit;
-            requestBody.page = page;
-            requestBody.limit = limit;
-            requestBody.offset = offset;
-        } else {
-            // Pass filters separately for filtering in Next.js (not to Apps Script)
-            if (branchName && branchName.trim() !== "") {
-                requestBody.branch_name = branchName.trim();
-            }
-            if (status && status.trim() !== "") {
-                requestBody.status = status.trim();
-            }
-            if (paymentStatus && paymentStatus.trim() !== "") {
-                requestBody.payment_status = paymentStatus.trim();
-            }
-            if (search && search.trim() !== "") {
-                requestBody.search = search.trim();
-            }
+        // Pass filters for filtering in Next.js (not to Apps Script)
+        if (branchName && branchName.trim() !== "") {
+            requestBody.branch_name = branchName.trim();
+        }
+        if (status && status.trim() !== "") {
+            requestBody.status = status.trim();
+        }
+        if (paymentStatus && paymentStatus.trim() !== "") {
+            requestBody.payment_status = paymentStatus.trim();
+        }
+        if (search && search.trim() !== "") {
+            requestBody.search = search.trim();
         }
 
         return await callAppsScript(requestBody, true, page, limit);
@@ -335,12 +322,14 @@ export async function POST(request: NextRequest) {
             quantity?: number;
             price?: number;
             subtotal?: number;
+            unit?: string;
         }) => ({
             product_id: String(item.product_id || ""),
             product_name: item.product_name || "",
             quantity: Number(item.quantity) || 0,
             price: Number(item.price) || 0,
             subtotal: Number(item.subtotal) || (Number(item.quantity) * Number(item.price)),
+            unit: item.unit ? String(item.unit) : "",
         })) : [];
 
         const requestBody = {
