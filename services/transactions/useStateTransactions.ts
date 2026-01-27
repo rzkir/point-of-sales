@@ -98,6 +98,26 @@ export function useStateTransactions(
         [allFilteredTransactions]
     )
 
+    // Count unique users that still have debt
+    const usersWithDebtCount = React.useMemo(() => {
+        const users = new Set<string>()
+
+        allFilteredTransactions.forEach((t) => {
+            const debt = t.due_amount !== undefined
+                ? t.due_amount
+                : Math.max(0, (t.total || 0) - (t.paid_amount || 0))
+
+            if (debt > 0) {
+                const identifier = String((t as TransactionRow & { customer_id?: string | number }).customer_id ?? t.customer_name ?? "").trim()
+                if (identifier) {
+                    users.add(identifier)
+                }
+            }
+        })
+
+        return users.size
+    }, [allFilteredTransactions])
+
     const loadTransactions = React.useCallback(async () => {
         try {
             setIsLoading(true)
@@ -229,6 +249,7 @@ export function useStateTransactions(
         completedCount,
         pendingCount,
         totalDebt,
+        usersWithDebtCount,
         isLoadingBranches,
         branches,
         table,

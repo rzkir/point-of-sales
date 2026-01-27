@@ -67,12 +67,12 @@ export default function Partial() {
         setBranchFilter,
         setSearchInput,
         handleApplySearch,
-        completedCount,
         pendingCount,
         totalDebt,
         isLoadingBranches,
         branches,
         table,
+        usersWithDebtCount,
     } = useStateTransactions(handleViewItems, "partial")
 
     const hasActiveFilters = !!(branchFilter || searchQuery)
@@ -139,12 +139,12 @@ export default function Partial() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Selesai</span>
-                                    <div className="size-2 rounded-full bg-green-500" />
+                                    <span className="text-sm font-medium text-muted-foreground">User Hutang</span>
+                                    <div className="size-2 rounded-full bg-blue-500" />
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{completedCount}</div>
+                                <div className="text-2xl font-bold">{usersWithDebtCount}</div>
                             </CardContent>
                         </Card>
                     </>
