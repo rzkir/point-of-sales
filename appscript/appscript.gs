@@ -2086,15 +2086,23 @@ function handleCreateTransaction(data) {
         const qty = Number(it.quantity) || 0;
         const priceNum = Number(it.price) || 0;
         let unitVal = it.unit ? String(it.unit) : '';
+        let imageUrl = it.image_url ? String(it.image_url) : '';
 
         if (!unitVal && pid) {
           const prod = findProductById(pid);
           if (prod && prod.unit) unitVal = String(prod.unit);
         }
 
+        // Jika image_url tidak dikirim, ambil dari Products sheet
+        if (!imageUrl && pid) {
+          const prod = findProductById(pid);
+          if (prod && prod.image_url) imageUrl = String(prod.image_url);
+        }
+
         return {
           product_id: pid,
           product_name: it.product_name ? String(it.product_name) : '',
+          image_url: imageUrl,
           quantity: qty,
           price: priceNum,
           subtotal: it.subtotal !== undefined && it.subtotal !== null

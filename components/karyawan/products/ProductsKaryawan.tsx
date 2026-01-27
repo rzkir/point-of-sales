@@ -261,9 +261,11 @@ function ProductsKaryawanContent() {
             const items = cartItems.map((item) => ({
                 product_id: item.product_id,
                 product_name: item.product_name,
+                image_url: item.image_url,
                 quantity: item.quantity,
                 price: item.price,
                 subtotal: item.price * item.quantity,
+                unit: item.unit,
             }))
 
             const response = await fetch(API_CONFIG.ENDPOINTS.transactions.base, {
@@ -369,11 +371,10 @@ function ProductsKaryawanContent() {
                     <div className="flex gap-4 mb-6 overflow-x-auto pb-2">
                         <button
                             onClick={() => setSelectedCategory(null)}
-                            className={`flex flex-col items-center gap-2 p-4 rounded-lg border min-w-[120px] transition-all ${
-                                selectedCategory === null
+                            className={`flex flex-col items-center gap-2 p-4 rounded-lg border min-w-[120px] transition-all ${selectedCategory === null
                                     ? "bg-primary text-primary-foreground border-primary"
                                     : "bg-card border-border hover:bg-accent hover:text-accent-foreground"
-                            }`}
+                                }`}
                         >
                             <IconPackage className="size-6" />
                             <span className="font-medium text-sm">Semua</span>
@@ -387,11 +388,10 @@ function ProductsKaryawanContent() {
                                 <button
                                     key={category.name}
                                     onClick={() => setSelectedCategory(category.name)}
-                                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border min-w-[120px] transition-all ${
-                                        isSelected
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-lg border min-w-[120px] transition-all ${isSelected
                                             ? "bg-primary text-primary-foreground border-primary"
                                             : "bg-card border-border hover:bg-accent hover:text-accent-foreground"
-                                    }`}
+                                        }`}
                                 >
                                     <IconPackage className="size-6" />
                                     <span className="font-medium text-sm">{category.name}</span>
@@ -553,8 +553,8 @@ function ProductsKaryawanContent() {
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium text-sm">{item.product_name}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {item.quantity % 1 === 0 
-                                                ? `${item.quantity}${item.unit ? ` ${item.unit}` : "x"}` 
+                                            {item.quantity % 1 === 0
+                                                ? `${item.quantity}${item.unit ? ` ${item.unit}` : "x"}`
                                                 : `${item.quantity.toFixed(2)}${item.unit ? ` ${item.unit}` : ""}`}
                                         </p>
                                         <p className="text-sm font-semibold mt-1">

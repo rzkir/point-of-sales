@@ -20,6 +20,7 @@ interface Transaction {
     items?: string | Array<{
         product_id?: string | number;
         product_name: string;
+        image_url?: string;
         quantity: number;
         price: number;
         subtotal?: number;
@@ -44,9 +45,11 @@ interface TransactionItem {
     transaction_id: string | number;
     product_id: string | number;
     product_name: string;
+    image_url?: string;
     quantity: number;
     price: number;
     subtotal: number;
+    unit?: string;
     created_at?: string;
     updated_at?: string;
 }

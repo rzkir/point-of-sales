@@ -15,6 +15,7 @@ import {
   IconBox,
   IconBuildingStore,
   IconCategory,
+  IconCreditCard,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -45,34 +46,34 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Products",
+      title: "Produk",
       url: "/dashboard/products",
       icon: IconBox,
     },
     {
-      title: "Categories",
+      title: "Kategori",
       url: "/dashboard/categories",
       icon: IconCategory,
     },
     {
-      title: "Branches",
+      title: "Cabang",
       url: "/dashboard/branches",
       icon: IconBuilding,
     },
     {
-      title: "Employees",
+      title: "Karyawan",
       url: "/dashboard/employees",
       icon: IconUsers,
     },
     {
-      title: "Suppliers",
+      title: "Supplier",
       url: "/dashboard/suppliers",
       icon: IconBuildingStore,
     },
   ],
   navSecondary: [
     {
-      title: "Get Help",
+      title: "Bantuan",
       url: "#",
       icon: IconHelp,
     },
@@ -84,19 +85,24 @@ const data = {
   ],
   documents: [
     {
-      name: "Transactions",
+      name: "Transaksi",
       url: "/dashboard/transactions",
       icon: IconCreditCardFilled,
     },
     {
-      name: "Reports",
-      url: "/dashboard/reports",
-      icon: IconReport,
+      name: "Hutang",
+      url: "/dashboard/partial",
+      icon: IconCreditCard,
     },
     {
-      name: "Rekapitusi",
+      name: "Rekap",
       url: "/dashboard/rekapitusi",
       icon: IconFileWord,
+    },
+    {
+      name: "Laporan",
+      url: "/dashboard/reports",
+      icon: IconReport,
     },
   ],
 }

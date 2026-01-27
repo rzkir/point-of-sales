@@ -1,6 +1,7 @@
 "use client"
 
 import { IconPackage, IconReceipt } from "@tabler/icons-react"
+import Image from "next/image"
 
 import {
     Dialog,
@@ -31,6 +32,7 @@ export default function TransactionItem({ open, onOpenChange, transaction }: Tra
     let items: Array<{
         product_id?: string | number
         product_name: string
+        image_url?: string
         quantity: number
         price: number
         subtotal?: number
@@ -68,19 +70,19 @@ export default function TransactionItem({ open, onOpenChange, transaction }: Tra
                     {/* Transaction Info */}
                     <div className="grid gap-4 rounded-lg border bg-muted/30 p-4">
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                                 <div className="text-xs font-medium text-muted-foreground">Pelanggan</div>
                                 <div className="text-sm font-semibold">{transaction.customer_name || "Pelanggan Langsung"}</div>
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                                 <div className="text-xs font-medium text-muted-foreground">Cabang</div>
                                 <div className="text-sm font-semibold">{transaction.branch_name || "-"}</div>
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                                 <div className="text-xs font-medium text-muted-foreground">Kasir</div>
                                 <div className="text-sm font-semibold">{transaction.created_by || "-"}</div>
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                                 <div className="text-xs font-medium text-muted-foreground">Status</div>
                                 <div>
                                     {(() => {
@@ -96,7 +98,22 @@ export default function TransactionItem({ open, onOpenChange, transaction }: Tra
                                     })()}
                                 </div>
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-2">
+                                <div className="text-xs font-medium text-muted-foreground">Status Pembayaran</div>
+                                <div>
+                                    {(() => {
+                                        const paymentStatus = transaction.payment_status
+                                        const paymentStatusConfig = {
+                                            paid: { label: "Lunas", className: "bg-green-500/10 text-green-700 dark:text-green-400" },
+                                            unpaid: { label: "Belum Lunas", className: "bg-red-500/10 text-red-700 dark:text-red-400" },
+                                            partial: { label: "Sebagian", className: "bg-orange-500/10 text-orange-700 dark:text-orange-400" },
+                                        }
+                                        const config = paymentStatusConfig[paymentStatus as keyof typeof paymentStatusConfig] || paymentStatusConfig.unpaid
+                                        return <Badge className={config.className}>{config.label}</Badge>
+                                    })()}
+                                </div>
+                            </div>
+                            <div className="space-y-2">
                                 <div className="text-xs font-medium text-muted-foreground">Tanggal</div>
                                 <div className="text-sm font-semibold">{formatDateTime(transaction.created_at)}</div>
                             </div>
@@ -112,33 +129,56 @@ export default function TransactionItem({ open, onOpenChange, transaction }: Tra
                                     const subtotal = item.subtotal ?? (item.quantity * item.price)
                                     return (
                                         <Card key={item.product_id || `item-${index}`}>
-                                            <CardHeader className="pb-3">
-                                                <div className="flex items-center gap-2">
+                                            <CardHeader>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <CardTitle className="text-sm flex items-center gap-2">
+                                                        {item.image_url ? (
+                                                            <div className="relative size-12 rounded-lg overflow-hidden bg-muted shrink-0">
+                                                                <Image
+                                                                    src={item.image_url}
+                                                                    alt={item.product_name}
+                                                                    fill
+                                                                    className="object-cover"
+                                                                    sizes="48px"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                                                <IconPackage className="size-4" />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="truncate">{item.product_name}</span>
+                                                            {item.unit && (
+                                                                <div className="text-xs text-muted-foreground">{item.unit}</div>
+                                                            )}
+                                                        </div>
+                                                    </CardTitle>
+
                                                     <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold">
                                                         {index + 1}
                                                     </div>
-                                                    <CardTitle className="text-sm flex items-center gap-2">
-                                                        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                                            <IconPackage className="size-4" />
-                                                        </div>
-                                                        <span className="truncate">{item.product_name}</span>
-                                                    </CardTitle>
                                                 </div>
-                                                {item.unit && (
-                                                    <div className="text-xs text-muted-foreground pl-10">{item.unit}</div>
-                                                )}
                                             </CardHeader>
+
                                             <CardContent className="space-y-2">
                                                 <div className="grid grid-cols-3 gap-2 text-sm">
-                                                    <div className="space-y-1">
+                                                    <div className="space-y-2">
                                                         <div className="text-xs text-muted-foreground">Qty</div>
-                                                        <div className="font-medium">{item.quantity}</div>
+
+                                                        <div className="font-medium">
+                                                            {item.quantity % 1 === 0
+                                                                ? `${item.quantity}${item.unit ? ` ${item.unit}` : ""}`
+                                                                : `${item.quantity.toFixed(2)}${item.unit ? ` ${item.unit}` : ""}`}
+                                                        </div>
                                                     </div>
-                                                    <div className="space-y-1">
+
+                                                    <div className="space-y-2">
                                                         <div className="text-xs text-muted-foreground">Harga</div>
                                                         <div className="text-xs">{formatCurrency(item.price)}</div>
                                                     </div>
-                                                    <div className="space-y-1">
+
+                                                    <div className="space-y-2">
                                                         <div className="text-xs text-muted-foreground">Subtotal</div>
                                                         <div className="font-semibold">{formatCurrency(subtotal)}</div>
                                                     </div>
@@ -163,7 +203,7 @@ export default function TransactionItem({ open, onOpenChange, transaction }: Tra
 
                     {/* Summary */}
                     {items.length > 0 && (
-                        <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
+                        <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">Subtotal</span>
                                 <span className="font-medium">{formatCurrency(transaction.subtotal || 0)}</span>

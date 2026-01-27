@@ -15,8 +15,12 @@ import { fetchBranches } from "@/lib/config"
 
 import { createColumns } from "@/components/dashboard/transactions/modal/CreateColumnsTransactions"
 
-export function useStateTransactions(onViewItems?: (transaction: TransactionRow) => void) {
+export function useStateTransactions(
+    onViewItems?: (transaction: TransactionRow) => void,
+    initialPaymentStatusFilter?: string
+) {
     const [transactions, setTransactions] = React.useState<TransactionRow[]>([])
+    const [allFilteredTransactions, setAllFilteredTransactions] = React.useState<TransactionRow[]>([])
     const [isLoading, setIsLoading] = React.useState(true)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -31,7 +35,7 @@ export function useStateTransactions(onViewItems?: (transaction: TransactionRow)
 
     // Filter state
     const [statusFilter, setStatusFilter] = React.useState<string>("")
-    const [paymentStatusFilter, setPaymentStatusFilter] = React.useState<string>("")
+    const [paymentStatusFilter, setPaymentStatusFilter] = React.useState<string>(initialPaymentStatusFilter || "")
     const [branchFilter, setBranchFilter] = React.useState<string>("")
     const [searchQuery, setSearchQuery] = React.useState<string>("")
     const [searchInput, setSearchInput] = React.useState<string>("")
@@ -72,18 +76,26 @@ export function useStateTransactions(onViewItems?: (transaction: TransactionRow)
         manualPagination: true,
     })
 
-    // Calculate totals
+    // Calculate totals from all filtered transactions (not just paginated ones)
     const totalRevenue = React.useMemo(
-        () => transactions.reduce((sum, t) => sum + (t.total || 0), 0),
-        [transactions]
+        () => allFilteredTransactions.reduce((sum, t) => sum + (t.total || 0), 0),
+        [allFilteredTransactions]
     )
     const completedCount = React.useMemo(
-        () => transactions.filter((t) => t.status === "completed").length,
-        [transactions]
+        () => allFilteredTransactions.filter((t) => t.status === "completed").length,
+        [allFilteredTransactions]
     )
     const pendingCount = React.useMemo(
-        () => transactions.filter((t) => t.status === "pending").length,
-        [transactions]
+        () => allFilteredTransactions.filter((t) => t.status === "pending").length,
+        [allFilteredTransactions]
+    )
+    const totalDebt = React.useMemo(
+        () => allFilteredTransactions.reduce((sum, t) => {
+            // Calculate debt from due_amount if available, otherwise calculate from total - paid_amount
+            const debt = t.due_amount !== undefined ? t.due_amount : Math.max(0, (t.total || 0) - (t.paid_amount || 0))
+            return sum + debt
+        }, 0),
+        [allFilteredTransactions]
     )
 
     const loadTransactions = React.useCallback(async () => {
@@ -117,6 +129,9 @@ export function useStateTransactions(onViewItems?: (transaction: TransactionRow)
                     return transactionNumber.includes(searchLower) || customerName.includes(searchLower)
                 })
             }
+
+            // Store all filtered transactions for statistics calculation
+            setAllFilteredTransactions(filtered)
 
             // Apply pagination
             const startIndex = (page - 1) * limit
@@ -213,6 +228,7 @@ export function useStateTransactions(onViewItems?: (transaction: TransactionRow)
         totalRevenue,
         completedCount,
         pendingCount,
+        totalDebt,
         isLoadingBranches,
         branches,
         table,

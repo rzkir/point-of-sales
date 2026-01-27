@@ -8,34 +8,57 @@ import { TableRow, TableCell } from "@/components/ui/table"
 
 interface AppSkeletonProps {
     rows?: number
+    /** Jumlah kolom. Jika di-set, skeleton disinkronkan dengan struktur tabel (rows = baris per halaman, columns = kolom tabel). */
+    columns?: number
 }
 
-export function AppSkeleton({ rows = 5 }: AppSkeletonProps) {
+export function AppSkeleton({ rows = 5, columns }: AppSkeletonProps) {
+    const colCount = columns ?? 4
+
     return (
         <>
-            {Array.from({ length: rows }).map((_, index) => (
-                <TableRow key={index} className="hover:bg-transparent">
-                    <TableCell className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                            <Skeleton className="size-10 rounded-lg" />
-                            <Skeleton className="h-5 w-32" />
-                        </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                            <Skeleton className="size-4 rounded" />
-                            <Skeleton className="h-5 w-48" />
-                        </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                            <Skeleton className="size-4 rounded" />
-                            <Skeleton className="h-5 w-24" />
-                        </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                        <Skeleton className="size-9 rounded-md" />
-                    </TableCell>
+            {Array.from({ length: rows }).map((_, rowIndex) => (
+                <TableRow key={rowIndex} className="hover:bg-transparent">
+                    {Array.from({ length: colCount }).map((_, colIndex) => (
+                        <TableCell key={colIndex} className="px-6 py-4">
+                            {columns !== undefined ? (
+                                colIndex === 0 ? (
+                                    <div className="flex items-center gap-3">
+                                        <Skeleton className="size-10 shrink-0 rounded-lg" />
+                                        <Skeleton className="h-5 w-32" />
+                                    </div>
+                                ) : colIndex === colCount - 1 ? (
+                                    <Skeleton className="h-9 w-24 rounded-md" />
+                                ) : (
+                                    <Skeleton className="h-5 w-24" />
+                                )
+                            ) : (
+                                <>
+                                    {colIndex === 0 && (
+                                        <div className="flex items-center gap-3">
+                                            <Skeleton className="size-10 rounded-lg" />
+                                            <Skeleton className="h-5 w-32" />
+                                        </div>
+                                    )}
+                                    {colIndex === 1 && (
+                                        <div className="flex items-center gap-2">
+                                            <Skeleton className="size-4 rounded" />
+                                            <Skeleton className="h-5 w-48" />
+                                        </div>
+                                    )}
+                                    {colIndex === 2 && (
+                                        <div className="flex items-center gap-2">
+                                            <Skeleton className="size-4 rounded" />
+                                            <Skeleton className="h-5 w-24" />
+                                        </div>
+                                    )}
+                                    {colIndex === 3 && (
+                                        <Skeleton className="size-9 rounded-md" />
+                                    )}
+                                </>
+                            )}
+                        </TableCell>
+                    ))}
                 </TableRow>
             ))}
         </>

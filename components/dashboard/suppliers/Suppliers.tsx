@@ -128,7 +128,7 @@ export default function Suppliers() {
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
-                                    <AppSkeleton rows={5} />
+                                    <AppSkeleton rows={5} columns={table.getAllColumns().length} />
                                 ) : table.getRowModel().rows?.length ? (
                                     table.getRowModel().rows.map((row) => (
                                         <TableRow

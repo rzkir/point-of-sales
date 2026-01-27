@@ -237,7 +237,7 @@ export default function Products() {
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
-                                    <AppSkeleton rows={5} />
+                                    <AppSkeleton rows={limit} columns={table.getAllColumns().length} />
                                 ) : table.getRowModel().rows?.length ? (
                                     table.getRowModel().rows.map((row) => (
                                         <TableRow key={row.id} className="border-b transition-colors hover:bg-muted/50">

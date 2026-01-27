@@ -24,7 +24,8 @@ interface BottomSheetsProps {
     // Branch data
     branches: Array<{ id: string; name: string }>
     isLoadingBranches: boolean
-    // Check if any filter is active
+    /** Sembunyikan filter Payment Status (mis. di halaman Partial yang fixed ke "partial") */
+    hidePaymentStatusFilter?: boolean
 }
 
 export function TransactionFiltersSheet({
@@ -38,6 +39,7 @@ export function TransactionFiltersSheet({
     setBranchFilter,
     branches,
     isLoadingBranches,
+    hidePaymentStatusFilter = false,
 }: BottomSheetsProps) {
     // Local state for temporary filters (like searchInput for search)
     const [tempStatusFilter, setTempStatusFilter] = React.useState(statusFilter)
@@ -53,21 +55,29 @@ export function TransactionFiltersSheet({
         }
     }, [open, statusFilter, paymentStatusFilter, branchFilter])
 
-    // Check if any temporary filter is active
-    const hasTempActiveFilters = !!(tempStatusFilter || tempPaymentStatusFilter || tempBranchFilter)
+    // Check if any temporary filter is active (exclude payment status when hidden)
+    const hasTempActiveFilters = !!(
+        tempStatusFilter ||
+        tempBranchFilter ||
+        (!hidePaymentStatusFilter && tempPaymentStatusFilter)
+    )
 
     // Handle apply filters
     const handleApplyFilters = () => {
         setStatusFilter(tempStatusFilter)
-        setPaymentStatusFilter(tempPaymentStatusFilter)
+        if (!hidePaymentStatusFilter) {
+            setPaymentStatusFilter(tempPaymentStatusFilter)
+        }
         setBranchFilter(tempBranchFilter)
         onOpenChange(false)
     }
 
-    // Handle clear filters (only clear local state)
+    // Handle clear filters (only clear local state; skip payment status when hidden)
     const handleClearFilters = () => {
         setTempStatusFilter("")
-        setTempPaymentStatusFilter("")
+        if (!hidePaymentStatusFilter) {
+            setTempPaymentStatusFilter("")
+        }
         setTempBranchFilter("")
     }
 
@@ -77,7 +87,9 @@ export function TransactionFiltersSheet({
                 <SheetHeader>
                     <SheetTitle>Filter Transactions</SheetTitle>
                     <SheetDescription>
-                        Filter your transactions by status, payment status, or branch.
+                        {hidePaymentStatusFilter
+                            ? "Filter your transactions by status or branch."
+                            : "Filter your transactions by status, payment status, or branch."}
                     </SheetDescription>
                 </SheetHeader>
 
@@ -126,40 +138,41 @@ export function TransactionFiltersSheet({
                             </div>
                         </div>
 
-                        {/* Payment Status Filter */}
-                        <div className="flex flex-col space-y-2">
-                            <label className="text-sm font-medium">Payment Status</label>
-                            <div className="flex flex-wrap gap-2">
-                                <Button
-                                    variant={!tempPaymentStatusFilter ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setTempPaymentStatusFilter("")}
-                                >
-                                    All Payment Status
-                                </Button>
-                                <Button
-                                    variant={tempPaymentStatusFilter === "paid" ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setTempPaymentStatusFilter("paid")}
-                                >
-                                    Paid
-                                </Button>
-                                <Button
-                                    variant={tempPaymentStatusFilter === "unpaid" ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setTempPaymentStatusFilter("unpaid")}
-                                >
-                                    Unpaid
-                                </Button>
-                                <Button
-                                    variant={tempPaymentStatusFilter === "partial" ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setTempPaymentStatusFilter("partial")}
-                                >
-                                    Partial
-                                </Button>
+                        {!hidePaymentStatusFilter && (
+                            <div className="flex flex-col space-y-2">
+                                <label className="text-sm font-medium">Payment Status</label>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button
+                                        variant={!tempPaymentStatusFilter ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setTempPaymentStatusFilter("")}
+                                    >
+                                        All Payment Status
+                                    </Button>
+                                    <Button
+                                        variant={tempPaymentStatusFilter === "paid" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setTempPaymentStatusFilter("paid")}
+                                    >
+                                        Paid
+                                    </Button>
+                                    <Button
+                                        variant={tempPaymentStatusFilter === "unpaid" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setTempPaymentStatusFilter("unpaid")}
+                                    >
+                                        Unpaid
+                                    </Button>
+                                    <Button
+                                        variant={tempPaymentStatusFilter === "partial" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setTempPaymentStatusFilter("partial")}
+                                    >
+                                        Partial
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Branch Filter */}
                         <div className="flex flex-col space-y-2">

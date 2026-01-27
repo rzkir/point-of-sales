@@ -35,7 +35,7 @@ import { TransactionFiltersSheet } from "@/components/BottomSheets"
 
 import TransactionItem from "@/components/dashboard/transactions/modal/TransactionItem"
 
-export default function Transactions() {
+export default function Partial() {
     const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false)
     const [selectedTransaction, setSelectedTransaction] = React.useState<TransactionRow | null>(null)
     const [isItemDialogOpen, setIsItemDialogOpen] = React.useState(false)
@@ -67,16 +67,15 @@ export default function Transactions() {
         setBranchFilter,
         setSearchInput,
         handleApplySearch,
-        totalRevenue,
         completedCount,
         pendingCount,
         totalDebt,
         isLoadingBranches,
         branches,
         table,
-    } = useStateTransactions(handleViewItems)
+    } = useStateTransactions(handleViewItems, "partial")
 
-    const hasActiveFilters = !!(statusFilter || paymentStatusFilter || branchFilter || searchQuery)
+    const hasActiveFilters = !!(statusFilter || branchFilter || searchQuery)
 
     return (
         <section className="space-y-6">
@@ -93,7 +92,7 @@ export default function Transactions() {
                             <div className="space-y-2 flex-1">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                                        Transaksi
+                                        Transaksi Partial
                                     </h1>
                                     {!isLoading && total > 0 && (
                                         <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
@@ -102,7 +101,7 @@ export default function Transactions() {
                                     )}
                                 </div>
                                 <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                                    Lihat dan kelola semua transaksi penjualan Anda. Lacak pembayaran, kredit, dan riwayat transaksi.
+                                    Lihat dan kelola semua transaksi dengan pembayaran partial. Lacak pembayaran yang belum lunas dan hutang pelanggan.
                                 </p>
                             </div>
                         </div>
@@ -110,31 +109,20 @@ export default function Transactions() {
                 </CardContent>
             </Card>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {isLoading ? (
-                    <CardSkeleton count={4} />
+                    <CardSkeleton count={3} />
                 ) : (
                     <>
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Total Revenue</span>
-                                    <IconReceipt className="size-4 text-muted-foreground" />
+                                    <span className="text-sm font-medium text-muted-foreground">Total Hutang</span>
+                                    <div className="size-2 rounded-full bg-red-500" />
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(totalRevenue)}</div>
-                            </CardContent>
-                        </Card>
-                        <Card className="border-2">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Selesai</span>
-                                    <div className="size-2 rounded-full bg-green-500" />
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{completedCount}</div>
+                                <div className="text-2xl font-bold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(totalDebt)}</div>
                             </CardContent>
                         </Card>
                         <Card className="border-2">
@@ -151,12 +139,12 @@ export default function Transactions() {
                         <Card className="border-2">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-muted-foreground">Total Hutang</span>
-                                    <div className="size-2 rounded-full bg-red-500" />
+                                    <span className="text-sm font-medium text-muted-foreground">Selesai</span>
+                                    <div className="size-2 rounded-full bg-green-500" />
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(totalDebt)}</div>
+                                <div className="text-2xl font-bold">{completedCount}</div>
                             </CardContent>
                         </Card>
                     </>
@@ -237,9 +225,9 @@ export default function Transactions() {
                                                     <IconReceipt className="size-8 text-muted-foreground" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <h3 className="text-lg font-semibold">Tidak ada transaksi ditemukan</h3>
+                                                    <h3 className="text-lg font-semibold">Tidak ada transaksi partial ditemukan</h3>
                                                     <p className="text-sm text-muted-foreground max-w-sm">
-                                                        Transaksi akan muncul di sini setelah Anda mulai melakukan penjualan
+                                                        Transaksi dengan pembayaran partial akan muncul di sini
                                                     </p>
                                                 </div>
                                             </div>
@@ -339,6 +327,7 @@ export default function Transactions() {
                 setBranchFilter={setBranchFilter}
                 branches={branches}
                 isLoadingBranches={isLoadingBranches}
+                hidePaymentStatusFilter
             />
 
             <TransactionItem
