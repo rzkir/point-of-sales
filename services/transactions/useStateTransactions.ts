@@ -220,6 +220,8 @@ export function useStateTransactions(
 
     return {
         transactions,
+        // All transactions after filter (tanpa pagination), dipakai untuk statistik & chart
+        allFilteredTransactions,
         isLoading,
         page,
         limit,

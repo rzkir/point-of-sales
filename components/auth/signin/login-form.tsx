@@ -1,10 +1,12 @@
 "use client"
 
-import { FormEvent } from "react"
+import { FormEvent, useState } from "react"
 
 import { useRouter } from "next/navigation"
 
 import Link from "next/link"
+
+import { Eye, EyeOff } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -30,6 +32,8 @@ export function LoginForm({
 }: React.ComponentProps<"form">) {
   const router = useRouter()
   const { login, isLoading, error, clearError } = useAuth()
+
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -70,7 +74,14 @@ export function LoginForm({
 
         <Field>
           <FieldLabel htmlFor="identifier">Email or Name</FieldLabel>
-          <Input id="identifier" name="identifier" type="text" placeholder="email@example.com or your name" required disabled={isLoading} />
+          <Input
+            id="identifier"
+            name="identifier"
+            type="text"
+            placeholder="email@example.com or your name"
+            required
+            disabled={isLoading}
+          />
         </Field>
         <Field>
           <div className="flex items-center">
@@ -82,7 +93,28 @@ export function LoginForm({
               Forgot your password?
             </a>
           </div>
-          <Input id="password" name="password" type="password" required disabled={isLoading} />
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              required
+              disabled={isLoading}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+          </div>
         </Field>
         <Field>
           <Button type="submit" disabled={isLoading}>
