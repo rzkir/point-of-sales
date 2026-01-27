@@ -75,7 +75,7 @@ export default function Partial() {
         table,
     } = useStateTransactions(handleViewItems, "partial")
 
-    const hasActiveFilters = !!(statusFilter || branchFilter || searchQuery)
+    const hasActiveFilters = !!(branchFilter || searchQuery)
 
     return (
         <section className="space-y-6">
@@ -327,6 +327,7 @@ export default function Partial() {
                 setBranchFilter={setBranchFilter}
                 branches={branches}
                 isLoadingBranches={isLoadingBranches}
+                hideStatusFilter
                 hidePaymentStatusFilter
             />
 
