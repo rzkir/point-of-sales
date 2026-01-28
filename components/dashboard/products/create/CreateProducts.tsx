@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+
 import { useRouter } from "next/navigation"
 
 import Image from "next/image"
@@ -88,6 +90,8 @@ export default function CreateProducts() {
         showScanDialog,
         scanElementId,
         formRef,
+        cameras,
+        selectedCameraId,
         NO_BRANCH_VALUE,
         priceDisplay,
         modalDisplay,
@@ -114,7 +118,10 @@ export default function CreateProducts() {
         generateNewBarcode,
         startScanning,
         stopScanning,
+        handleCameraChange,
     } = useStateCreateProducts()
+
+    const [showBarcodeDialog, setShowBarcodeDialog] = useState(false)
 
     return (
         <section className="flex flex-col gap-6 rounded-lg border bg-card p-6 shadow-sm">
@@ -201,20 +208,16 @@ export default function CreateProducts() {
                                 Barcode otomatis dihasilkan. Klik ikon refresh untuk generate baru atau ikon QR untuk scan.
                             </FieldDescription>
                             {barcode && (
-                                <div className="mt-4 flex flex-col items-center gap-2 rounded-lg border border-border bg-muted/30 p-4">
-                                    <p className="text-xs font-medium text-muted-foreground">Pratinjau Barcode</p>
-                                    <div className="flex items-center justify-center rounded-md bg-white p-4">
-                                        <Barcode
-                                            value={barcode}
-                                            format="CODE128"
-                                            width={2}
-                                            height={60}
-                                            displayValue={true}
-                                            fontSize={14}
-                                            margin={10}
-                                        />
-                                    </div>
-                                    <p className="text-xs text-muted-foreground break-all">{barcode}</p>
+                                <div className="mt-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setShowBarcodeDialog(true)}
+                                        disabled={isSubmitting}
+                                    >
+                                        Lihat barcode
+                                    </Button>
                                 </div>
                             )}
                         </Field>
@@ -561,6 +564,39 @@ export default function CreateProducts() {
                 </div>
             </form>
 
+            <Dialog open={showBarcodeDialog} onOpenChange={setShowBarcodeDialog}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Pratinjau Barcode</DialogTitle>
+                        <DialogDescription>
+                            Barcode untuk produk ini akan ditampilkan di bawah.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                        {barcode ? (
+                            <>
+                                <div className="flex items-center justify-center rounded-md bg-white p-4">
+                                    <Barcode
+                                        value={barcode}
+                                        format="CODE128"
+                                        width={2}
+                                        height={60}
+                                        displayValue={true}
+                                        fontSize={14}
+                                        margin={10}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground break-all">{barcode}</p>
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                Barcode belum tersedia. Silakan generate atau isi barcode terlebih dahulu.
+                            </p>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={showScanDialog} onOpenChange={(open) => !open && stopScanning()}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -570,6 +606,30 @@ export default function CreateProducts() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
+                        {cameras.length > 0 && (
+                            <Field>
+                                <FieldLabel>Pilih Kamera</FieldLabel>
+                                <Select
+                                    value={selectedCameraId || cameras[0].id}
+                                    onValueChange={(value) => handleCameraChange(value)}
+                                    disabled={!isScanning}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Pilih kamera" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {cameras.map((camera) => (
+                                            <SelectItem key={camera.id} value={camera.id}>
+                                                {camera.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FieldDescription>
+                                    Jika perangkat punya kamera depan & belakang, pilih di sini.
+                                </FieldDescription>
+                            </Field>
+                        )}
                         <div
                             id={scanElementId}
                             className="w-full rounded-lg border border-border overflow-hidden bg-muted/50"

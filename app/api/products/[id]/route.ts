@@ -279,9 +279,6 @@ export async function DELETE(
       );
     }
 
-    // Debug logging
-    console.log('Delete product request received:', { id });
-
     // Validasi APPS_SCRIPT_URL
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
       return NextResponse.json(
@@ -290,14 +287,11 @@ export async function DELETE(
       );
     }
 
-    // Prepare request body for Apps Script
     const requestBody = {
       action: 'delete',
       sheet: 'Products',
       id,
     };
-
-    console.log('Sending to Apps Script:', requestBody);
 
     // Panggil Google Apps Script
     const response = await fetch(APPS_SCRIPT_URL, {

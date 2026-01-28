@@ -4,13 +4,24 @@ import { useRouter } from "next/navigation"
 
 import { toast } from "sonner"
 
-import { Html5Qrcode } from "html5-qrcode"
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode"
 
 import { API_CONFIG, fetchBranches, fetchSuppliers } from "@/lib/config"
 
 const NO_BRANCH_VALUE = "__none__"
 
 import { formatNumber, parseNumber } from "@/lib/format-idr"
+
+type RawCameraDevice = {
+    id?: string
+    cameraId?: string
+    label?: string
+}
+
+type CameraOption = {
+    id: string
+    label: string
+}
 
 // Generate unique barcode
 const generateBarcode = (): string => {
@@ -39,6 +50,8 @@ export function useStateCreateProducts() {
     const [barcode, setBarcode] = React.useState<string>("")
     const [isScanning, setIsScanning] = React.useState(false)
     const [showScanDialog, setShowScanDialog] = React.useState(false)
+    const [cameras, setCameras] = React.useState<CameraOption[]>([])
+    const [selectedCameraId, setSelectedCameraId] = React.useState<string>("")
     const scannerRef = React.useRef<Html5Qrcode | null>(null)
     const scanElementId = "barcode-scanner"
     const formRef = React.useRef<HTMLFormElement>(null)
@@ -224,6 +237,32 @@ export function useStateCreateProducts() {
         toast.success("Barcode baru telah dihasilkan")
     }
 
+    const startScannerWithCamera = async (scanner: Html5Qrcode, cameraId: string) => {
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+            // Fokus ke tipe barcode yang sama dengan react-barcode (CODE128)
+            formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
+            // Paksa gunakan decoder ZXing, bukan BarcodeDetector native
+            // karena di beberapa browser desktop BarcodeDetector sering hanya support QR
+            useBarCodeDetectorIfSupported: false,
+        }
+
+        await scanner.start(
+            cameraId,
+            config,
+            (decodedText: string) => {
+                setBarcode(decodedText)
+                stopScanning()
+                toast.success("Barcode berhasil di-scan")
+            },
+            () => {
+                // Ignore scanning errors (they're frequent during scanning)
+            }
+        )
+    }
+
     const startScanning = async () => {
         try {
             setShowScanDialog(true)
@@ -232,30 +271,55 @@ export function useStateCreateProducts() {
             // Wait for dialog to render
             await new Promise((resolve) => setTimeout(resolve, 100))
 
+            const devices = (await Html5Qrcode.getCameras()) as RawCameraDevice[]
+
+            if (!devices || devices.length === 0) {
+                toast.error("Tidak ada kamera yang terdeteksi di perangkat ini.")
+                setIsScanning(false)
+                setShowScanDialog(false)
+                return
+            }
+
+            const cameraOptions: CameraOption[] = devices.map((device, index) => {
+                const id = device.id ?? device.cameraId ?? String(index)
+                const label = device.label || `Kamera ${index + 1}`
+                return { id, label }
+            })
+
+            setCameras(cameraOptions)
+
+            // Pilih default: coba kamera belakang jika ada di label, kalau tidak ambil pertama
+            const preferredCamera =
+                cameraOptions.find((cam) => cam.label.toLowerCase().includes("back")) ?? cameraOptions[0]
+
+            setSelectedCameraId(preferredCamera.id)
+
             const scanner = new Html5Qrcode(scanElementId)
             scannerRef.current = scanner
 
-            await scanner.start(
-                { facingMode: "environment" },
-                {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0,
-                },
-                (decodedText) => {
-                    setBarcode(decodedText)
-                    stopScanning()
-                    toast.success("Barcode berhasil di-scan")
-                },
-                () => {
-                    // Ignore scanning errors (they're frequent during scanning)
-                }
-            )
+            await startScannerWithCamera(scanner, preferredCamera.id)
         } catch (error) {
             console.error("Error starting scanner:", error)
             toast.error("Gagal mengakses kamera. Pastikan izin kamera telah diberikan.")
             setIsScanning(false)
             setShowScanDialog(false)
+        }
+    }
+
+    const handleCameraChange = async (cameraId: string) => {
+        setSelectedCameraId(cameraId)
+
+        if (!scannerRef.current) {
+            return
+        }
+
+        try {
+            setIsScanning(true)
+            await scannerRef.current.stop()
+            await startScannerWithCamera(scannerRef.current, cameraId)
+        } catch (error) {
+            console.error("Error switching camera:", error)
+            toast.error("Gagal mengganti kamera. Coba tutup dan buka lagi pemindaian.")
         }
     }
 
@@ -607,6 +671,8 @@ export function useStateCreateProducts() {
         setShowScanDialog,
         scanElementId,
         formRef,
+        cameras,
+        selectedCameraId,
         // Constants
         NO_BRANCH_VALUE,
         // Format number state
@@ -638,5 +704,6 @@ export function useStateCreateProducts() {
         generateNewBarcode,
         startScanning,
         stopScanning,
+        handleCameraChange,
     }
 }

@@ -50,18 +50,36 @@ async function callAppsScript(
     clientPage?: number,
     clientLimit?: number
 ) {
-    // Extract filters for filtering in Next.js (don't send to Apps Script)
-    const branchNameFilter = requestBody.branch_name as string | undefined;
-    const categoryIdFilter = requestBody.category_id as string | undefined;
-    const categoryNameFilter = requestBody.category_name as string | undefined;
-    const supplierNameFilter = requestBody.supplier_name as string | undefined;
-    const searchFilter = requestBody.search as string | undefined;
-    const appsScriptRequestBody = { ...requestBody };
-    delete appsScriptRequestBody.branch_name;
-    delete appsScriptRequestBody.category_id;
-    delete appsScriptRequestBody.category_name;
-    delete appsScriptRequestBody.supplier_name;
-    delete appsScriptRequestBody.search;
+    /**
+     * IMPORTANT:
+     * - For "list" action we treat branch_name, category_id, category_name, supplier_name, search
+     *   as client-side filters only, so we REMOVE them before sending to Apps Script and
+     *   apply filtering/pagination here.
+     * - For non-"list" actions (create/update/etc.) we MUST NOT strip these fields,
+     *   otherwise Apps Script will never receive branch/category/supplier values.
+     */
+
+    const isListAction = requestBody.action === "list";
+
+    // Extract filters only for list action (used later for in-memory filtering)
+    const branchNameFilter = isListAction ? (requestBody.branch_name as string | undefined) : undefined;
+    const categoryIdFilter = isListAction ? (requestBody.category_id as string | undefined) : undefined;
+    const categoryNameFilter = isListAction ? (requestBody.category_name as string | undefined) : undefined;
+    const supplierNameFilter = isListAction ? (requestBody.supplier_name as string | undefined) : undefined;
+    const searchFilter = isListAction ? (requestBody.search as string | undefined) : undefined;
+
+    // Only strip filter fields when we're doing a list operation
+    const appsScriptRequestBody = isListAction
+        ? (() => {
+            const cloned = { ...requestBody };
+            delete cloned.branch_name;
+            delete cloned.category_id;
+            delete cloned.category_name;
+            delete cloned.supplier_name;
+            delete cloned.search;
+            return cloned;
+        })()
+        : requestBody;
 
     const response = await fetch(APPS_SCRIPT_URL!, {
         method: "POST",
@@ -93,7 +111,7 @@ async function callAppsScript(
         );
     }
 
-    if (includePagination) {
+    if (includePagination && isListAction) {
         const allProducts = Array.isArray(data.data) ? data.data : [];
 
         // Sort products by created_at or updated_at (newest first), fallback to id
