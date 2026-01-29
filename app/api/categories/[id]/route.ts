@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 
-// Ganti dengan Web App URL dari Google Apps Script
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE"
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL
 
-// Secret untuk otorisasi request ke Apps Script
 const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET
 
-/**
- * GET /api/categories/[id] - Get category by ID
- */
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> },
 ) {
     try {
-        // Auth (header) untuk akses endpoint ini
         if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
@@ -28,7 +22,7 @@ export async function GET(
             )
         }
 
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+        if (!APPS_SCRIPT_URL) {
             return NextResponse.json(
                 { success: false, message: "Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local" },
                 { status: 500 },
@@ -78,15 +72,11 @@ export async function GET(
     }
 }
 
-/**
- * PUT /api/categories/[id] - Update category
- */
 export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> },
 ) {
     try {
-        // Auth (header) untuk akses endpoint ini
         if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
@@ -102,7 +92,7 @@ export async function PUT(
             )
         }
 
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+        if (!APPS_SCRIPT_URL) {
             return NextResponse.json(
                 { success: false, message: "Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local" },
                 { status: 500 },
@@ -172,15 +162,11 @@ export async function PUT(
     }
 }
 
-/**
- * DELETE /api/categories/[id] - Delete category
- */
 export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> },
 ) {
     try {
-        // Auth (header) untuk akses endpoint ini
         if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
@@ -194,7 +180,7 @@ export async function DELETE(
             )
         }
 
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+        if (!APPS_SCRIPT_URL) {
             return NextResponse.json(
                 { success: false, message: "Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local" },
                 { status: 500 },

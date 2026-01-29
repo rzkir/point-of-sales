@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Ganti dengan Web App URL dari Google Apps Script
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
 
-// Secret untuk otorisasi request ke Apps Script
 const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET;
 
-/**
- * GET /api/branches/[id] - Get branch by ID
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Auth (header) untuk akses endpoint ini
     if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -28,15 +22,13 @@ export async function GET(
       );
     }
 
-    // Validasi APPS_SCRIPT_URL
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+    if (!APPS_SCRIPT_URL) {
       return NextResponse.json(
         { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
         { status: 500 }
       );
     }
 
-    // Panggil Google Apps Script untuk get branch
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: {
@@ -46,7 +38,6 @@ export async function GET(
       body: JSON.stringify({ action: 'get', id }),
     });
 
-    // Cek content type
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const textResponse = await response.text();
@@ -87,15 +78,11 @@ export async function GET(
   }
 }
 
-/**
- * PUT /api/branches/[id] - Update branch
- */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Auth (header) untuk akses endpoint ini
     if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -111,18 +98,13 @@ export async function PUT(
       );
     }
 
-    // Debug logging
-    console.log('Update branch request received:', { id, name, address });
-
-    // Validasi APPS_SCRIPT_URL
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+    if (!APPS_SCRIPT_URL) {
       return NextResponse.json(
         { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
         { status: 500 }
       );
     }
 
-    // Prepare request body for Apps Script
     const requestBody: {
       action: string;
       id: string;
@@ -140,9 +122,6 @@ export async function PUT(
       requestBody.address = String(address).trim();
     }
 
-    console.log('Sending to Apps Script:', requestBody);
-
-    // Panggil Google Apps Script
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: {
@@ -152,7 +131,6 @@ export async function PUT(
       body: JSON.stringify(requestBody),
     });
 
-    // Cek content type
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const textResponse = await response.text();
@@ -167,12 +145,6 @@ export async function PUT(
     }
 
     const data = await response.json();
-
-    console.log('Apps Script response:', {
-      success: data.success,
-      message: data.message,
-      hasData: !!data.data
-    });
 
     if (!data.success) {
       console.error('Update branch failed from Apps Script:', data.message);
@@ -199,15 +171,11 @@ export async function PUT(
   }
 }
 
-/**
- * DELETE /api/branches/[id] - Delete branch
- */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Auth (header) untuk akses endpoint ini
     if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -221,26 +189,18 @@ export async function DELETE(
       );
     }
 
-    // Debug logging
-    console.log('Delete branch request received:', { id });
-
-    // Validasi APPS_SCRIPT_URL
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+    if (!APPS_SCRIPT_URL) {
       return NextResponse.json(
         { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
         { status: 500 }
       );
     }
 
-    // Prepare request body for Apps Script
     const requestBody = {
       action: 'delete',
       id,
     };
 
-    console.log('Sending to Apps Script:', requestBody);
-
-    // Panggil Google Apps Script
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: {
@@ -250,7 +210,6 @@ export async function DELETE(
       body: JSON.stringify(requestBody),
     });
 
-    // Cek content type
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const textResponse = await response.text();
@@ -265,11 +224,6 @@ export async function DELETE(
     }
 
     const data = await response.json();
-
-    console.log('Apps Script response:', {
-      success: data.success,
-      message: data.message
-    });
 
     if (!data.success) {
       console.error('Delete branch failed from Apps Script:', data.message);

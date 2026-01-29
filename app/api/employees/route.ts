@@ -4,24 +4,7 @@ const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
 
 const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET;
 
-// Helper: Check authorization
-function checkAuth(request: NextRequest): NextResponse | null {
-  if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return null;
-}
-
-// Helper: Validate Apps Script URL
-function validateAppsScriptUrl(): NextResponse | null {
-  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
-    return NextResponse.json(
-      { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
-      { status: 500 }
-    );
-  }
-  return null;
-}
+import { checkAuth, validateAppsScriptUrl } from "@/lib/validation"
 
 // Helper: Call Apps Script API and handle response
 async function callAppsScript(requestBody: Record<string, unknown>) {

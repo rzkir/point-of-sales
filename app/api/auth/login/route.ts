@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Ganti dengan Web App URL dari Google Apps Script
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+import { jsonError } from '@/lib/validation';
 
-function jsonError(message: string, status: number) {
-  return NextResponse.json({ success: false, message }, { status });
-}
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +30,6 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(requestBody),
     });
 
-    // Cek content type
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const textResponse = await response.text();
@@ -57,11 +53,10 @@ export async function POST(request: NextRequest) {
       data: data.data,
     });
 
-    // httpOnly session cookie untuk GET /api/auth/session
     res.cookies.set('session', JSON.stringify(data.data), {
       httpOnly: true,
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 hari
+      maxAge: 60 * 60 * 24 * 7,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
     });

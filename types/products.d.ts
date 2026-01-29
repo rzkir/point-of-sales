@@ -129,3 +129,29 @@ type KaryawanProductsResponse = {
     hasPrev: boolean
   }
 }
+
+type AppsScriptProductUpdateRequest = {
+  action: 'update';
+  sheet: 'Products';
+  id: string;
+  name?: string;
+  price?: number;
+  modal?: number;
+  stock?: number;
+  sold?: number;
+  size?: number;
+  unit?: string;
+  image_url?: string;
+  category_id?: string;
+  category_name?: string;
+  barcode?: string;
+  is_active?: boolean;
+  min_stock?: number;
+  description?: string;
+  supplier_id?: string;
+  supplier_name?: string;
+  expiration_date?: string;
+  updated_by?: string;
+  branch_id?: string;
+  branch_name?: string;
+};

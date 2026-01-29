@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 
-/**
- * GET /api/auth/session
- * Mengembalikan user dari cookie session (httpOnly) atau fallback user.role.
- */
 export async function GET(request: NextRequest) {
     const session = request.cookies.get("session")?.value
 
@@ -14,11 +10,9 @@ export async function GET(request: NextRequest) {
                 return NextResponse.json({ success: true, data: user })
             }
         } catch {
-            // ignore invalid JSON
         }
     }
 
-    // Fallback: hanya user.role dari client cookie (tanpa session httpOnly)
     const role = request.cookies.get("user.role")?.value
     if (role) {
         return NextResponse.json({
@@ -30,10 +24,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: null })
 }
 
-/**
- * DELETE /api/auth/session
- * Menghapus cookie session dan user.role (untuk logout).
- */
 export async function DELETE() {
     const res = NextResponse.json({ success: true, message: "Logged out" })
     res.cookies.set("session", "", { path: "/", maxAge: 0 })

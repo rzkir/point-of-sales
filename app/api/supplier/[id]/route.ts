@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Ganti dengan Web App URL dari Google Apps Script
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
 
-// Secret untuk otorisasi request ke Apps Script
 const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET;
 
-/**
- * GET /api/supplier/[id] - Get supplier by ID
- */
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        // Auth (header) untuk akses endpoint ini
         if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -28,25 +22,22 @@ export async function GET(
             );
         }
 
-        // Validasi APPS_SCRIPT_URL
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        if (!APPS_SCRIPT_URL) {
             return NextResponse.json(
                 { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
                 { status: 500 }
             );
         }
 
-        // Panggil Google Apps Script untuk get supplier
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${API_SECRET}`,
             },
-            body: JSON.stringify({ action: 'get', sheet: 'Suppliers', id }),
+            body: JSON.stringify({ action: 'get', sheet: process.env.NEXT_PUBLIC_SUPPLIERS, id }),
         });
 
-        // Cek content type
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const textResponse = await response.text();
@@ -87,15 +78,11 @@ export async function GET(
     }
 }
 
-/**
- * PUT /api/supplier/[id] - Update supplier
- */
 export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        // Auth (header) untuk akses endpoint ini
         if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -111,18 +98,13 @@ export async function PUT(
             );
         }
 
-        // Debug logging
-        console.log('Update supplier request received:', { id, name, contact_person, phone, email, address, is_active });
-
-        // Validasi APPS_SCRIPT_URL
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        if (!APPS_SCRIPT_URL) {
             return NextResponse.json(
                 { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
                 { status: 500 }
             );
         }
 
-        // Prepare request body for Apps Script
         const requestBody: {
             action: string;
             sheet: string;
@@ -135,7 +117,7 @@ export async function PUT(
             is_active?: boolean;
         } = {
             action: 'update',
-            sheet: 'Suppliers',
+            sheet: process.env.NEXT_PUBLIC_SUPPLIERS as string,
             id,
         };
 
@@ -158,9 +140,6 @@ export async function PUT(
             requestBody.is_active = is_active;
         }
 
-        console.log('Sending to Apps Script:', requestBody);
-
-        // Panggil Google Apps Script
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
             headers: {
@@ -170,7 +149,6 @@ export async function PUT(
             body: JSON.stringify(requestBody),
         });
 
-        // Cek content type
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const textResponse = await response.text();
@@ -185,12 +163,6 @@ export async function PUT(
         }
 
         const data = await response.json();
-
-        console.log('Apps Script response:', {
-            success: data.success,
-            message: data.message,
-            hasData: !!data.data
-        });
 
         if (!data.success) {
             console.error('Update supplier failed from Apps Script:', data.message);
@@ -217,15 +189,11 @@ export async function PUT(
     }
 }
 
-/**
- * DELETE /api/supplier/[id] - Delete supplier
- */
 export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        // Auth (header) untuk akses endpoint ini
         if (!API_SECRET || request.headers.get("authorization") !== `Bearer ${API_SECRET}`) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -239,27 +207,19 @@ export async function DELETE(
             );
         }
 
-        // Debug logging
-        console.log('Delete supplier request received:', { id });
-
-        // Validasi APPS_SCRIPT_URL
-        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE') {
+        if (!APPS_SCRIPT_URL) {
             return NextResponse.json(
                 { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
                 { status: 500 }
             );
         }
 
-        // Prepare request body for Apps Script
         const requestBody = {
             action: 'delete',
-            sheet: 'Suppliers',
+            sheet: process.env.NEXT_PUBLIC_SUPPLIERS,
             id,
         };
 
-        console.log('Sending to Apps Script:', requestBody);
-
-        // Panggil Google Apps Script
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
             headers: {
@@ -269,7 +229,6 @@ export async function DELETE(
             body: JSON.stringify(requestBody),
         });
 
-        // Cek content type
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const textResponse = await response.text();
@@ -284,11 +243,6 @@ export async function DELETE(
         }
 
         const data = await response.json();
-
-        console.log('Apps Script response:', {
-            success: data.success,
-            message: data.message
-        });
 
         if (!data.success) {
             console.error('Delete supplier failed from Apps Script:', data.message);
