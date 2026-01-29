@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
-
-import { validateAppsScriptUrl, validateId, callAppsScript, getSessionUser } from "@/lib/validation"
+import { validateAppsScriptUrl, validateId, callAppsScript, getSessionUser, checkAuth } from "@/lib/validation"
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = checkAuth(request);
+    if (authError) return authError;
+
     const { id } = await params;
     const idError = validateId(id);
     if (idError) return idError;
@@ -34,6 +35,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = checkAuth(request);
+    if (authError) return authError;
+
     const { id } = await params;
     const idError = validateId(id);
     if (idError) return idError;
@@ -156,21 +160,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authError = checkAuth(request);
+    if (authError) return authError;
+
     const { id } = await params;
 
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: 'Product ID is required' },
-        { status: 400 }
-      );
-    }
+    const idError = validateId(id);
+    if (idError) return idError;
 
-    if (!APPS_SCRIPT_URL) {
-      return NextResponse.json(
-        { success: false, message: 'Apps Script URL is not configured. Please set APPS_SCRIPT_URL in .env.local' },
-        { status: 500 }
-      );
-    }
+    const urlError = validateAppsScriptUrl();
+    if (urlError) return urlError;
 
     const requestBody = {
       action: 'delete',
@@ -178,41 +177,7 @@ export async function DELETE(
       id,
     };
 
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const textResponse = await response.text();
-      console.error('Apps Script returned non-JSON response:', textResponse.substring(0, 500));
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid response from Apps Script. Please check your Apps Script deployment and URL.'
-        },
-        { status: 500 }
-      );
-    }
-
-    const data = await response.json();
-
-    if (!data.success) {
-      console.error('Delete product failed from Apps Script:', data.message);
-      return NextResponse.json(
-        { success: false, message: data.message },
-        { status: data.message.includes('not found') ? 404 : 400 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: data.message,
-    });
+    return await callAppsScript(requestBody);
   } catch (error) {
     console.error('Delete product error:', error);
     return NextResponse.json(

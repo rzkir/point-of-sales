@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+
 import { Menu } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+
 import {
     Select,
     SelectContent,
@@ -11,8 +13,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+
 import { Textarea } from "@/components/ui/textarea";
+
 import { Button } from "@/components/ui/button";
+
 import {
     Sheet,
     SheetContent,
@@ -20,575 +25,88 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 
-type ApiMethod = "GET" | "POST" | "PUT" | "DELETE";
+import { Badge, CodeBlock, SidebarContent } from "@/components/docs";
 
-type ApiRoute = {
-    path: string;
-    methods: ApiMethod[];
-    auth?: "Bearer" | "Cookie" | "None";
-    notes?: string;
-    description?: string;
-    example?: {
-        title: string;
-        curl: string;
-    };
-};
+import apiRoutesData from "@/app/dashboard/data.json";
 
-const API_ROUTES: ApiRoute[] = [
-    {
-        path: "/api/auth/register",
-        methods: ["POST"],
-        auth: "None",
-        description: "Daftar user baru via Apps Script.",
-        notes: "Body JSON berisi `email`, `name`, dan `password`.",
-        example: {
-            title: "Register",
-            curl: `curl -X POST "${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/register" \\\n  -H "Content-Type: application/json" \\\n  -d '{"email":"user@mail.com","name":"User","password":"secret"}'`,
-        },
-    },
-    {
-        path: "/api/auth/login",
-        methods: ["POST"],
-        auth: "None",
-        description: "Login dan set cookie `session`. Bisa pakai `email` atau `name`.",
-        notes: "Jika berhasil, server akan meng-set cookie `session` yang dipakai oleh endpoint lain.",
-        example: {
-            title: "Login (set cookie session)",
-            curl: `curl -i -X POST "${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/login" \\\n  -H "Content-Type: application/json" \\\n  -d '{"email":"user@mail.com","password":"secret"}'`,
-        },
-    },
-    {
-        path: "/api/auth/session",
-        methods: ["GET", "DELETE"],
-        auth: "Cookie",
-        description: "Cek session aktif atau logout.",
-        notes: "`GET` membaca cookie `session`, `DELETE` menghapus cookie `session` dan `user.role`.",
-        example: {
-            title: "Get session",
-            curl: `curl -X GET "${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/session" \\\n  -H "Cookie: session=<paste-cookie-value-here>"`,
-        },
-    },
-
-    { path: "/api/products", methods: ["GET", "POST"], auth: "Bearer", description: "List & create products.", notes: "`GET` mendukung query `page`, `limit`, `branch_name`, `category_id`, `category_name`, `supplier_name`, `search`." },
-    { path: "/api/products/[id]", methods: ["GET", "PUT", "DELETE"], auth: "None", description: "Get, update, dan delete product by id.", notes: "Perhatikan: file ini tidak memakai `checkAuth`, tapi tetap meneruskan request ke Apps Script." },
-    { path: "/api/products/upload", methods: ["POST"], auth: "None", description: "Upload gambar/asset product.", notes: "Biasanya dipakai bersamaan dengan create/update product." },
-
-    { path: "/api/karyawan", methods: ["POST"], auth: "Bearer", description: "Endpoint internal untuk role karyawan." },
-    { path: "/api/karyawan/products", methods: ["GET"], auth: "Bearer", description: "List products untuk karyawan." },
-    { path: "/api/karyawan/products/[id]", methods: ["GET"], auth: "Bearer", description: "Detail product untuk karyawan." },
-    { path: "/api/karyawan/products/search", methods: ["GET"], auth: "Bearer", description: "Search product untuk karyawan.", notes: "Query pencarian tergantung implementasi (mis. `search` atau `q`)." },
-    {
-        path: "/api/karyawan/products/popular",
-        methods: ["GET"],
-        auth: "Bearer",
-        description: "Popular products by branch.",
-        notes: "Wajib query `branch_name`, opsional `limit` (default 10, max 100).",
-        example: {
-            title: "Popular products",
-            curl: `curl -X GET "${process.env.NEXT_PUBLIC_BASE_URL}/api/karyawan/products/popular?branch_name=Langgeng%20Jaya%201&limit=10" \\\n  -H "Authorization: Bearer <NEXT_PUBLIC_API_SECRET>"`,
-        },
-    },
-    { path: "/api/karyawan/transaction", methods: ["GET"], auth: "Bearer", description: "Transaksi (karyawan) via Apps Script." },
-
-    { path: "/api/branches", methods: ["GET", "POST"], auth: "None", description: "Branches CRUD (list/create)." },
-    { path: "/api/branches/[id]", methods: ["GET", "PUT", "DELETE"], auth: "None", description: "Branch by id." },
-
-    { path: "/api/categories", methods: ["GET", "POST"], auth: "None", description: "Categories CRUD (list/create)." },
-    { path: "/api/categories/[id]", methods: ["GET", "PUT", "DELETE"], auth: "None", description: "Category by id." },
-
-    { path: "/api/employees", methods: ["GET", "POST"], auth: "None", description: "Employees list/create." },
-    { path: "/api/employees/[id]", methods: ["GET", "PUT", "DELETE"], auth: "Bearer", description: "Employee by id.", notes: "Route ini memakai `checkAuth`." },
-
-    { path: "/api/supplier", methods: ["GET", "POST"], auth: "None", description: "Supplier list/create." },
-    { path: "/api/supplier/[id]", methods: ["GET", "PUT", "DELETE"], auth: "None", description: "Supplier by id." },
-
-    { path: "/api/transactions", methods: ["GET", "POST"], auth: "Bearer", description: "Transactions list/create.", notes: "Route ini memakai `checkAuth`." },
-    { path: "/api/transactions/[id]", methods: ["GET", "PUT", "DELETE"], auth: "Bearer", description: "Transaction by id.", notes: "Route ini memakai `checkAuth`." },
-
-    { path: "/api/profile", methods: ["GET", "PUT"], auth: "Bearer", description: "Get/update profile.", notes: "Route ini memakai `checkAuth`." },
-    { path: "/api/profile/password", methods: ["POST"], auth: "Bearer", description: "Update password.", notes: "Route ini memakai `checkAuth`." },
-    { path: "/api/profile/upload", methods: ["POST"], auth: "None", description: "Upload foto/profile asset." },
-];
-
-function Badge({ children }: { children: React.ReactNode }) {
-    return (
-        <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-            {children}
-        </span>
-    );
-}
-
-function highlightJSON(code: string): React.ReactNode {
-    try {
-        // Verify it's valid JSON
-        JSON.parse(code);
-
-        // Use a simpler approach: replace JSON patterns with highlighted spans
-        const parts: Array<{ start: number; end: number; type: 'key' | 'string' | 'number' | 'boolean' | 'null' }> = [];
-
-        // Find all JSON strings (keys and values)
-        const stringRegex = /"([^"\\]|\\.)*"/g;
-        let match;
-        while ((match = stringRegex.exec(code)) !== null) {
-            // Check if it's a key (followed by :)
-            const afterMatch = code.substring(match.index + match[0].length).trim();
-            if (afterMatch.startsWith(':')) {
-                parts.push({ start: match.index, end: match.index + match[0].length, type: 'key' });
-            } else {
-                parts.push({ start: match.index, end: match.index + match[0].length, type: 'string' });
-            }
-        }
-
-        // Find numbers (not inside strings)
-        const numberRegex = /\b(-?\d+\.?\d*)\b/g;
-        while ((match = numberRegex.exec(code)) !== null) {
-            const isInsideString = parts.some(p => match!.index >= p.start && match!.index < p.end);
-            if (!isInsideString) {
-                parts.push({ start: match.index, end: match.index + match[0].length, type: 'number' });
-            }
-        }
-
-        // Find booleans and null (not inside strings)
-        const keywordRegex = /\b(true|false|null)\b/g;
-        while ((match = keywordRegex.exec(code)) !== null) {
-            const isInsideString = parts.some(p => match!.index >= p.start && match!.index < p.end);
-            if (!isInsideString) {
-                if (match[0] === 'null') {
-                    parts.push({ start: match.index, end: match.index + match[0].length, type: 'null' });
-                } else {
-                    parts.push({ start: match.index, end: match.index + match[0].length, type: 'boolean' });
-                }
-            }
-        }
-
-        // Sort parts by position
-        parts.sort((a, b) => a.start - b.start);
-
-        // Build React elements
-        const elements: React.ReactNode[] = [];
-        let lastIndex = 0;
-
-        parts.forEach((part, idx) => {
-            // Add text before this part
-            if (part.start > lastIndex) {
-                const beforeText = code.substring(lastIndex, part.start);
-                // Split by punctuation to highlight them, but preserve all characters
-                const segments = beforeText.split(/([\{\}\[\]\:\,])/);
-                segments.forEach((seg, segIdx) => {
-                    if (seg.match(/[\{\}\[\]\:\,]/)) {
-                        elements.push(
-                            <span key={`punct-${idx}-${segIdx}`} className="text-foreground">{seg}</span>
-                        );
-                    } else {
-                        // Preserve whitespace and newlines
-                        elements.push(
-                            <span key={`text-${idx}-${segIdx}`} className="text-foreground">{seg}</span>
-                        );
-                    }
-                });
-            }
-
-            // Add the highlighted part
-            const partText = code.substring(part.start, part.end);
-            const className =
-                part.type === 'key' ? 'text-blue-600 dark:text-blue-400' :
-                    part.type === 'string' ? 'text-emerald-600 dark:text-emerald-400' :
-                        part.type === 'number' ? 'text-amber-600 dark:text-amber-400' :
-                            part.type === 'boolean' ? 'text-purple-600 dark:text-purple-400' :
-                                'text-gray-500 dark:text-gray-400';
-
-            elements.push(
-                <span key={`part-${idx}`} className={className}>{partText}</span>
-            );
-
-            lastIndex = part.end;
-        });
-
-        // Add remaining text
-        if (lastIndex < code.length) {
-            const remaining = code.substring(lastIndex);
-            const segments = remaining.split(/([\{\}\[\]\:\,])/);
-            segments.forEach((seg, segIdx) => {
-                if (seg.match(/[\{\}\[\]\:\,]/)) {
-                    elements.push(
-                        <span key={`punct-end-${segIdx}`} className="text-foreground">{seg}</span>
-                    );
-                } else {
-                    // Preserve whitespace and newlines
-                    elements.push(
-                        <span key={`text-end-${segIdx}`} className="text-foreground">{seg}</span>
-                    );
-                }
-            });
-        }
-
-        return <>{elements}</>;
-    } catch {
-        // Not valid JSON, return as plain text
-        return <span className="text-foreground">{code}</span>;
-    }
-}
-
-function JsonViewer({
-    value,
-    path = "$",
-}: {
-    value: unknown;
-    path?: string;
-}) {
-    const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
-
-    const toggle = (p: string) => {
-        setCollapsed((prev) => ({ ...prev, [p]: !prev[p] }));
-    };
-
-    const isCollapsed = (p: string) => Boolean(collapsed[p]);
-
-    const renderNode = (v: unknown, p: string, indent: number): React.ReactNode => {
-        const pad = " ".repeat(indent);
-
-        if (v === null) return <span className="text-gray-500 dark:text-gray-400">null</span>;
-        if (typeof v === "boolean") return <span className="text-purple-600 dark:text-purple-400">{String(v)}</span>;
-        if (typeof v === "number") return <span className="text-amber-600 dark:text-amber-400">{String(v)}</span>;
-        if (typeof v === "string") return <span className="text-emerald-600 dark:text-emerald-400">{JSON.stringify(v)}</span>;
-
-        if (Array.isArray(v)) {
-            const open = <span className="text-foreground">[</span>;
-            const close = <span className="text-foreground">]</span>;
-            const count = v.length;
-
-            if (count === 0) return <>{open}{close}</>;
-
-            if (isCollapsed(p)) {
-                return (
-                    <>
-                        <button
-                            type="button"
-                            onClick={() => toggle(p)}
-                            className="mr-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-foreground hover:bg-accent hover:text-accent-foreground align-middle"
-                            title="Expand array"
-                        >
-                            +
-                        </button>
-                        {open}
-                        <span className="text-muted-foreground">… {count} items …</span>
-                        {close}
-                    </>
-                );
-            }
-
-            return (
-                <>
-                    <button
-                        type="button"
-                        onClick={() => toggle(p)}
-                        className="mr-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-foreground hover:bg-accent hover:text-accent-foreground align-middle"
-                        title="Collapse array"
-                    >
-                        −
-                    </button>
-                    {open}
-                    {"\n"}
-                    {v.map((item, idx) => {
-                        const childPath = `${p}[${idx}]`;
-                        return (
-                            <React.Fragment key={childPath}>
-                                {pad}
-                                {"  "}
-                                {renderNode(item, childPath, indent + 2)}
-                                {idx < v.length - 1 ? <span className="text-foreground">,</span> : null}
-                                {"\n"}
-                            </React.Fragment>
-                        );
-                    })}
-                    {pad}
-                    {close}
-                </>
-            );
-        }
-
-        if (typeof v === "object" && v) {
-            const obj = v as Record<string, unknown>;
-            const keys = Object.keys(obj);
-            const open = <span className="text-foreground">{"{"}</span>;
-            const close = <span className="text-foreground">{"}"}</span>;
-
-            if (keys.length === 0) return <>{open}{close}</>;
-
-            if (isCollapsed(p)) {
-                return (
-                    <>
-                        <button
-                            type="button"
-                            onClick={() => toggle(p)}
-                            className="mr-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-foreground hover:bg-accent hover:text-accent-foreground align-middle"
-                            title="Expand object"
-                        >
-                            +
-                        </button>
-                        {open}
-                        <span className="text-muted-foreground">… {keys.length} keys …</span>
-                        {close}
-                    </>
-                );
-            }
-
-            return (
-                <>
-                    <button
-                        type="button"
-                        onClick={() => toggle(p)}
-                        className="mr-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-foreground hover:bg-accent hover:text-accent-foreground align-middle"
-                        title="Collapse object"
-                    >
-                        −
-                    </button>
-                    {open}
-                    {"\n"}
-                    {keys.map((k, idx) => {
-                        const childPath = `${p}.${k}`;
-                        return (
-                            <React.Fragment key={childPath}>
-                                {pad}
-                                {"  "}
-                                <span className="text-blue-600 dark:text-blue-400">{JSON.stringify(k)}</span>
-                                <span className="text-foreground">: </span>
-                                {renderNode(obj[k], childPath, indent + 2)}
-                                {idx < keys.length - 1 ? <span className="text-foreground">,</span> : null}
-                                {"\n"}
-                            </React.Fragment>
-                        );
-                    })}
-                    {pad}
-                    {close}
-                </>
-            );
-        }
-
-        return <span className="text-foreground">{String(v)}</span>;
-    };
-
-    return (
-        <code className="wrap-break-word whitespace-pre-wrap">
-            {renderNode(value, path, 0)}
-        </code>
-    );
-}
-
-function CodeBlock({ code }: { code: string }) {
-    const isJSON = (() => {
-        try {
-            JSON.parse(code);
-            return true;
-        } catch {
-            return false;
-        }
-    })();
-
-    const [collapsed, setCollapsed] = React.useState<boolean>(false);
-    const [copied, setCopied] = React.useState(false);
-
-    React.useEffect(() => {
-        // Reset UI state when code changes
-        setCollapsed(false);
-        setCopied(false);
-    }, [code]);
-
-    const parsedJson = React.useMemo(() => {
-        if (!isJSON) return null;
-        try {
-            return JSON.parse(code) as unknown;
-        } catch {
-            return null;
-        }
-    }, [code, isJSON]);
-
-    const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(code);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1200);
-        } catch {
-            // Fallback for older browsers / permission issues
-            try {
-                const textarea = document.createElement("textarea");
-                textarea.value = code;
-                textarea.style.position = "fixed";
-                textarea.style.left = "-9999px";
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand("copy");
-                document.body.removeChild(textarea);
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 1200);
-            } catch {
-                // ignore
-            }
-        }
-    };
-
-    return (
-        <div className="mt-2 overflow-hidden rounded-lg border border-border bg-muted max-w-full">
-            <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
-                <div className="text-[10px] font-medium text-muted-foreground">
-                    {isJSON ? "JSON" : "Text"}
-                </div>
-                <div className="flex items-center gap-2">
-                    {isJSON && (
-                        <button
-                            type="button"
-                            onClick={() => setCollapsed((v) => !v)}
-                            className="rounded border border-border bg-background px-2 py-1 text-[10px] text-foreground hover:bg-accent hover:text-accent-foreground"
-                        >
-                            {collapsed ? "Expand" : "Collapse"}
-                        </button>
-                    )}
-                    <button
-                        type="button"
-                        onClick={handleCopy}
-                        className="rounded border border-border bg-background px-2 py-1 text-[10px] text-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                        {copied ? "Copied" : "Copy"}
-                    </button>
-                </div>
-            </div>
-
-            {collapsed && isJSON ? (
-                <div className="px-3 py-2 text-xs font-mono text-muted-foreground">
-                    {"{…}"}
-                </div>
-            ) : (
-                <pre className="overflow-auto p-3 text-xs text-foreground">
-                    {isJSON && parsedJson !== null ? (
-                        <JsonViewer value={parsedJson} />
-                    ) : (
-                        <code className="wrap-break-word whitespace-pre-wrap">
-                            {isJSON ? highlightJSON(code) : <span className="text-foreground">{code}</span>}
-                        </code>
-                    )}
-                </pre>
-            )}
-        </div>
-    );
-}
-
-type ApiResponse = {
-    status: number;
-    statusText: string;
-    headers: Record<string, string>;
-    body: unknown;
-    error?: string;
-};
-
-function SidebarContent({
-    selected,
-    setSelected,
-    defaultBaseUrl,
-    onRouteSelect,
-}: {
-    selected: ApiRoute | null;
-    setSelected: (route: ApiRoute) => void;
-    defaultBaseUrl: string;
-    onRouteSelect?: () => void;
-}) {
-    const handleRouteClick = (route: ApiRoute) => {
-        setSelected(route);
-        onRouteSelect?.();
-    };
-
-    return (
-        <>
-            <div>
-                <h1 className="text-xl font-semibold text-foreground">API Reference</h1>
-                <p className="mt-1 text-xs text-muted-foreground">
-                    Base URL: <span className="font-mono break-all">{defaultBaseUrl}</span>
-                </p>
-            </div>
-
-            <div className="rounded-lg border border-border bg-muted p-3 text-xs text-foreground">
-                <div className="font-medium">Authentication</div>
-                <ul className="mt-2 space-y-1 text-muted-foreground">
-                    <li>
-                        <b className="text-foreground">Bearer</b>: header{" "}
-                        <span className="font-mono break-all">
-                            Authorization: Bearer &lt;NEXT_PUBLIC_API_SECRET&gt;
-                        </span>
-                    </li>
-                    <li>
-                        <b className="text-foreground">Cookie</b>: cookie <span className="font-mono">session</span> untuk endpoint auth.
-                    </li>
-                </ul>
-            </div>
-
-            <div className="space-y-1 text-xs font-medium text-muted-foreground">
-                <div>Endpoints</div>
-                <div className="max-h-[60vh] space-y-1 overflow-auto rounded-md border border-border bg-card p-1">
-                    {API_ROUTES.map((route) => (
-                        <button
-                            key={route.path}
-                            type="button"
-                            onClick={() => handleRouteClick(route)}
-                            className={`flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent hover:text-accent-foreground ${selected?.path === route.path ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
-                                }`}
-                        >
-                            <div className="flex flex-col min-w-0 flex-1">
-                                <span className="font-mono text-[11px] sm:text-xs break-all">{route.path}</span>
-                                <span className="text-[10px] text-muted-foreground line-clamp-1">
-                                    {route.description ?? route.notes ?? ""}
-                                </span>
-                            </div>
-                            <div className="flex flex-col items-end gap-1 shrink-0">
-                                <div className="flex flex-wrap gap-1">
-                                    {route.methods.map((m) => (
-                                        <span
-                                            key={`${route.path}-${m}`}
-                                            className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${m === "GET"
-                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                                : m === "POST"
-                                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                                    : m === "PUT"
-                                                        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                                        : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
-                                                }`}
-                                        >
-                                            {m}
-                                        </span>
-                                    ))}
-                                </div>
-                                {route.auth && (
-                                    <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                                        {route.auth}
-                                    </span>
-                                )}
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </>
-    );
-}
+const API_ROUTES: ApiRoute[] = apiRoutesData as ApiRoute[];
 
 export default function DocsPage() {
     const defaultBaseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "";
     const [selected, setSelected] = React.useState<ApiRoute | null>(API_ROUTES[0] ?? null);
-    const [baseUrl, setBaseUrl] = React.useState(defaultBaseUrl);
     const [apiSecret, setApiSecret] = React.useState("");
     const [selectedMethod, setSelectedMethod] = React.useState<ApiMethod>("GET");
     const [queryParams, setQueryParams] = React.useState<Array<{ key: string; value: string }>>([]);
     const [requestBody, setRequestBody] = React.useState("");
     const [customHeaders, setCustomHeaders] = React.useState<Array<{ key: string; value: string }>>([]);
+    const [pathParams, setPathParams] = React.useState<Record<string, string>>({});
     const [response, setResponse] = React.useState<ApiResponse | null>(null);
     const [loading, setLoading] = React.useState(false);
     const [sheetOpen, setSheetOpen] = React.useState(false);
 
+    // Extract dynamic path parameters (e.g., [id], [name])
+    const extractPathParams = (path: string): string[] => {
+        const matches = path.match(/\[(\w+)\]/g);
+        if (!matches) return [];
+        return matches.map((m) => m.slice(1, -1)); // Remove brackets
+    };
+
+    // Extract query parameters from example curl command
+    const extractQueryParamsFromExample = (route: ApiRoute): Array<{ key: string; value: string }> => {
+        if (!route.example?.curl) return [];
+
+        try {
+            // Remove backslash continuation and normalize whitespace
+            const normalizedCurl = route.example.curl.replace(/\\\s*\n\s*/g, " ").trim();
+            
+            // Extract URL from curl command (between quotes)
+            // Try double quotes first, then single quotes
+            const urlMatch = normalizedCurl.match(/["']([^"']+?)["']/) || normalizedCurl.match(/["']([^"']+)["']/);
+            if (!urlMatch) return [];
+
+            let url = urlMatch[1];
+
+            // Replace {{BASE_URL}} placeholder with dummy domain
+            url = url.replace(/\{\{BASE_URL\}\}/g, "https://example.com");
+
+            // Add protocol if missing (required for URL constructor)
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                url = "https://" + url;
+            }
+
+            const urlObj = new URL(url);
+            const params: Array<{ key: string; value: string }> = [];
+
+            urlObj.searchParams.forEach((value, key) => {
+                // Decode URL-encoded values (e.g., Langgeng%20Jaya%201 -> Langgeng Jaya 1)
+                params.push({ key, value: decodeURIComponent(value) });
+            });
+
+            return params;
+        } catch {
+            return [];
+        }
+    };
+
     React.useEffect(() => {
         if (selected) {
             setSelectedMethod(selected.methods[0] ?? "GET");
-            setQueryParams([]);
+
+            // Extract query parameters from example if available
+            const exampleParams = extractQueryParamsFromExample(selected);
+            setQueryParams(exampleParams.length > 0 ? exampleParams : []);
+
             setRequestBody("");
             setCustomHeaders([]);
             setResponse(null);
+
+            // Initialize path parameters
+            const params = extractPathParams(selected.path);
+            const initialParams: Record<string, string> = {};
+            params.forEach((param) => {
+                initialParams[param] = "";
+            });
+            setPathParams(initialParams);
         }
     }, [selected]);
 
@@ -622,7 +140,15 @@ export default function DocsPage() {
 
     const buildUrl = () => {
         if (!selected) return "";
-        let url = `${baseUrl}${selected.path}`;
+        let url = `${defaultBaseUrl}${selected.path}`;
+
+        // Replace path parameters (e.g., [id] -> actual value)
+        const pathParamsList = extractPathParams(selected.path);
+        pathParamsList.forEach((param) => {
+            const value = pathParams[param] || "";
+            url = url.replace(`[${param}]`, encodeURIComponent(value));
+        });
+
         const validParams = queryParams.filter((p) => p.key.trim() !== "");
         if (validParams.length > 0) {
             const searchParams = new URLSearchParams();
@@ -804,9 +330,9 @@ export default function DocsPage() {
                                         </label>
                                         <Input
                                             type="text"
-                                            value={baseUrl}
-                                            onChange={(e) => setBaseUrl(e.target.value)}
-                                            className="w-full px-2 py-1.5 text-xs font-mono"
+                                            value={defaultBaseUrl}
+                                            readOnly
+                                            className="w-full px-2 py-1.5 text-xs font-mono bg-muted cursor-not-allowed"
                                             placeholder={defaultBaseUrl}
                                         />
                                     </div>
@@ -847,6 +373,36 @@ export default function DocsPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
+
+                                {/* Path Parameters */}
+                                {selected && extractPathParams(selected.path).length > 0 && (
+                                    <div>
+                                        <label className="mb-2 block text-xs font-medium text-foreground">
+                                            Path Parameters
+                                        </label>
+                                        <div className="space-y-2">
+                                            {extractPathParams(selected.path).map((param) => (
+                                                <div key={param}>
+                                                    <label className="mb-1 block text-xs text-muted-foreground">
+                                                        {param}
+                                                    </label>
+                                                    <Input
+                                                        type="text"
+                                                        value={pathParams[param] || ""}
+                                                        onChange={(e) =>
+                                                            setPathParams({
+                                                                ...pathParams,
+                                                                [param]: e.target.value,
+                                                            })
+                                                        }
+                                                        placeholder={`Enter ${param}`}
+                                                        className="w-full px-2 py-1.5 text-xs font-mono"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* URL Preview */}
                                 <div>

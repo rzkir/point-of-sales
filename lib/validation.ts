@@ -353,6 +353,9 @@ export async function callAppsScriptKaryawan(
     const appsScriptRequestBody = { ...requestBody };
     delete appsScriptRequestBody.branch_name;
 
+    // Check if this is a transaction request (not a product request)
+    const isTransaction = requestBody.sheet === process.env.NEXT_PUBLIC_TRANSACTIONS;
+
     const response = await fetch(APPS_SCRIPT_URL!, {
         method: "POST",
         headers: {
@@ -384,14 +387,14 @@ export async function callAppsScriptKaryawan(
     }
 
     if (includePagination) {
-        const products = Array.isArray(data.data) ? data.data : [];
+        const items = Array.isArray(data.data) ? data.data : [];
 
-        const sortedProducts = [...products].sort((a: ProductRow, b: ProductRow) => {
+        const sortedItems = [...items].sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
             if (a.updated_at && b.updated_at) {
-                return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+                return new Date(b.updated_at as string).getTime() - new Date(a.updated_at as string).getTime();
             }
             if (a.created_at && b.created_at) {
-                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                return new Date(b.created_at as string).getTime() - new Date(a.created_at as string).getTime();
             }
             if (a.id && b.id) {
                 return Number(b.id) - Number(a.id);
@@ -399,12 +402,12 @@ export async function callAppsScriptKaryawan(
             return 0;
         });
 
-        let filteredByBranch = sortedProducts;
+        let filteredByBranch = sortedItems;
         if (branchNameFilter) {
             const branchNameLower = branchNameFilter.trim().toLowerCase();
-            filteredByBranch = sortedProducts.filter((product: Record<string, unknown>) => {
-                const productBranchName = String(product.branch_name || "").trim().toLowerCase();
-                return productBranchName === branchNameLower;
+            filteredByBranch = sortedItems.filter((item: Record<string, unknown>) => {
+                const itemBranchName = String(item.branch_name || "").trim().toLowerCase();
+                return itemBranchName === branchNameLower;
             });
         }
 
@@ -418,7 +421,8 @@ export async function callAppsScriptKaryawan(
         const endIndex = Math.min(offset + limit, total);
         const paginatedByBranch = filteredByBranch.slice(startIndex, endIndex);
 
-        const filteredProducts = filterKaryawanProductFields(paginatedByBranch);
+        // Only filter product fields if this is NOT a transaction request
+        const finalData = isTransaction ? paginatedByBranch : filterKaryawanProductFields(paginatedByBranch);
 
         const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
         const hasNext = page < totalPages;
@@ -427,7 +431,7 @@ export async function callAppsScriptKaryawan(
         return NextResponse.json({
             success: true,
             message: data.message,
-            data: filteredProducts,
+            data: finalData,
             pagination: {
                 page,
                 limit,
@@ -442,13 +446,16 @@ export async function callAppsScriptKaryawan(
     let filteredData = Array.isArray(data.data) ? data.data : data.data;
     if (branchNameFilter && Array.isArray(filteredData)) {
         const branchNameLower = branchNameFilter.trim().toLowerCase();
-        filteredData = filteredData.filter((product: Record<string, unknown>) => {
-            const productBranchName = String(product.branch_name || "").trim().toLowerCase();
-            return productBranchName === branchNameLower;
+        filteredData = filteredData.filter((item: Record<string, unknown>) => {
+            const itemBranchName = String(item.branch_name || "").trim().toLowerCase();
+            return itemBranchName === branchNameLower;
         });
     }
 
-    const finalData = Array.isArray(filteredData) ? filterKaryawanProductFields(filteredData) : filteredData;
+    // Only filter product fields if this is NOT a transaction request
+    const finalData = isTransaction
+        ? filteredData
+        : (Array.isArray(filteredData) ? filterKaryawanProductFields(filteredData) : filteredData);
 
     return NextResponse.json({
         success: true,

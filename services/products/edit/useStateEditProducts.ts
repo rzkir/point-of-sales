@@ -225,11 +225,10 @@ export function useStateEditProducts(productId?: string) {
             const formData = new FormData()
             formData.append("file", file)
 
-            const apiSecret = process.env.NEXT_PUBLIC_API_SECRET || ""
-            const response = await fetch("/api/products/upload", {
+            const response = await fetch(API_CONFIG.ENDPOINTS.products.upload, {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${apiSecret}`,
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: formData,
             })

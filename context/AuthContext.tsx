@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 
 import { useRouter } from "next/navigation"
 
+import { API_CONFIG } from "@/lib/config"
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 function getInitialUser(): User | null {
@@ -39,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(null)
 
         try {
-            const response = await fetch("/api/auth/login", {
+            const response = await fetch(API_CONFIG.ENDPOINTS.auth.login, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -47,12 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 body: JSON.stringify(credentials),
             })
 
-            // Parse response
             let data: AuthResponse
             try {
                 data = await response.json()
             } catch {
-                // Jika response bukan JSON
                 setError(`Server error: ${response.status} ${response.statusText}`)
                 setIsLoading(false)
                 return null
@@ -64,7 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 return null
             }
 
-            // Save user to state and localStorage
             setUser(data.data)
             if (typeof window !== "undefined") {
                 localStorage.setItem("user", JSON.stringify(data.data))
@@ -94,32 +93,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(null)
 
         try {
-            console.log("Register: Sending request with data:", {
-                email: data.email,
-                name: data.name,
-                hasPassword: !!data.password,
-                hasConfirmPassword: !!data.confirmPassword
-            })
-
-            const response = await fetch("/api/auth/register", {
+            const response = await fetch(API_CONFIG.ENDPOINTS.auth.register, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: JSON.stringify(data),
             })
 
-            console.log("Register: Response status:", response.status, response.statusText)
-
-            // Parse response
             let result: AuthResponse
             try {
                 result = await response.json()
-                console.log("Register: Parsed response:", result)
-            } catch (parseError) {
-                // Jika response bukan JSON
+            } catch {
                 const errorMsg = `Server error: ${response.status} ${response.statusText}`
-                console.error("Register: Failed to parse response:", parseError)
                 setError(errorMsg)
                 setIsLoading(false)
                 return false
@@ -127,17 +114,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (!result.success) {
                 const errorMsg = result.message || "Registration failed"
-                console.log("Register: Registration failed:", errorMsg)
                 setError(errorMsg)
                 setIsLoading(false)
                 return false
             }
 
-            console.log("Register: Success!")
             setIsLoading(false)
             return true
         } catch (error) {
-            console.error("Register: Exception occurred:", error)
             setError(error instanceof Error ? error.message : "An error occurred. Please try again.")
             setIsLoading(false)
             return false
@@ -148,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         if (typeof window !== "undefined") {
             localStorage.removeItem("user")
-            await fetch("/api/auth/session", { method: "DELETE", credentials: "include" })
+            await fetch(API_CONFIG.ENDPOINTS.auth.session, { method: "DELETE", credentials: "include" })
         }
         router.push("/")
     }
@@ -164,11 +148,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(null)
 
         try {
-            const response = await fetch("/api/profile", {
+            const response = await fetch(API_CONFIG.ENDPOINTS.auth.profile, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_SECRET}`,
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: JSON.stringify({
                     id: user.id,

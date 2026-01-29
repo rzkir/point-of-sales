@@ -143,11 +143,10 @@ export function useStateCreateProducts() {
 
         setIsUploadingImage(true)
         try {
-            const apiSecret = process.env.NEXT_PUBLIC_API_SECRET || ""
-            const response = await fetch("/api/products/upload", {
+            const response = await fetch(API_CONFIG.ENDPOINTS.products.upload, {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${apiSecret}`,
+                    Authorization: `Bearer ${API_CONFIG.SECRET}`,
                 },
                 body: formData,
             })

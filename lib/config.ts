@@ -15,6 +15,7 @@ export const API_CONFIG = {
             login: `${API_BASE_URL}/api/auth/login`,
             register: `${API_BASE_URL}/api/auth/register`,
             session: `${API_BASE_URL}/api/auth/session`,
+            profile: `${API_BASE_URL}/api/profile`,
         },
         products: {
             base: `${API_BASE_URL}/api/products`,
