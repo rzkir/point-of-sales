@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { checkAuth, validateAppsScriptUrl, filterProductFields, callAppsScriptPopular } from "@/lib/validation"
+import { checkAuth, validateAppsScriptUrl, filterPopularProductFields, callAppsScriptPopular } from "@/lib/validation"
 
 export async function GET(request: NextRequest) {
     try {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             success: true,
             message: "Popular products fetched successfully",
-            data: filterProductFields(top),
+            data: filterPopularProductFields(top),
             meta: {
                 branch_name: branchName.trim(),
                 limit,

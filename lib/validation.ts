@@ -298,22 +298,17 @@ export async function callAppsScriptPopular(requestBody: Record<string, unknown>
 
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
-        await response.text();
-        return NextResponse.json(
-            {
-                success: false,
-                message: "Invalid response from Apps Script. Please check your Apps Script deployment and URL.",
-            },
-            { status: 500 }
+        // Consume body for better diagnostics in logs, but surface a clear error.
+        const text = await response.text();
+        throw new Error(
+            `Invalid response from Apps Script (content-type: ${contentType ?? "unknown"}, status: ${response.status}). ` +
+            `Body: ${text?.slice(0, 300) ?? ""}`
         );
     }
 
     const data = await response.json();
     if (!data.success) {
-        return NextResponse.json(
-            { success: false, message: data.message },
-            { status: 400 }
-        );
+        throw new Error(data?.message || "Apps Script request failed");
     }
 
     return data;
