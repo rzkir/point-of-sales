@@ -11,6 +11,7 @@ interface User {
     roleType: RoleType;
     branchId: string;
     branchName?: string;
+    avatar?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -22,6 +23,7 @@ interface Accounts {
     password: string;
     roleType: RoleType;
     branchId: string;
+    avatar?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -56,4 +58,5 @@ interface AuthContextType {
     logout: () => void | Promise<void>
     isAuthenticated: boolean
     clearError: () => void
+    updateUser: (updatedData: Partial<User>) => Promise<User | null>
 }

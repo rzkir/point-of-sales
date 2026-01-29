@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+
 import {
   IconCreditCard,
   IconDotsVertical,
@@ -14,6 +15,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +25,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+
+import Link from "next/link"
+
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -63,7 +68,7 @@ export function NavUser() {
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <Avatar className="h-8 w-8 rounded-lg grayscale">
-                  <AvatarImage src="" alt={user.name} />
+                  <AvatarImage src={user.avatar || ""} alt={user.name} />
                   <AvatarFallback className="rounded-lg">
                     {getInitials(user.name)}
                   </AvatarFallback>
@@ -86,7 +91,7 @@ export function NavUser() {
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src="" alt={user.name} />
+                    <AvatarImage src={user.avatar || ""} alt={user.name} />
                     <AvatarFallback className="rounded-lg">
                       {getInitials(user.name)}
                     </AvatarFallback>
@@ -101,9 +106,11 @@ export function NavUser() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem>
-                  <IconUserCircle />
-                  Account
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/profile">
+                    <IconUserCircle />
+                    Account
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <IconCreditCard />

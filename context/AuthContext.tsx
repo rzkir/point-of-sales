@@ -157,6 +157,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(null)
     }
 
+    const updateUser = async (updatedData: Partial<User>): Promise<User | null> => {
+        if (!user) return null
+
+        setIsLoading(true)
+        setError(null)
+
+        try {
+            const response = await fetch("/api/profile", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_SECRET}`,
+                },
+                body: JSON.stringify({
+                    id: user.id,
+                    ...updatedData,
+                }),
+            })
+
+            let data: AuthResponse
+            try {
+                data = await response.json()
+            } catch {
+                setError(`Server error: ${response.status} ${response.statusText}`)
+                setIsLoading(false)
+                return null
+            }
+
+            if (!data.success || !data.data) {
+                setError(data.message || "Update failed")
+                setIsLoading(false)
+                return null
+            }
+
+            // Update user in state and localStorage
+            setUser(data.data)
+            if (typeof window !== "undefined") {
+                localStorage.setItem("user", JSON.stringify(data.data))
+            }
+
+            setIsLoading(false)
+            return data.data
+        } catch (error) {
+            console.error("Update user error:", error)
+            setError(error instanceof Error ? error.message : "An error occurred. Please try again.")
+            setIsLoading(false)
+            return null
+        }
+    }
+
     const value: AuthContextType = {
         user,
         isLoading,
@@ -166,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthenticated: !!user,
         clearError,
+        updateUser,
     }
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

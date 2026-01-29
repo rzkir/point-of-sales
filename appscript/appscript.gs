@@ -41,13 +41,32 @@ function getUsersSheet() {
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
     // Set header
-    sheet.getRange(1, 1, 1, 8).setValues([[
-      'id', 'email', 'name', 'password', 'roleType', 'branchName', 'createdAt', 'updatedAt'
+    sheet.getRange(1, 1, 1, 9).setValues([[
+      'id', 'email', 'name', 'password', 'roleType', 'branchName', 'createdAt', 'updatedAt', 'avatar'
     ]]);
     // Format header
-    sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
-    sheet.getRange(1, 1, 1, 8).setBackground('#4285f4');
-    sheet.getRange(1, 1, 1, 8).setFontColor('#ffffff');
+    sheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+    sheet.getRange(1, 1, 1, 9).setBackground('#4285f4');
+    sheet.getRange(1, 1, 1, 9).setFontColor('#ffffff');
+  } else {
+    // Jika sheet sudah ada, cek apakah kolom avatar sudah ada
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const hasAvatarColumn = headers.includes('avatar');
+    
+    // Jika kolom avatar belum ada, tambahkan
+    if (!hasAvatarColumn) {
+      const lastCol = sheet.getLastColumn();
+      sheet.getRange(1, lastCol + 1).setValue('avatar');
+      sheet.getRange(1, lastCol + 1).setFontWeight('bold');
+      sheet.getRange(1, lastCol + 1).setBackground('#4285f4');
+      sheet.getRange(1, lastCol + 1).setFontColor('#ffffff');
+      
+      // Isi kolom avatar dengan string kosong untuk semua row yang sudah ada
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        sheet.getRange(2, lastCol + 1, lastRow - 1, 1).setValue('');
+      }
+    }
   }
   
   return sheet;
@@ -100,7 +119,8 @@ function findUserByEmail(email) {
         roleType: data[i][4],
         branchName: data[i][5],
         createdAt: data[i][6],
-        updatedAt: data[i][7]
+        updatedAt: data[i][7],
+        avatar: data[i][8] || ''
       };
     }
   }
@@ -125,7 +145,8 @@ function findUserByName(name) {
         roleType: data[i][4],
         branchName: data[i][5],
         createdAt: data[i][6],
-        updatedAt: data[i][7]
+        updatedAt: data[i][7],
+        avatar: data[i][8] || ''
       };
     }
   }
@@ -150,7 +171,8 @@ function findUserById(id) {
         roleType: data[i][4],
         branchName: data[i][5],
         createdAt: data[i][6],
-        updatedAt: data[i][7]
+        updatedAt: data[i][7],
+        avatar: data[i][8] || ''
       };
     }
   }
@@ -175,6 +197,9 @@ function doPost(e) {
         break;
       case 'login':
         response = handleLogin(requestData);
+        break;
+      case 'changePassword':
+        response = handleChangePassword(requestData);
         break;
       // CRUD actions - cek parameter sheet untuk menentukan Users, Products, Branches, atau Suppliers
       case 'create':
@@ -258,7 +283,7 @@ function doPost(e) {
       default:
         response = {
           success: false,
-          message: 'Invalid action. Supported actions: register, login, create, list, get, update, delete'
+          message: 'Invalid action. Supported actions: register, login, changePassword, create, list, get, update, delete'
         };
     }
     
@@ -274,6 +299,78 @@ function doPost(e) {
       }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+/**
+ * Handle change password (by user id)
+ * - verify current password
+ * - validate new password
+ * - update hashed password + updatedAt
+ * Return: tanpa password
+ */
+function handleChangePassword(data) {
+  const { id, currentPassword, newPassword } = data || {};
+  
+  if (!id) {
+    return { success: false, message: 'User ID is required' };
+  }
+  if (!currentPassword || String(currentPassword).trim() === '') {
+    return { success: false, message: 'Current password is required' };
+  }
+  if (!newPassword || String(newPassword).trim() === '') {
+    return { success: false, message: 'New password is required' };
+  }
+  
+  const newPw = String(newPassword).trim();
+  if (newPw.length < 8) {
+    return { success: false, message: 'Password must be at least 8 characters' };
+  }
+  if (String(currentPassword) === newPw) {
+    return { success: false, message: 'New password must be different from current password' };
+  }
+  
+  const user = findUserById(String(id));
+  if (!user) {
+    return { success: false, message: 'User not found' };
+  }
+  
+  // Verify current password
+  if (!verifyPassword(String(currentPassword), user.password)) {
+    return { success: false, message: 'Current password is incorrect' };
+  }
+  
+  const sheet = getUsersSheet();
+  const dataRange = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][0] === String(id)) {
+      const row = i + 1;
+      const now = new Date().toISOString();
+      const hashedNew = hashPassword(newPw);
+      
+      // Password column = 4 (A=1: id, email, name, password)
+      sheet.getRange(row, 4).setValue(hashedNew);
+      // updatedAt column = 8
+      sheet.getRange(row, 8).setValue(now);
+      
+      return {
+        success: true,
+        message: 'Password updated successfully',
+        data: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          roleType: user.roleType,
+          branchName: user.branchName,
+          avatar: user.avatar || '',
+          createdAt: user.createdAt,
+          updatedAt: now
+        }
+      };
+    }
+  }
+  
+  return { success: false, message: 'User not found' };
 }
 
 /**
@@ -347,7 +444,8 @@ function handleRegister(data) {
     roleType,
     branchName,
     now,
-    now
+    now,
+    '' // avatar - kosong saat register
   ]);
   
   return {
@@ -358,7 +456,10 @@ function handleRegister(data) {
       email: email,
       name: name,
       roleType: roleType,
-      branchName: branchName
+      branchName: branchName,
+      avatar: '',
+      createdAt: now,
+      updatedAt: now
     }
   };
 }
@@ -438,6 +539,7 @@ function handleLogin(data) {
       name: user.name,
       roleType: user.roleType,
       branchName: user.branchName,
+      avatar: user.avatar || '',
       createdAt: user.createdAt,
       updatedAt: now
     }
@@ -504,7 +606,8 @@ function handleCreateUser(data) {
     String(roleType).trim(),
     String(branchName).trim(),
     now,
-    now
+    now,
+    '' // avatar - kosong saat create
   ]);
   
   return {
@@ -516,6 +619,7 @@ function handleCreateUser(data) {
       name: String(name).trim(),
       roleType: String(roleType).trim(),
       branchName: String(branchName).trim(),
+      avatar: '',
       createdAt: now,
       updatedAt: now
     }
@@ -582,6 +686,7 @@ function handleGetUser(data) {
       name: user.name,
       roleType: user.roleType,
       branchName: user.branchName,
+      avatar: user.avatar || '',
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     }
@@ -592,7 +697,7 @@ function handleGetUser(data) {
  * Handle update user/employee
  */
 function handleUpdateUser(data) {
-  const { id, name, email, roleType, branchName } = data;
+  const { id, name, email, roleType, branchName, avatar } = data;
   
   if (!id) {
     return {
@@ -672,6 +777,9 @@ function handleUpdateUser(data) {
       if (branchName !== undefined && branchName !== null) {
         sheet.getRange(row, 6).setValue(String(branchName).trim());
       }
+      if (avatar !== undefined && avatar !== null) {
+        sheet.getRange(row, 9).setValue(String(avatar).trim());
+      }
       
       // Update updatedAt
       sheet.getRange(row, 8).setValue(now);
@@ -689,6 +797,7 @@ function handleUpdateUser(data) {
           name: updatedUser.name,
           roleType: updatedUser.roleType,
           branchName: updatedUser.branchName,
+          avatar: updatedUser.avatar || '',
           createdAt: updatedUser.createdAt,
           updatedAt: now
         }
