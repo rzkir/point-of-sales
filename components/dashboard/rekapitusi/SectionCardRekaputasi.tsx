@@ -8,6 +8,8 @@ type Props = {
     totalDebt: number
     completedCount: number
     pendingCount: number
+    totalModal: number
+    isLoadingModal: boolean
 }
 
 export function SectionCardRekaputasi({
@@ -16,9 +18,24 @@ export function SectionCardRekaputasi({
     totalDebt,
     completedCount,
     pendingCount,
+    totalModal,
+    isLoadingModal,
 }: Props) {
     return (
-        <div className="mt-2 sm:mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-2 sm:mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <Card className="border-2 shadow-sm">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Uang Modal</span>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-violet-500">
+                        {isLoadingModal ? "-" : formatCurrency(totalModal)}
+                    </div>
+                </CardContent>
+            </Card>
+
             <Card className="border-2 shadow-sm">
                 <CardHeader>
                     <div className="flex items-center justify-between">

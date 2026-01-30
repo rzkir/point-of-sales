@@ -2,6 +2,8 @@ import * as React from "react"
 
 import { useStateTransactions } from "@/services/transactions/useStateTransactions"
 
+import { fetchProducts } from "@/lib/config"
+
 import { ChartConfig } from "@/components/ui/chart"
 
 export type RekapTimeRange = "90d" | "30d" | "7d"
@@ -27,7 +29,43 @@ export const topProductsChartConfig = {
 export function useStateRekapitusi() {
     const transactionsState = useStateTransactions()
 
-    const { allFilteredTransactions } = transactionsState
+    const { allFilteredTransactions, branchFilter } = transactionsState
+
+    const [totalModal, setTotalModal] = React.useState(0)
+    const [isLoadingModal, setIsLoadingModal] = React.useState(true)
+
+    React.useEffect(() => {
+        let cancelled = false
+
+        void (async () => {
+            try {
+                setIsLoadingModal(true)
+                const res = await fetchProducts(
+                    1,
+                    5000,
+                    branchFilter && branchFilter.trim() !== "" ? branchFilter : undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined
+                )
+                if (cancelled) return
+                const total = (res.data || []).reduce(
+                    (sum, p) => sum + (Number(p.modal) || 0) * (Number(p.stock) || 0),
+                    0
+                )
+                setTotalModal(total)
+            } catch {
+                if (!cancelled) setTotalModal(0)
+            } finally {
+                if (!cancelled) setIsLoadingModal(false)
+            }
+        })()
+
+        return () => {
+            cancelled = true
+        }
+    }, [branchFilter])
 
     const chartData = React.useMemo(() => {
         const map = new Map<string, { date: string; revenue: number; transactions: number }>()
@@ -229,5 +267,7 @@ export function useStateRekapitusi() {
         customerDebts,
         paymentStatusData,
         topProducts,
+        totalModal,
+        isLoadingModal,
     }
 }

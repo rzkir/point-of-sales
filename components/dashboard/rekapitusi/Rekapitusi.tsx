@@ -44,6 +44,8 @@ export default function Rekapitusi() {
         totals,
         customerDebts,
         topProducts,
+        totalModal,
+        isLoadingModal,
     } = useStateRekapitusi()
 
     return (
@@ -112,6 +114,8 @@ export default function Rekapitusi() {
                 totalDebt={totalDebt}
                 completedCount={completedCount}
                 pendingCount={pendingCount}
+                totalModal={totalModal}
+                isLoadingModal={isLoadingModal}
             />
 
             <div className="grid gap-4 md:grid-cols-3 items-start">
