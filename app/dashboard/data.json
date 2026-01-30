@@ -137,6 +137,19 @@
     }
   },
   {
+    "path": "/api/karyawan/transaction/[id]",
+    "methods": [
+      "GET"
+    ],
+    "auth": "Bearer",
+    "description": "Detail transaksi karyawan berdasarkan id.",
+    "notes": "Mengembalikan satu transaksi. Wajib header Authorization: Bearer <NEXT_PUBLIC_API_SECRET>.",
+    "example": {
+      "title": "Get transaction by id",
+      "curl": "curl -X GET \"{{BASE_URL}}/api/karyawan/transaction/1\" \\\n  -H \"Authorization: Bearer <NEXT_PUBLIC_API_SECRET>\""
+    }
+  },
+  {
     "path": "/api/branches",
     "methods": [
       "GET",
