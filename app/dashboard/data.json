@@ -150,6 +150,71 @@
     }
   },
   {
+    "path": "/api/laporan",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "auth": "Bearer",
+    "description": "Laporan (store expense) list/create via Apps Script.",
+    "notes": "Query opsional: page, limit, branch_name, status.",
+    "example": {
+      "title": "Get laporan",
+      "curl": "curl -X GET \"{{BASE_URL}}/api/laporan?branch_name=Langgeng%20Jaya%201&page=1&limit=10\" \\\n  -H \"Authorization: Bearer <NEXT_PUBLIC_API_SECRET>\""
+    }
+  },
+  {
+    "path": "/api/laporan/[id]",
+    "methods": [
+      "GET",
+      "PUT"
+    ],
+    "auth": "Bearer",
+    "description": "Detail/update laporan berdasarkan id.",
+    "notes": "Mengembalikan atau mengubah satu laporan. Wajib header Authorization: Bearer <NEXT_PUBLIC_API_SECRET>.",
+    "example": {
+      "title": "Get laporan by id",
+      "curl": "curl -X GET \"{{BASE_URL}}/api/laporan/1\" \\\n  -H \"Authorization: Bearer <NEXT_PUBLIC_API_SECRET>\""
+    }
+  },
+  {
+    "path": "/api/laporan/upload",
+    "methods": [
+      "POST"
+    ],
+    "auth": "Cookie",
+    "description": "Upload gambar kwitansi/receipt untuk laporan (ImageKit, folder /laporan).",
+    "notes": "FormData dengan field `file`. Mengembalikan `url` dan `fileId`. Auth via cookie session atau user.role."
+  },
+  {
+    "path": "/api/cashlog",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "auth": "Bearer",
+    "description": "Cash log list/create via Apps Script.",
+    "notes": "Query opsional: page, limit, branch_name.",
+    "example": {
+      "title": "Get cashlog",
+      "curl": "curl -X GET \"{{BASE_URL}}/api/cashlog?branch_name=Langgeng%20Jaya%201&page=1&limit=10\" \\\n  -H \"Authorization: Bearer <NEXT_PUBLIC_API_SECRET>\""
+    }
+  },
+  {
+    "path": "/api/cashlog/[id]",
+    "methods": [
+      "GET",
+      "PUT"
+    ],
+    "auth": "Bearer",
+    "description": "Detail/update cash log berdasarkan id.",
+    "notes": "Mengembalikan atau mengubah satu cash log. Wajib header Authorization: Bearer <NEXT_PUBLIC_API_SECRET>.",
+    "example": {
+      "title": "Get cashlog by id",
+      "curl": "curl -X GET \"{{BASE_URL}}/api/cashlog/1\" \\\n  -H \"Authorization: Bearer <NEXT_PUBLIC_API_SECRET>\""
+    }
+  },
+  {
     "path": "/api/branches",
     "methods": [
       "GET",

@@ -66,6 +66,26 @@ export const API_CONFIG = {
             list: (page: number = 1, limit: number = 10) =>
                 `${API_BASE_URL}/api/transactions?page=${page}&limit=${limit}`,
         },
+        cashlog: {
+            base: `${API_BASE_URL}/api/cashlog`,
+            byId: (id: string | number) => `${API_BASE_URL}/api/cashlog/${encodeURIComponent(String(id))}`,
+            list: (page: number = 1, limit: number = 10, branchName?: string) => {
+                const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+                if (branchName && branchName.trim() !== "") params.append("branch_name", branchName.trim());
+                return `${API_BASE_URL}/api/cashlog?${params.toString()}`;
+            },
+        },
+        laporan: {
+            base: `${API_BASE_URL}/api/laporan`,
+            upload: `${API_BASE_URL}/api/laporan/upload`,
+            byId: (id: string | number) => `${API_BASE_URL}/api/laporan/${encodeURIComponent(String(id))}`,
+            list: (page: number = 1, limit: number = 10, branchName?: string, status?: string) => {
+                const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+                if (branchName && branchName.trim() !== "") params.append("branch_name", branchName.trim());
+                if (status && status.trim() !== "") params.append("status", status.trim());
+                return `${API_BASE_URL}/api/laporan?${params.toString()}`;
+            },
+        },
         karyawan: {
             products: {
                 list: (branchName: string, page: number = 1, limit: number = 100) => {
@@ -477,6 +497,79 @@ export async function fetchTransactions(page: number = 1, limit: number = 10, re
             throw new Error("Unauthorized")
         }
         throw error instanceof Error ? error : new Error("Failed to fetch transactions")
+    }
+}
+
+/**
+ * Fetch cash logs with pagination
+ * @param page - Page number (default: 1)
+ * @param limit - Items per page (default: 10)
+ * @param branchName - Optional branch name to filter
+ * @param revalidate - Optional revalidate time in seconds
+ * @returns Promise with cash logs data and pagination info
+ */
+export async function fetchCashLogs(
+    page: number = 1,
+    limit: number = 10,
+    branchName?: string,
+    revalidate?: number
+): Promise<CashLogsResponse> {
+    try {
+        const data = await apiFetch<CashLogsResponse>(API_CONFIG.ENDPOINTS.cashlog.list(page, limit, branchName), {
+            revalidate,
+        })
+
+        if (!data.success) {
+            throw new Error(data.message || "Failed to fetch cash logs")
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            data: data.data || [],
+            pagination: data.pagination,
+        }
+    } catch (error) {
+        console.error("Fetch cash logs error:", error)
+        if (error && typeof error === "object" && "status" in error && (error as { status?: number }).status === 401) {
+            throw new Error("Unauthorized")
+        }
+        throw error instanceof Error ? error : new Error("Failed to fetch cash logs")
+    }
+}
+
+/**
+ * Fetch laporan (store expenses) with pagination
+ */
+export async function fetchLaporan(
+    page: number = 1,
+    limit: number = 10,
+    branchName?: string,
+    status?: string,
+    revalidate?: number
+): Promise<LaporanResponse> {
+    try {
+        const data = await apiFetch<LaporanResponse>(
+            API_CONFIG.ENDPOINTS.laporan.list(page, limit, branchName, status),
+            { revalidate }
+        )
+
+        if (!data.success) {
+            throw new Error(data.message || "Failed to fetch laporan")
+        }
+
+        return {
+            success: true,
+            message: data.message,
+            data: data.data || [],
+            pagination: data.pagination,
+        }
+    } catch (error) {
+        console.error("Fetch laporan error:", error)
+        if (error && typeof error === "object" && "status" in error && (error as { status?: number }).status === 401) {
+            throw new Error("Unauthorized")
+        }
+        throw error instanceof Error ? error : new Error("Failed to fetch laporan")
     }
 }
 

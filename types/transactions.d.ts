@@ -37,9 +37,6 @@ interface Transaction {
     updated_at: string;
 }
 
-type TransactionRow = Transaction;
-
-// Transaction Items
 interface TransactionItem {
     id?: number | string;
     transaction_id: string | number;
@@ -83,3 +80,5 @@ type TransactionsResponse = {
         hasPrev: boolean;
     };
 };
+
+type TransactionRow = Transaction;

@@ -71,9 +71,12 @@ export async function callAppsScript(requestBody: Record<string, unknown>) {
     const data = await response.json();
 
     if (!data.success) {
+        const msg = data.message ?? "Apps Script returned error";
+        const status = String(msg).includes("not found") ? 404 : 400;
+        console.error("[callAppsScript] error:", status, msg);
         return NextResponse.json(
-            { success: false, message: data.message },
-            { status: data.message.includes('not found') ? 404 : 400 }
+            { success: false, message: msg },
+            { status }
         );
     }
 

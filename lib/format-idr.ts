@@ -31,3 +31,15 @@ export const toDateInputValue = (value: unknown): string => {
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
     return ""
 }
+
+export function formatRupiah(value: number): string {
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+    }).format(value)
+}
+
+export function typeLabel(type: string) {
+    return type === "opening_cash" ? "Kas Buka" : "Kas Tutup"
+}

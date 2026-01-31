@@ -11,6 +11,7 @@ import {
   IconSearch,
   IconCreditCardFilled,
   IconBox,
+  IconCash,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -73,6 +74,11 @@ const data = {
       name: "Rekapitusi",
       url: "/karyawan/rekapitusi",
       icon: IconFileWord,
+    },
+    {
+      name: "Pembekuan Kas",
+      url: "/karyawan/cash-logs",
+      icon: IconCash,
     },
   ],
 }

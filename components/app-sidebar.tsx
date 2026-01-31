@@ -16,6 +16,7 @@ import {
   IconBuildingStore,
   IconCategory,
   IconCreditCard,
+  IconCash,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -100,10 +101,15 @@ const data = {
       icon: IconFileWord,
     },
     {
+      name: "Pembekuan Kas",
+      url: "/dashboard/cash-logs",
+      icon: IconCash,
+    },
+    {
       name: "Laporan",
       url: "/dashboard/reports",
       icon: IconReport,
-    },
+    }
   ],
 }
 

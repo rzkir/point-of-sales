@@ -4,6 +4,8 @@ const PRODUCTS_SHEET_NAME = 'Products';
 const CATEGORIES_SHEET_NAME = 'Categories';
 const SUPPLIERS_SHEET_NAME = 'Suppliers';
 const TRANSACTIONS_SHEET_NAME = 'Transactions';
+const CASH_LOG_SHEET_NAME = 'CashLog';
+const STORE_EXPENSE_SHEET_NAME = 'StoreExpense';
 
 // SPREADSHEET_ID bisa di-set di bagian atas file ini jika ingin menggunakan spreadsheet tertentu
 // Jika tidak di-set (undefined), akan menggunakan spreadsheet aktif
@@ -213,6 +215,10 @@ function doPost(e) {
           response = handleCreateSupplier(requestData);
         } else if (sheet === 'Transactions') {
           response = handleCreateTransaction(requestData);
+        } else if (sheet === 'CashLog') {
+          response = handleCreateCashLog(requestData);
+        } else if (sheet === 'StoreExpense') {
+          response = handleCreateStoreExpense(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleCreateBranch(requestData);
@@ -229,6 +235,10 @@ function doPost(e) {
           response = handleListSuppliers(requestData);
         } else if (sheet === 'Transactions') {
           response = handleListTransactions(requestData);
+        } else if (sheet === 'CashLog') {
+          response = handleListCashLogs(requestData);
+        } else if (sheet === 'StoreExpense') {
+          response = handleListStoreExpenses(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleListBranches(requestData);
@@ -245,6 +255,10 @@ function doPost(e) {
           response = handleGetSupplier(requestData);
         } else if (sheet === 'Transactions') {
           response = handleGetTransaction(requestData);
+        } else if (sheet === 'CashLog') {
+          response = handleGetCashLog(requestData);
+        } else if (sheet === 'StoreExpense') {
+          response = handleGetStoreExpense(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleGetBranch(requestData);
@@ -259,6 +273,10 @@ function doPost(e) {
           response = handleUpdateCategory(requestData);
         } else if (sheet === 'Suppliers') {
           response = handleUpdateSupplier(requestData);
+        } else if (sheet === 'CashLog') {
+          response = handleUpdateCashLog(requestData);
+        } else if (sheet === 'StoreExpense') {
+          response = handleUpdateStoreExpense(requestData);
         } else {
           // Default ke Branches untuk backward compatibility
           response = handleUpdateBranch(requestData);
@@ -2472,4 +2490,409 @@ function handleDeleteTransaction(data) {
     success: false,
     message: 'Transaction not found'
   };
+}
+
+// ==================== CASH LOG ====================
+
+const CASH_LOG_COLUMNS = [
+  'id',
+  'date',
+  'amount',
+  'cashier_name',
+  'branch_name',
+  'status',
+  'approved_by',
+  'approved_at',
+  'type',
+  'created_at',
+  'updated_at'
+];
+
+function getCashLogColumnMap_() {
+  const sheet = getCashLogSheet();
+  return ensureSheetColumns_(sheet, CASH_LOG_COLUMNS);
+}
+
+function getCashLogSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(CASH_LOG_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(CASH_LOG_SHEET_NAME);
+  }
+  ensureSheetColumns_(sheet, CASH_LOG_COLUMNS);
+  return sheet;
+}
+
+function findCashLogById(id) {
+  const sheet = getCashLogSheet();
+  const col = getCashLogColumnMap_();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][col.id] === id) {
+      const row = data[i];
+      const cashLog = {};
+      CASH_LOG_COLUMNS.forEach(function(key) {
+        cashLog[key] = row[col[key]];
+      });
+      return cashLog;
+    }
+  }
+  return null;
+}
+
+function handleCreateCashLog(data) {
+  const {
+    date,
+    amount,
+    cashier_name = '',
+    branch_name = '',
+    type = 'opening_cash',
+    status: statusFromData
+  } = data;
+
+  if (!date || String(date).trim() === '') {
+    return { success: false, message: 'Date is required' };
+  }
+  if (amount === undefined || amount === null || isNaN(Number(amount))) {
+    return { success: false, message: 'Amount is required' };
+  }
+  if (!branch_name || String(branch_name).trim() === '') {
+    return { success: false, message: 'Branch name is required' };
+  }
+  var validTypes = ['opening_cash', 'closing_cash'];
+  if (!validTypes.includes(type)) {
+    return { success: false, message: 'Type must be opening_cash or closing_cash' };
+  }
+  // opening_cash langsung approved, closing_cash tetap pending
+  var status = (statusFromData !== undefined && statusFromData !== '') ? statusFromData : (type === 'opening_cash' ? 'approved' : 'pending');
+
+  const sheet = getCashLogSheet();
+  const col = getCashLogColumnMap_();
+  const id = generateId();
+  const now = new Date().toISOString();
+
+  const newRow = [];
+  CASH_LOG_COLUMNS.forEach(function(key) {
+    if (key === 'id') {
+      newRow.push(id);
+    } else if (key === 'date') {
+      newRow.push(String(date));
+    } else if (key === 'amount') {
+      newRow.push(Number(amount));
+    } else if (key === 'cashier_name') {
+      newRow.push(String(cashier_name || ''));
+    } else if (key === 'branch_name') {
+      newRow.push(String(branch_name || ''));
+    } else if (key === 'status') {
+      newRow.push(String(status));
+    } else if (key === 'approved_by' || key === 'approved_at') {
+      newRow.push('');
+    } else if (key === 'type') {
+      newRow.push(String(type));
+    } else if (key === 'created_at' || key === 'updated_at') {
+      newRow.push(now);
+    } else {
+      newRow.push('');
+    }
+  });
+
+  sheet.appendRow(newRow);
+  const created = findCashLogById(id);
+  return {
+    success: true,
+    message: 'Cash log created successfully',
+    data: created
+  };
+}
+
+function handleListCashLogs(data) {
+  const hasPagination = data && (data.page !== undefined || data.limit !== undefined);
+  const page = hasPagination ? (data.page || 1) : 1;
+  const limit = hasPagination ? (data.limit || 10) : undefined;
+  const branchName = data && data.branch_name ? String(data.branch_name).trim() : '';
+
+  const sheet = getCashLogSheet();
+  const col = getCashLogColumnMap_();
+  const dataRange = sheet.getDataRange().getValues();
+
+  const allLogs = [];
+  for (let i = 1; i < dataRange.length; i++) {
+    const row = dataRange[i];
+    const log = {};
+    CASH_LOG_COLUMNS.forEach(function(key) {
+      log[key] = row[col[key]];
+    });
+    if (branchName && String(log.branch_name || '').trim().toLowerCase() !== branchName.toLowerCase()) {
+      continue;
+    }
+    allLogs.push(log);
+  }
+  allLogs.reverse();
+
+  if (!hasPagination || limit === undefined) {
+    return { success: true, data: allLogs };
+  }
+
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginated = allLogs.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(allLogs.length / limit);
+
+  return {
+    success: true,
+    data: paginated,
+    pagination: {
+      page: Number(page),
+      limit: Number(limit),
+      total: allLogs.length,
+      totalPages: totalPages,
+      hasNext: Number(page) < totalPages,
+      hasPrev: Number(page) > 1
+    }
+  };
+}
+
+function handleGetCashLog(data) {
+  const { id } = data;
+  if (!id) {
+    return { success: false, message: 'Cash log ID is required' };
+  }
+  const cashLog = findCashLogById(id);
+  if (!cashLog) {
+    return { success: false, message: 'Cash log not found' };
+  }
+  return { success: true, data: cashLog };
+}
+
+function handleUpdateCashLog(data) {
+  const { id, status, approved_by, approved_at } = data;
+  if (!id) {
+    return { success: false, message: 'Cash log ID is required' };
+  }
+  const sheet = getCashLogSheet();
+  const col = getCashLogColumnMap_();
+  const dataRange = sheet.getDataRange().getValues();
+  for (var i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][col.id] === id) {
+      var now = new Date().toISOString();
+      if (status !== undefined && status !== '') {
+        sheet.getRange(i + 1, col.status + 1).setValue(String(status));
+      }
+      if (approved_by !== undefined) {
+        sheet.getRange(i + 1, col.approved_by + 1).setValue(String(approved_by || ''));
+      }
+      if (approved_at !== undefined) {
+        sheet.getRange(i + 1, col.approved_at + 1).setValue(String(approved_at || now));
+      }
+      sheet.getRange(i + 1, col.updated_at + 1).setValue(now);
+      var updated = findCashLogById(id);
+      return { success: true, message: 'Cash log updated successfully', data: updated };
+    }
+  }
+  return { success: false, message: 'Cash log not found' };
+}
+
+// ==================== STORE EXPENSE (LAPORAN) ====================
+
+const STORE_EXPENSE_COLUMNS = [
+  'id',
+  'date',
+  'category',
+  'amount',
+  'description',
+  'branch_name',
+  'cashier_name',
+  'approved_by',
+  'receipt_url',
+  'status',
+  'created_at',
+  'updated_at'
+];
+
+function getStoreExpenseColumnMap_() {
+  var sheet = getStoreExpenseSheet();
+  return ensureSheetColumns_(sheet, STORE_EXPENSE_COLUMNS);
+}
+
+function getStoreExpenseSheet() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName(STORE_EXPENSE_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(STORE_EXPENSE_SHEET_NAME);
+  }
+  ensureSheetColumns_(sheet, STORE_EXPENSE_COLUMNS);
+  return sheet;
+}
+
+function findStoreExpenseById(id) {
+  var sheet = getStoreExpenseSheet();
+  var col = getStoreExpenseColumnMap_();
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][col.id] === id) {
+      var row = data[i];
+      var expense = {};
+      STORE_EXPENSE_COLUMNS.forEach(function(key) {
+        expense[key] = row[col[key]];
+      });
+      return expense;
+    }
+  }
+  return null;
+}
+
+function handleCreateStoreExpense(data) {
+  var date = data.date;
+  var category = data.category || 'lainnya';
+  var amount = data.amount;
+  var description = data.description || '';
+  var branch_name = data.branch_name || '';
+  var cashier_name = data.cashier_name || '';
+  var receipt_url = data.receipt_url || '';
+  var status = data.status || 'pending';
+
+  if (!date || String(date).trim() === '') {
+    return { success: false, message: 'Date is required' };
+  }
+  if (amount === undefined || amount === null || isNaN(Number(amount))) {
+    return { success: false, message: 'Amount is required' };
+  }
+  if (!branch_name || String(branch_name).trim() === '') {
+    return { success: false, message: 'Branch name is required' };
+  }
+  var validCategories = ['operasional', 'listrik', 'air', 'pembelian', 'lainnya'];
+  if (!validCategories.includes(category)) {
+    return { success: false, message: 'Invalid category' };
+  }
+
+  var sheet = getStoreExpenseSheet();
+  var col = getStoreExpenseColumnMap_();
+  var id = generateId();
+  var now = new Date().toISOString();
+
+  var newRow = [];
+  STORE_EXPENSE_COLUMNS.forEach(function(key) {
+    if (key === 'id') {
+      newRow.push(id);
+    } else if (key === 'date') {
+      newRow.push(String(date));
+    } else if (key === 'category') {
+      newRow.push(String(category));
+    } else if (key === 'amount') {
+      newRow.push(Number(amount));
+    } else if (key === 'description') {
+      newRow.push(String(description || ''));
+    } else if (key === 'branch_name') {
+      newRow.push(String(branch_name));
+    } else if (key === 'cashier_name') {
+      newRow.push(String(cashier_name || ''));
+    } else if (key === 'approved_by') {
+      newRow.push('');
+    } else if (key === 'receipt_url') {
+      newRow.push(String(receipt_url || ''));
+    } else if (key === 'status') {
+      newRow.push(String(status));
+    } else if (key === 'created_at' || key === 'updated_at') {
+      newRow.push(now);
+    } else {
+      newRow.push('');
+    }
+  });
+
+  sheet.appendRow(newRow);
+  var created = findStoreExpenseById(id);
+  return { success: true, message: 'Store expense created successfully', data: created };
+}
+
+function handleListStoreExpenses(data) {
+  var hasPagination = data && (data.page !== undefined || data.limit !== undefined);
+  var page = hasPagination ? (data.page || 1) : 1;
+  var limit = hasPagination ? (data.limit || 10) : undefined;
+  var branchName = data && data.branch_name ? String(data.branch_name).trim() : '';
+  var statusFilter = data && data.status ? String(data.status).trim() : '';
+
+  var sheet = getStoreExpenseSheet();
+  var col = getStoreExpenseColumnMap_();
+  var dataRange = sheet.getDataRange().getValues();
+
+  var allExpenses = [];
+  for (var i = 1; i < dataRange.length; i++) {
+    var row = dataRange[i];
+    var expense = {};
+    STORE_EXPENSE_COLUMNS.forEach(function(key) {
+      expense[key] = row[col[key]];
+    });
+    if (branchName && String(expense.branch_name || '').trim().toLowerCase() !== branchName.toLowerCase()) {
+      continue;
+    }
+    if (statusFilter && String(expense.status || '').trim().toLowerCase() !== statusFilter.toLowerCase()) {
+      continue;
+    }
+    allExpenses.push(expense);
+  }
+  allExpenses.reverse();
+
+  if (!hasPagination || limit === undefined) {
+    return { success: true, data: allExpenses };
+  }
+
+  var startIndex = (page - 1) * limit;
+  var endIndex = startIndex + limit;
+  var paginated = allExpenses.slice(startIndex, endIndex);
+  var totalPages = Math.ceil(allExpenses.length / limit);
+
+  return {
+    success: true,
+    data: paginated,
+    pagination: {
+      page: Number(page),
+      limit: Number(limit),
+      total: allExpenses.length,
+      totalPages: totalPages,
+      hasNext: Number(page) < totalPages,
+      hasPrev: Number(page) > 1
+    }
+  };
+}
+
+function handleGetStoreExpense(data) {
+  var id = data.id;
+  if (!id) {
+    return { success: false, message: 'Store expense ID is required' };
+  }
+  var expense = findStoreExpenseById(id);
+  if (!expense) {
+    return { success: false, message: 'Store expense not found' };
+  }
+  return { success: true, data: expense };
+}
+
+function handleUpdateStoreExpense(data) {
+  var id = data.id;
+  var status = data.status;
+  var approved_by = data.approved_by;
+
+  if (!id) {
+    return { success: false, message: 'Store expense ID is required' };
+  }
+
+  var sheet = getStoreExpenseSheet();
+  var col = getStoreExpenseColumnMap_();
+  var dataRange = sheet.getDataRange().getValues();
+
+  for (var i = 1; i < dataRange.length; i++) {
+    if (dataRange[i][col.id] === id) {
+      var now = new Date().toISOString();
+      if (status !== undefined && status !== '') {
+        sheet.getRange(i + 1, col.status + 1).setValue(String(status));
+      }
+      if (approved_by !== undefined) {
+        sheet.getRange(i + 1, col.approved_by + 1).setValue(String(approved_by || ''));
+      }
+      sheet.getRange(i + 1, col.updated_at + 1).setValue(now);
+      var updated = findStoreExpenseById(id);
+      return { success: true, message: 'Store expense updated successfully', data: updated };
+    }
+  }
+  return { success: false, message: 'Store expense not found' };
 }
