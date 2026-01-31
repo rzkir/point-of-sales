@@ -1,6 +1,9 @@
 import * as React from "react";
 
 import apiRoutesData from "@/app/dashboard/data.json";
+import { Input } from "@/components/ui/input";
+import { useCodeBlockState, useJsonViewerState, useSidebarContentState } from "@/services/docs/useStateDocs";
+import { Search } from "lucide-react";
 
 export function Badge({ children }: { children: React.ReactNode }) {
     return (
@@ -128,13 +131,7 @@ export function JsonViewer({
     value: unknown;
     path?: string;
 }) {
-    const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
-
-    const toggle = (p: string) => {
-        setCollapsed((prev) => ({ ...prev, [p]: !prev[p] }));
-    };
-
-    const isCollapsed = (p: string) => Boolean(collapsed[p]);
+    const { toggle, isCollapsed } = useJsonViewerState();
 
     const renderNode = (v: unknown, p: string, indent: number): React.ReactNode => {
         const pad = " ".repeat(indent);
@@ -277,14 +274,7 @@ export function CodeBlock({ code }: { code: string }) {
         }
     })();
 
-    const [collapsed, setCollapsed] = React.useState<boolean>(false);
-    const [copied, setCopied] = React.useState(false);
-
-    React.useEffect(() => {
-        // Reset UI state when code changes
-        setCollapsed(false);
-        setCopied(false);
-    }, [code]);
+    const { collapsed, setCollapsed, copied, handleCopy } = useCodeBlockState(code);
 
     const parsedJson = React.useMemo(() => {
         if (!isJSON) return null;
@@ -294,30 +284,6 @@ export function CodeBlock({ code }: { code: string }) {
             return null;
         }
     }, [code, isJSON]);
-
-    const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(code);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1200);
-        } catch {
-            // Fallback for older browsers / permission issues
-            try {
-                const textarea = document.createElement("textarea");
-                textarea.value = code;
-                textarea.style.position = "fixed";
-                textarea.style.left = "-9999px";
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand("copy");
-                document.body.removeChild(textarea);
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 1200);
-            } catch {
-                // ignore
-            }
-        }
-    };
 
     return (
         <div className="mt-2 overflow-hidden rounded-lg border border-border bg-muted max-w-full">
@@ -376,6 +342,20 @@ export function SidebarContent({
     onRouteSelect?: () => void;
 }) {
     const API_ROUTES: ApiRoute[] = apiRoutesData as ApiRoute[];
+    const { searchQuery, setSearchQuery } = useSidebarContentState();
+
+    const filteredRoutes = React.useMemo(() => {
+        if (!searchQuery.trim()) return API_ROUTES;
+        const q = searchQuery.trim().toLowerCase();
+        return API_ROUTES.filter((route) => {
+            const pathMatch = route.path.toLowerCase().includes(q);
+            const descMatch = (route.description ?? "").toLowerCase().includes(q);
+            const notesMatch = (route.notes ?? "").toLowerCase().includes(q);
+            const methodsMatch = route.methods.some((m) => m.toLowerCase().includes(q));
+            const authMatch = (route.auth ?? "").toLowerCase().includes(q);
+            return pathMatch || descMatch || notesMatch || methodsMatch || authMatch;
+        });
+    }, [API_ROUTES, searchQuery]);
 
     const handleRouteClick = (route: ApiRoute) => {
         setSelected(route);
@@ -407,48 +387,71 @@ export function SidebarContent({
             </div>
 
             <div className="space-y-1 text-xs font-medium text-muted-foreground">
-                <div>Endpoints</div>
-                <div className="max-h-[60vh] space-y-1 overflow-auto rounded-md border border-border bg-card p-1">
-                    {API_ROUTES.map((route) => (
-                        <button
-                            key={route.path}
-                            type="button"
-                            onClick={() => handleRouteClick(route)}
-                            className={`flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent hover:text-accent-foreground ${selected?.path === route.path ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
-                                }`}
-                        >
-                            <div className="flex flex-col min-w-0 flex-1">
-                                <span className="font-mono text-[11px] sm:text-xs break-all">{route.path}</span>
-                                <span className="text-[10px] text-muted-foreground line-clamp-1">
-                                    {route.description ?? route.notes ?? ""}
-                                </span>
-                            </div>
-                            <div className="flex flex-col items-end gap-1 shrink-0">
-                                <div className="flex flex-wrap gap-1">
-                                    {route.methods.map((m) => (
-                                        <span
-                                            key={`${route.path}-${m}`}
-                                            className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${m === "GET"
-                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                                : m === "POST"
-                                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                                    : m === "PUT"
-                                                        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                                        : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
-                                                }`}
-                                        >
-                                            {m}
-                                        </span>
-                                    ))}
-                                </div>
-                                {route.auth && (
-                                    <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                                        {route.auth}
+                <div className="flex items-center justify-between gap-2">
+                    <span>Endpoints</span>
+                    {searchQuery && (
+                        <span className="text-[10px] font-normal">
+                            {filteredRoutes.length} dari {API_ROUTES.length}
+                        </span>
+                    )}
+                </div>
+                <div className="relative mb-2">
+                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Cari path, method, deskripsi..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-8 pl-8 text-xs"
+                    />
+                </div>
+                <div className="max-h-[50vh] space-y-1 overflow-auto rounded-md border border-border bg-card p-1">
+                    {filteredRoutes.length === 0 ? (
+                        <div className="py-4 text-center text-xs text-muted-foreground">
+                            Tidak ada endpoint yang cocok.
+                        </div>
+                    ) : (
+                        filteredRoutes.map((route) => (
+                            <button
+                                key={route.path}
+                                type="button"
+                                onClick={() => handleRouteClick(route)}
+                                className={`flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent hover:text-accent-foreground ${selected?.path === route.path ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
+                                    }`}
+                            >
+                                <div className="flex flex-col min-w-0 flex-1">
+                                    <span className="font-mono text-[11px] sm:text-xs break-all">{route.path}</span>
+                                    <span className="text-[10px] text-muted-foreground line-clamp-1">
+                                        {route.description ?? route.notes ?? ""}
                                     </span>
-                                )}
-                            </div>
-                        </button>
-                    ))}
+                                </div>
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                    <div className="flex flex-wrap gap-1">
+                                        {route.methods.map((m) => (
+                                            <span
+                                                key={`${route.path}-${m}`}
+                                                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${m === "GET"
+                                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                                    : m === "POST"
+                                                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                                        : m === "PUT"
+                                                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                                            : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+                                                    }`}
+                                            >
+                                                {m}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    {route.auth && (
+                                        <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[9px] text-muted-foreground">
+                                            {route.auth}
+                                        </span>
+                                    )}
+                                </div>
+                            </button>
+                        ))
+                    )}
                 </div>
             </div>
         </>

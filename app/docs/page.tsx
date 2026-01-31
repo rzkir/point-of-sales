@@ -1,7 +1,5 @@
 "use client";
 
-import * as React from "react";
-
 import { Menu } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -29,218 +27,39 @@ import { Badge, CodeBlock, SidebarContent } from "@/components/docs";
 
 import apiRoutesData from "@/app/dashboard/data.json";
 
+import { useDocsPageState } from "@/services/docs/useStateDocs";
+
 const API_ROUTES: ApiRoute[] = apiRoutesData as ApiRoute[];
 
 export default function DocsPage() {
     const defaultBaseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "";
-    const [selected, setSelected] = React.useState<ApiRoute | null>(API_ROUTES[0] ?? null);
-    const [apiSecret, setApiSecret] = React.useState("");
-    const [selectedMethod, setSelectedMethod] = React.useState<ApiMethod>("GET");
-    const [queryParams, setQueryParams] = React.useState<Array<{ key: string; value: string }>>([]);
-    const [requestBody, setRequestBody] = React.useState("");
-    const [customHeaders, setCustomHeaders] = React.useState<Array<{ key: string; value: string }>>([]);
-    const [pathParams, setPathParams] = React.useState<Record<string, string>>({});
-    const [response, setResponse] = React.useState<ApiResponse | null>(null);
-    const [loading, setLoading] = React.useState(false);
-    const [sheetOpen, setSheetOpen] = React.useState(false);
-
-    // Extract dynamic path parameters (e.g., [id], [name])
-    const extractPathParams = (path: string): string[] => {
-        const matches = path.match(/\[(\w+)\]/g);
-        if (!matches) return [];
-        return matches.map((m) => m.slice(1, -1)); // Remove brackets
-    };
-
-    // Extract query parameters from example curl command
-    const extractQueryParamsFromExample = (route: ApiRoute): Array<{ key: string; value: string }> => {
-        if (!route.example?.curl) return [];
-
-        try {
-            // Remove backslash continuation and normalize whitespace
-            const normalizedCurl = route.example.curl.replace(/\\\s*\n\s*/g, " ").trim();
-            
-            // Extract URL from curl command (between quotes)
-            // Try double quotes first, then single quotes
-            const urlMatch = normalizedCurl.match(/["']([^"']+?)["']/) || normalizedCurl.match(/["']([^"']+)["']/);
-            if (!urlMatch) return [];
-
-            let url = urlMatch[1];
-
-            // Replace {{BASE_URL}} placeholder with dummy domain
-            url = url.replace(/\{\{BASE_URL\}\}/g, "https://example.com");
-
-            // Add protocol if missing (required for URL constructor)
-            if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                url = "https://" + url;
-            }
-
-            const urlObj = new URL(url);
-            const params: Array<{ key: string; value: string }> = [];
-
-            urlObj.searchParams.forEach((value, key) => {
-                // Decode URL-encoded values (e.g., Langgeng%20Jaya%201 -> Langgeng Jaya 1)
-                params.push({ key, value: decodeURIComponent(value) });
-            });
-
-            return params;
-        } catch {
-            return [];
-        }
-    };
-
-    React.useEffect(() => {
-        if (selected) {
-            setSelectedMethod(selected.methods[0] ?? "GET");
-
-            // Extract query parameters from example if available
-            const exampleParams = extractQueryParamsFromExample(selected);
-            setQueryParams(exampleParams.length > 0 ? exampleParams : []);
-
-            setRequestBody("");
-            setCustomHeaders([]);
-            setResponse(null);
-
-            // Initialize path parameters
-            const params = extractPathParams(selected.path);
-            const initialParams: Record<string, string> = {};
-            params.forEach((param) => {
-                initialParams[param] = "";
-            });
-            setPathParams(initialParams);
-        }
-    }, [selected]);
-
-    const handleAddQueryParam = () => {
-        setQueryParams([...queryParams, { key: "", value: "" }]);
-    };
-
-    const handleUpdateQueryParam = (index: number, field: "key" | "value", value: string) => {
-        const updated = [...queryParams];
-        updated[index][field] = value;
-        setQueryParams(updated);
-    };
-
-    const handleRemoveQueryParam = (index: number) => {
-        setQueryParams(queryParams.filter((_, i) => i !== index));
-    };
-
-    const handleAddHeader = () => {
-        setCustomHeaders([...customHeaders, { key: "", value: "" }]);
-    };
-
-    const handleUpdateHeader = (index: number, field: "key" | "value", value: string) => {
-        const updated = [...customHeaders];
-        updated[index][field] = value;
-        setCustomHeaders(updated);
-    };
-
-    const handleRemoveHeader = (index: number) => {
-        setCustomHeaders(customHeaders.filter((_, i) => i !== index));
-    };
-
-    const buildUrl = () => {
-        if (!selected) return "";
-        let url = `${defaultBaseUrl}${selected.path}`;
-
-        // Replace path parameters (e.g., [id] -> actual value)
-        const pathParamsList = extractPathParams(selected.path);
-        pathParamsList.forEach((param) => {
-            const value = pathParams[param] || "";
-            url = url.replace(`[${param}]`, encodeURIComponent(value));
-        });
-
-        const validParams = queryParams.filter((p) => p.key.trim() !== "");
-        if (validParams.length > 0) {
-            const searchParams = new URLSearchParams();
-            validParams.forEach((p) => {
-                if (p.value.trim() !== "") {
-                    searchParams.append(p.key.trim(), p.value.trim());
-                }
-            });
-            url += `?${searchParams.toString()}`;
-        }
-        return url;
-    };
-
-    const handleSendRequest = async () => {
-        if (!selected) return;
-
-        setLoading(true);
-        setResponse(null);
-
-        try {
-            const url = buildUrl();
-            const headers: Record<string, string> = {
-                "Content-Type": "application/json",
-            };
-
-            // Add Bearer token if needed
-            if (selected.auth === "Bearer" && apiSecret.trim()) {
-                headers.Authorization = `Bearer ${apiSecret.trim()}`;
-            }
-
-            // Add custom headers
-            customHeaders.forEach((h) => {
-                if (h.key.trim() && h.value.trim()) {
-                    headers[h.key.trim()] = h.value.trim();
-                }
-            });
-
-            const options: RequestInit = {
-                method: selectedMethod,
-                headers,
-            };
-
-            // Add body for POST/PUT
-            if ((selectedMethod === "POST" || selectedMethod === "PUT") && requestBody.trim()) {
-                try {
-                    JSON.parse(requestBody);
-                    options.body = requestBody;
-                } catch {
-                    setResponse({
-                        status: 0,
-                        statusText: "Invalid JSON",
-                        headers: {},
-                        body: null,
-                        error: "Request body must be valid JSON",
-                    });
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            const res = await fetch(url, options);
-            const responseHeaders: Record<string, string> = {};
-            res.headers.forEach((value, key) => {
-                responseHeaders[key] = value;
-            });
-
-            let body: unknown;
-            const contentType = res.headers.get("content-type");
-            if (contentType?.includes("application/json")) {
-                body = await res.json();
-            } else {
-                body = await res.text();
-            }
-
-            setResponse({
-                status: res.status,
-                statusText: res.statusText,
-                headers: responseHeaders,
-                body,
-            });
-        } catch (error) {
-            setResponse({
-                status: 0,
-                statusText: "Error",
-                headers: {},
-                body: null,
-                error: error instanceof Error ? error.message : "Unknown error",
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
+    const {
+        selected,
+        setSelected,
+        apiSecret,
+        setApiSecret,
+        selectedMethod,
+        setSelectedMethod,
+        queryParams,
+        requestBody,
+        setRequestBody,
+        customHeaders,
+        pathParams,
+        setPathParams,
+        response,
+        loading,
+        sheetOpen,
+        setSheetOpen,
+        extractPathParams,
+        handleAddQueryParam,
+        handleUpdateQueryParam,
+        handleRemoveQueryParam,
+        handleAddHeader,
+        handleUpdateHeader,
+        handleRemoveHeader,
+        buildUrl,
+        handleSendRequest,
+    } = useDocsPageState(API_ROUTES, defaultBaseUrl);
 
     return (
         <div className="mx-auto w-full max-w-[1600px] container p-3 sm:p-4 md:p-6">
